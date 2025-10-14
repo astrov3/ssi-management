@@ -13,6 +13,7 @@ async function main() {
 		.abi;
 
 	// Contract instance connected with owner (for owner actions)
+	// 0x0D49c1e6c147280a10fdC4DeE835ec791B24189C
 	const contractOwner = new ethers.Contract(
 		process.env.CONTRACT_ADDRESS,
 		abi,

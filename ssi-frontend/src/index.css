@@ -1,2 +1,110 @@
-@import "tailwindcss";
-@plugin "daisyui";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Custom component styles */
+@layer components {
+    /* Form styles */
+    .form-input {
+        @apply block w-full px-4 py-3 text-gray-900 bg-white border border-gray-300 rounded-lg shadow-sm;
+        @apply placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+        @apply disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed;
+    }
+
+    .form-label {
+        @apply block text-sm font-semibold text-gray-700 mb-2;
+    }
+
+    /* Button styles */
+    .btn-primary {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg shadow-sm;
+        @apply hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 font-medium rounded-lg shadow-sm border border-gray-300;
+        @apply hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+
+    /* Card styles */
+    .card {
+        @apply bg-white shadow-lg rounded-lg border border-gray-200 p-6;
+    }
+
+    /* Alert styles */
+    .alert {
+        @apply p-4 rounded-lg border;
+    }
+
+    .alert-warning {
+        @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+    }
+
+    .alert-error {
+        @apply bg-red-50 border-red-200 text-red-800;
+    }
+
+    .alert-success {
+        @apply bg-green-50 border-green-200 text-green-800;
+    }
+
+    /* Modal styles */
+    .modal {
+        @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50;
+    }
+
+    .modal-content {
+        @apply bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6;
+    }
+}
+
+/* Responsive utilities */
+@layer utilities {
+    /* Text sizes */
+    .text-responsive-sm {
+        @apply text-sm sm:text-base;
+    }
+    .text-responsive-base {
+        @apply text-base sm:text-lg;
+    }
+    .text-responsive-lg {
+        @apply text-lg sm:text-xl;
+    }
+    .text-responsive-xl {
+        @apply text-xl sm:text-2xl;
+    }
+    .text-responsive-2xl {
+        @apply text-2xl sm:text-3xl lg:text-4xl;
+    }
+
+    /* Spacing */
+    .space-responsive-y {
+        @apply space-y-4 lg:space-y-6;
+    }
+    .gap-responsive {
+        @apply gap-3 sm:gap-4 lg:gap-6;
+    }
+    .gap-responsive-sm {
+        @apply gap-2 sm:gap-3;
+    }
+
+    /* Layouts */
+    .flex-responsive {
+        @apply flex flex-col sm:flex-row;
+    }
+    .grid-responsive-1 {
+        @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+    }
+    .grid-responsive-2 {
+        @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+    }
+    .grid-responsive-3 {
+        @apply grid grid-cols-1 sm:grid-cols-2;
+    }
+}
