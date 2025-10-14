@@ -1,0 +1,37 @@
+{
+  "name": "ssi-smart-contract",
+  "version": "1.0.0",
+  "description": "Smart contract for Self-Sovereign Identity (SSI) project",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy-sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "verify": "npx hardhat verify --network sepolia"
+  },
+  "keywords": [
+    "SSI",
+    "blockchain",
+    "DID",
+    "VC"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.14",
+    "@nomicfoundation/hardhat-network-helpers": "^1.1.0",
+    "@nomicfoundation/hardhat-verify": "^2.1.1",
+    "chai": "^4.5.0",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.26.0",
+    "hardhat-gas-reporter": "^2.3.0",
+    "solidity-coverage": "^0.8.16"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "dotenv": "^17.2.2"
+  }
+}
