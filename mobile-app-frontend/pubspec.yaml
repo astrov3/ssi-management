@@ -1,0 +1,46 @@
+name: ssi_app
+description: "A new Flutter project."
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  qr_flutter: ^4.1.0
+  web3dart: ^2.7.3
+  http: ^1.5.0
+  dotenv: ^4.2.0
+  flutter_dotenv: ^6.0.0
+  shared_preferences: ^2.5.3
+  bip39: ^1.0.6
+  ed25519_hd_key: ^2.3.0
+  hex: ^0.2.0
+  url_launcher: ^6.3.1
+  reown_appkit: ^1.0.1
+  crypto: ^3.0.5
+  intl: ^0.20.2
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.2
+  eth_sig_util: ^0.0.9
+  mobile_scanner: ^5.2.3
+  file_picker: ^8.1.4
+  image_picker: ^1.1.2
+  google_mlkit_text_recognition: ^0.15.0
+  # google_mlkit_text_recognition: ^0.11.1  # Uncomment when ready to use OCR
+  # Note: To enable OCR, uncomment the line above and run: flutter pub get
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - IdentityManager.json

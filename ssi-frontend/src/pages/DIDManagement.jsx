@@ -4,9 +4,10 @@ import {
     Eye,
     Plus,
     QrCode,
+    Trash2,
     XCircle
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import QRDisplay from '../components/QRDisplay';
 import QRScanner from '../components/QRScanner';
@@ -16,6 +17,7 @@ const DIDManagement = () => {
     const {
         isConnected,
         connectWallet,
+        account,
         currentOrgID,
         setCurrentOrgID,
         didData,
@@ -27,11 +29,19 @@ const DIDManagement = () => {
 
     const [showRegisterForm, setShowRegisterForm] = useState(false);
     const [showQRDisplay, setShowQRDisplay] = useState(false);
+    const [showUpdateForm, setShowUpdateForm] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [formData, setFormData] = useState({
         orgID: '',
-        data: ''
+        serviceEndpoint: '',
+        alsoKnownAs: '',
+        description: ''
     });
+    const [metadataFields, setMetadataFields] = useState([
+        { key: 'name', value: '' },
+        { key: 'email', value: '' }
+    ]);
+    const [orgIdError, setOrgIdError] = useState('');
 
     useEffect(() => {
         if (!isConnected) {
@@ -39,19 +49,98 @@ const DIDManagement = () => {
         }
     }, [isConnected, connectWallet]);
 
-    const handleRegisterDID = async (e) => {
-        e.preventDefault();
+    const orgIdPattern = useMemo(() => /^[a-zA-Z0-9_.-]{3,64}$|^0x[a-fA-F0-9]{40}$/, []);
 
-        if (!formData.orgID.trim() || !formData.data.trim()) {
-            toast.error('Please fill in all fields');
+    const validateOrgId = (value) => {
+        if (!value.trim()) {
+            setOrgIdError('Organization ID is required');
+            return false;
+        }
+
+        if (!orgIdPattern.test(value.trim())) {
+            setOrgIdError('Use 3-64 characters (letters, numbers, ".", "-", "_") or a wallet address');
+            return false;
+        }
+
+        setOrgIdError('');
+        return true;
+    };
+
+    const handleUseWalletAddress = () => {
+        if (!account) {
+            toast.error('Connect wallet first');
             return;
         }
 
-        const success = await registerDID(formData.orgID, formData.data);
+        setFormData((prev) => ({
+            ...prev,
+            orgID: account
+        }));
+        setOrgIdError('');
+        toast.success('Organization ID set to your wallet address');
+    };
+
+    const handleMetadataChange = (index, field, value) => {
+        setMetadataFields((prev) => {
+            const next = [...prev];
+            next[index] = {
+                ...next[index],
+                [field]: value
+            };
+            return next;
+        });
+    };
+
+    const handleAddMetadataField = () => {
+        setMetadataFields((prev) => [...prev, { key: '', value: '' }]);
+    };
+
+    const handleRemoveMetadataField = (index) => {
+        setMetadataFields((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handleRegisterDID = async (e) => {
+        e.preventDefault();
+
+        if (!validateOrgId(formData.orgID)) {
+            return;
+        }
+
+        const customData = metadataFields.reduce((acc, field) => {
+            const key = field.key.trim();
+            const value = field.value.trim();
+            if (key && value) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+
+        const payload = {
+            serviceEndpoint: formData.serviceEndpoint.trim() || undefined,
+            description: formData.description.trim() || undefined,
+            alsoKnownAs: formData.alsoKnownAs
+                ? formData.alsoKnownAs
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+                : undefined,
+            ...customData
+        };
+
+        const success = await registerDID(formData.orgID.trim(), payload);
         if (success) {
-            setCurrentOrgID(formData.orgID);
+            setCurrentOrgID(formData.orgID.trim());
             setShowRegisterForm(false);
-            setFormData({ orgID: '', data: '' });
+            setFormData({
+                orgID: '',
+                serviceEndpoint: '',
+                alsoKnownAs: '',
+                description: ''
+            });
+            setMetadataFields([
+                { key: 'name', value: '' },
+                { key: 'email', value: '' }
+            ]);
             toast.success('DID registered successfully');
         }
     };
@@ -59,14 +148,13 @@ const DIDManagement = () => {
     const handleCheckDID = async (e) => {
         e.preventDefault();
 
-        if (!formData.orgID.trim()) {
-            toast.error('Please enter an Organization ID');
+        if (!validateOrgId(formData.orgID)) {
             return;
         }
 
-        const did = await checkDID(formData.orgID);
+        const did = await checkDID(formData.orgID.trim());
         if (did) {
-            setCurrentOrgID(formData.orgID);
+            setCurrentOrgID(formData.orgID.trim());
             toast.success('DID checked successfully');
         }
     };
@@ -75,8 +163,14 @@ const DIDManagement = () => {
         if (data.type === 'DID') {
             setFormData({
                 orgID: data.orgID,
-                data: ''
+                serviceEndpoint: '',
+                alsoKnownAs: '',
+                description: ''
             });
+            setMetadataFields([
+                { key: 'name', value: '' },
+                { key: 'email', value: '' }
+            ]);
             setCurrentOrgID(data.orgID);
             toast.success('DID data loaded from QR code');
         } else {
@@ -161,14 +255,25 @@ const DIDManagement = () => {
                             type="text"
                             id="orgID"
                             value={formData.orgID}
-                            onChange={(e) => setFormData({ ...formData, orgID: e.target.value })}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setFormData({ ...formData, orgID: value });
+                                if (orgIdError) {
+                                    validateOrgId(value);
+                                }
+                            }}
                             className="form-input"
                             placeholder="Enter your organization ID"
                             disabled={!isConnected || loading}
                         />
+                        {orgIdError && (
+                            <p className="mt-1 text-xs text-error">
+                                {orgIdError}
+                            </p>
+                        )}
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex flex-wrap gap-3">
                         <button
                             type="submit"
                             disabled={!isConnected || loading}
@@ -176,6 +281,14 @@ const DIDManagement = () => {
                         >
                             {loading ? 'Checking...' : 'Check DID'}
                             <Eye className="h-4 w-4 ml-2" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleUseWalletAddress}
+                            disabled={!isConnected || loading || !account}
+                            className="btn-outline"
+                        >
+                            Use wallet address
                         </button>
                     </div>
                 </form>
@@ -193,6 +306,13 @@ const DIDManagement = () => {
                             >
                                 <QrCode className="h-4 w-4 mr-2" />
                                 Show QR
+                            </button>
+                            <button
+                                onClick={() => setShowUpdateForm(true)}
+                                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Update DID
                             </button>
                         </div>
                     </div>
@@ -253,60 +373,168 @@ const DIDManagement = () => {
 
             {/* Register DID Modal */}
             {showRegisterForm && (
-                <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div className="mt-3">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Register New DID</h3>
+                <div
+                    className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setShowRegisterForm(false);
+                        }
+                    }}
+                >
+                    <div className="relative top-16 mx-auto p-6 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Register New DID</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Structure your DID document with friendly form controls. Optional fields help enrich the DID metadata.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowRegisterForm(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                aria-label="Close"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                            <form onSubmit={handleRegisterDID} className="space-y-4">
+                        <form onSubmit={handleRegisterDID} className="space-y-5">
+                            <div>
+                                <label htmlFor="registerOrgID" className="form-label">
+                                    Organization ID
+                                </label>
+                                <input
+                                    type="text"
+                                    id="registerOrgID"
+                                    value={formData.orgID}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({ ...formData, orgID: value });
+                                        if (orgIdError) {
+                                            validateOrgId(value);
+                                        }
+                                    }}
+                                    className="form-input"
+                                    placeholder="Enter organization ID"
+                                    required
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Use 3-64 characters (letters, numbers, \".\", \"-\", \"_\") or your wallet address.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="registerOrgID" className="form-label">
-                                        Organization ID
+                                    <label htmlFor="serviceEndpoint" className="form-label">
+                                        Service Endpoint (optional)
                                     </label>
                                     <input
-                                        type="text"
-                                        id="registerOrgID"
-                                        value={formData.orgID}
-                                        onChange={(e) => setFormData({ ...formData, orgID: e.target.value })}
+                                        id="serviceEndpoint"
+                                        type="url"
+                                        value={formData.serviceEndpoint}
+                                        onChange={(e) => setFormData({ ...formData, serviceEndpoint: e.target.value })}
                                         className="form-input"
-                                        placeholder="Enter organization ID"
-                                        required
+                                        placeholder="https://example.com/ssi"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Provide a URL where verifiers can reach your SSI services.
+                                    </p>
                                 </div>
-
                                 <div>
-                                    <label htmlFor="didData" className="form-label">
-                                        DID Data
+                                    <label htmlFor="alsoKnownAs" className="form-label">
+                                        Also Known As (optional)
                                     </label>
-                                    <textarea
-                                        id="didData"
-                                        rows={3}
-                                        value={formData.data}
-                                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                                    <input
+                                        id="alsoKnownAs"
+                                        type="text"
+                                        value={formData.alsoKnownAs}
+                                        onChange={(e) => setFormData({ ...formData, alsoKnownAs: e.target.value })}
                                         className="form-input"
-                                        placeholder="Enter DID data (JSON or text)"
-                                        required
+                                        placeholder="Comma-separated domains or handles"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Example: org.com, twitter.com/yourorg, github.com/yourorg
+                                    </p>
                                 </div>
+                            </div>
 
-                                <div className="flex justify-end space-x-3 pt-4">
+                            <div>
+                                <label htmlFor="didDescription" className="form-label">
+                                    Organization Description
+                                </label>
+                                <textarea
+                                    id="didDescription"
+                                    rows={3}
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    className="form-input"
+                                    placeholder="Brief description about your organization"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="form-label mb-0">Contact & Metadata</label>
                                     <button
                                         type="button"
-                                        onClick={() => setShowRegisterForm(false)}
-                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                        onClick={handleAddMetadataField}
+                                        className="btn-ghost btn-sm inline-flex items-center gap-1"
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                                    >
-                                        {loading ? 'Registering...' : 'Register DID'}
+                                        <Plus className="w-4 h-4" />
+                                        Add field
                                     </button>
                                 </div>
-                            </form>
-                        </div>
+                                <div className="space-y-3">
+                                    {metadataFields.map((field, index) => (
+                                        <div key={`metadata-${index}`} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+                                            <input
+                                                type="text"
+                                                value={field.key}
+                                                onChange={(e) => handleMetadataChange(index, 'key', e.target.value)}
+                                                className="form-input"
+                                                placeholder="Field name (e.g., phone, supportEmail)"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={field.value}
+                                                onChange={(e) => handleMetadataChange(index, 'value', e.target.value)}
+                                                className="form-input"
+                                                placeholder="Field value"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveMetadataField(index)}
+                                                className="btn-ghost text-error px-3 py-2 rounded-md hover:bg-error/10"
+                                                aria-label="Remove field"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    These fields become part of the DID metadata (e.g., contact email, support phone).
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRegisterForm(false)}
+                                    className="btn-secondary btn-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="btn-primary btn-sm"
+                                >
+                                    {loading ? 'Registering...' : 'Register DID'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -341,6 +569,170 @@ const DIDManagement = () => {
                     onClose={() => setShowScanner(false)}
                     title="Scan DID QR Code"
                 />
+            )}
+
+            {/* Update DID Modal */}
+            {showUpdateForm && (
+                <div
+                    className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setShowUpdateForm(false);
+                        }
+                    }}
+                >
+                    <div className="relative top-16 mx-auto p-6 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Update DID</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Add or modify metadata. This will upload a new DID Document and update the on-chain hash and URI.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowUpdateForm(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                aria-label="Close"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                const customData = metadataFields.reduce((acc, field) => {
+                                    const key = field.key.trim();
+                                    const value = field.value.trim();
+                                    if (key && value) acc[key] = value;
+                                    return acc;
+                                }, {});
+
+                                const payload = {
+                                    serviceEndpoint: formData.serviceEndpoint.trim() || undefined,
+                                    description: formData.description.trim() || undefined,
+                                    alsoKnownAs: formData.alsoKnownAs
+                                        ? formData.alsoKnownAs
+                                            .split(',')
+                                            .map((item) => item.trim())
+                                            .filter(Boolean)
+                                        : undefined,
+                                    ...customData
+                                };
+
+                                const ok = await useStore.getState().updateDID(currentOrgID, payload);
+                                if (ok) {
+                                    setShowUpdateForm(false);
+                                    toast.success('DID updated');
+                                }
+                            }}
+                            className="space-y-5"
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="updServiceEndpoint" className="form-label">
+                                        Service Endpoint (optional)
+                                    </label>
+                                    <input
+                                        id="updServiceEndpoint"
+                                        type="url"
+                                        value={formData.serviceEndpoint}
+                                        onChange={(e) => setFormData({ ...formData, serviceEndpoint: e.target.value })}
+                                        className="form-input"
+                                        placeholder="https://example.com/ssi"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="updAlsoKnownAs" className="form-label">
+                                        Also Known As (optional)
+                                    </label>
+                                    <input
+                                        id="updAlsoKnownAs"
+                                        type="text"
+                                        value={formData.alsoKnownAs}
+                                        onChange={(e) => setFormData({ ...formData, alsoKnownAs: e.target.value })}
+                                        className="form-input"
+                                        placeholder="Comma-separated domains or handles"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="updDescription" className="form-label">
+                                    Organization Description
+                                </label>
+                                <textarea
+                                    id="updDescription"
+                                    rows={3}
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    className="form-input"
+                                    placeholder="Brief description or updates"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="form-label mb-0">Contact & Metadata</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddMetadataField}
+                                        className="btn-ghost btn-sm inline-flex items-center gap-1"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add field
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    {metadataFields.map((field, index) => (
+                                        <div key={`upd-metadata-${index}`} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+                                            <input
+                                                type="text"
+                                                value={field.key}
+                                                onChange={(e) => handleMetadataChange(index, 'key', e.target.value)}
+                                                className="form-input"
+                                                placeholder="Field name (e.g., phone, supportEmail)"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={field.value}
+                                                onChange={(e) => handleMetadataChange(index, 'value', e.target.value)}
+                                                className="form-input"
+                                                placeholder="Field value"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveMetadataField(index)}
+                                                className="btn-ghost text-error px-3 py-2 rounded-md hover:bg-error/10"
+                                                aria-label="Remove field"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUpdateForm(false)}
+                                    className="btn-secondary btn-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="btn-primary btn-sm"
+                                >
+                                    {loading ? 'Updating...' : 'Update DID'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -6,6 +6,32 @@ import QRCode from 'qrcode';
  * @param {Object} options - QR code options
  * @returns {Promise<string>} - Data URL of the QR code
  */
+const sanitizePayload = (input) => {
+  const replacer = (_key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (value === undefined) {
+      return null;
+    }
+    return value;
+  };
+
+  if (typeof input === 'string') {
+    return input.trim();
+  }
+
+  try {
+    return JSON.stringify(input, replacer);
+  } catch (error) {
+    console.error('Error serializing QR payload:', error, input);
+    throw new Error('Failed to serialize QR code payload');
+  }
+};
+
 export const generateQRCode = async (data, options = {}) => {
   const defaultOptions = {
     width: import.meta.env.VITE_QR_CODE_SIZE || 200,
@@ -18,7 +44,14 @@ export const generateQRCode = async (data, options = {}) => {
   };
 
   try {
-    const qrCodeDataURL = await QRCode.toDataURL(data, {
+    // Ensure data is a string and not empty
+    const payload = sanitizePayload(data);
+
+    if (!payload || payload.length === 0) {
+      throw new Error('QR payload is empty');
+    }
+
+    const qrCodeDataURL = await QRCode.toDataURL(payload, {
       ...defaultOptions,
       ...options
     });
@@ -126,5 +159,5 @@ export const validateQRCodeData = (data) => {
     return false;
   }
 
-  return fields.every(field => data.hasOwnProperty(field));
+  return fields.every(field => Object.prototype.hasOwnProperty.call(data, field));
 };

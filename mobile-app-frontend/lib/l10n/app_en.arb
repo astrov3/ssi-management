@@ -1,0 +1,775 @@
+{
+  "@@locale": "en",
+  "appTitle": "SSI Blockchain",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  
+  "welcomeBack": "Welcome back",
+  "@welcomeBack": {
+    "description": "Login screen welcome message"
+  },
+  "loginToIdentityWallet": "Login to your identity wallet",
+  "@loginToIdentityWallet": {
+    "description": "Login screen subtitle"
+  },
+  "privateKeyOrMnemonic": "Private Key or Mnemonic (12 words)",
+  "@privateKeyOrMnemonic": {
+    "description": "Placeholder for private key input"
+  },
+  "or": "or",
+  "@or": {
+    "description": "Divider text between login options"
+  },
+  "connectWithMetaMask": "Connect with MetaMask",
+  "@connectWithMetaMask": {
+    "description": "MetaMask connection button"
+  },
+  "connectWithTrustWallet": "Connect with Trust Wallet",
+  "@connectWithTrustWallet": {
+    "description": "Trust Wallet connection button"
+  },
+  "login": "Login",
+  "@login": {
+    "description": "Login button text"
+  },
+  "loggingIn": "Logging in...",
+  "@loggingIn": {
+    "description": "Login button loading state"
+  },
+  "pleaseEnterPrivateKeyOrMnemonic": "Please enter Private Key or Mnemonic",
+  "@pleaseEnterPrivateKeyOrMnemonic": {
+    "description": "Validation error for empty private key"
+  },
+  "loginError": "Login error: Invalid Private Key or Mnemonic",
+  "@loginError": {
+    "description": "Login error message"
+  },
+  "metamaskConnectionFailed": "MetaMask connection failed",
+  "@metamaskConnectionFailed": {
+    "description": "MetaMask connection error"
+  },
+  "cannotGetWalletInfoFromMetamask": "Cannot get wallet information from MetaMask. Please ensure MetaMask is installed and logged in.",
+  "@cannotGetWalletInfoFromMetamask": {
+    "description": "MetaMask error message for account issues"
+  },
+  "metamaskConnectionInterrupted": "MetaMask connection interrupted. Please try again.",
+  "@metamaskConnectionInterrupted": {
+    "description": "MetaMask session error"
+  },
+  "trustWalletConnectionFailed": "Trust Wallet connection failed",
+  "@trustWalletConnectionFailed": {
+    "description": "Trust Wallet connection error"
+  },
+  "cannotGetWalletInfoFromTrustWallet": "Cannot get wallet information from Trust Wallet. Please ensure Trust Wallet is installed and logged in.",
+  "@cannotGetWalletInfoFromTrustWallet": {
+    "description": "Trust Wallet error message"
+  },
+  "trustWalletConnectionTimeout": "Trust Wallet connection timed out. Please ensure Trust Wallet is opened and accepts the connection.",
+  "@trustWalletConnectionTimeout": {
+    "description": "Trust Wallet timeout error"
+  },
+  
+  "hello": "Hello,",
+  "@hello": {
+    "description": "Dashboard greeting"
+  },
+  "user": "User",
+  "@user": {
+    "description": "Default user name"
+  },
+  "identityWallet": "Identity Wallet",
+  "@identityWallet": {
+    "description": "Wallet card title"
+  },
+  "sepoliaTestnet": "Sepolia Testnet",
+  "@sepoliaTestnet": {
+    "description": "Network name"
+  },
+  "statistics": "Statistics",
+  "@statistics": {
+    "description": "Statistics section title"
+  },
+  "credentials": "Credentials",
+  "@credentials": {
+    "description": "Credentials stat card"
+  },
+  "verified": "Verified",
+  "@verified": {
+    "description": "Verified stat card"
+  },
+  "balance": "Balance",
+  "@balance": {
+    "description": "Balance stat card"
+  },
+  "registerDid": "Register DID",
+  "@registerDid": {
+    "description": "Register DID action"
+  },
+  "quickActions": "Quick Actions",
+  "@quickActions": {
+    "description": "Quick actions section title"
+  },
+  "manageDid": "Manage DID",
+  "@manageDid": {
+    "description": "Manage DID action"
+  },
+  "viewAndManageYourDid": "View and manage your DID",
+  "@viewAndManageYourDid": {
+    "description": "Manage DID subtitle"
+  },
+  "issueCredential": "Issue Credential",
+  "@issueCredential": {
+    "description": "Issue credential action"
+  },
+  "createAndIssueNewVC": "Create and issue new VC",
+  "@createAndIssueNewVC": {
+    "description": "Issue credential subtitle"
+  },
+  "registerDidOnBlockchain": "Register identity on blockchain",
+  "@registerDidOnBlockchain": {
+    "description": "Register DID subtitle"
+  },
+  "loadingData": "Loading data...",
+  "@loadingData": {
+    "description": "Loading indicator text"
+  },
+  "didRegistered": "DID has been registered! TX: {txHash}",
+  "@didRegistered": {
+    "description": "DID registration success message",
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "vcIssued": "VC has been issued! TX: {txHash}",
+  "@vcIssued": {
+    "description": "VC issue success message",
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Error dialog title"
+  },
+  "errorOccurred": "Error: {error}",
+  "@errorOccurred": {
+    "description": "Error message with error detail",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+  "organizationId": "Organization ID",
+  "@organizationId": {
+    "description": "Organization ID label"
+  },
+  "didUri": "DID URI (IPFS/URL)",
+  "@didUri": {
+    "description": "DID URI input label"
+  },
+  "vcUri": "VC URI (IPFS/URL)",
+  "@vcUri": {
+    "description": "VC URI input label"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "register": "Register",
+  "@register": {
+    "description": "Register button"
+  },
+  "issue": "Issue",
+  "@issue": {
+    "description": "Issue button"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Processing indicator"
+  },
+  "addressCopied": "Address copied",
+  "@addressCopied": {
+    "description": "Address copied message"
+  },
+  "didStatus": "DID Status",
+  "@didStatus": {
+    "description": "DID status card title"
+  },
+  "active": "Active",
+  "@active": {
+    "description": "Active status"
+  },
+  "inactive": "Inactive",
+  "@inactive": {
+    "description": "Inactive status"
+  },
+  "owner": "Owner",
+  "@owner": {
+    "description": "Owner badge"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile screen title"
+  },
+  "walletInfo": "Wallet Info",
+  "@walletInfo": {
+    "description": "Wallet info option"
+  },
+  "changeWalletName": "Change Wallet Name",
+  "@changeWalletName": {
+    "description": "Change wallet name option"
+  },
+  "backupKeys": "Backup Keys",
+  "@backupKeys": {
+    "description": "Backup keys option"
+  },
+  "security": "Security",
+  "@security": {
+    "description": "Security option"
+  },
+  "transactionHistory": "Transaction History",
+  "@transactionHistory": {
+    "description": "Transaction history option"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings option"
+  },
+  "help": "Help",
+  "@help": {
+    "description": "Help option"
+  },
+  "soon": "Soon",
+  "@soon": {
+    "description": "Coming soon badge"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button"
+  },
+  "confirmLogout": "Confirm Logout",
+  "@confirmLogout": {
+    "description": "Logout confirmation dialog title"
+  },
+  "confirmLogoutMessage": "Are you sure you want to logout?\n\nMake sure you have backed up your Private Key or Mnemonic.",
+  "@confirmLogoutMessage": {
+    "description": "Logout confirmation message"
+  },
+  "walletAddress": "Wallet Address",
+  "@walletAddress": {
+    "description": "Wallet address label"
+  },
+  "doNotShareThisInfo": "Do not share this information with anyone!",
+  "@doNotShareThisInfo": {
+    "description": "Security warning"
+  },
+  "changeWalletNameTitle": "Change Wallet Name",
+  "@changeWalletNameTitle": {
+    "description": "Change wallet name dialog title"
+  },
+  "walletName": "Wallet Name",
+  "@walletName": {
+    "description": "Wallet name label"
+  },
+  "enterWalletName": "Enter a name for your wallet",
+  "@enterWalletName": {
+    "description": "Wallet name placeholder"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Address label"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  "walletNameSaved": "Wallet name saved",
+  "@walletNameSaved": {
+    "description": "Wallet name saved message"
+  },
+  "backupKeysTitle": "Backup Keys",
+  "@backupKeysTitle": {
+    "description": "Backup keys dialog title"
+  },
+  "importantSaveInfo": "IMPORTANT: Save this information in a safe place!",
+  "@importantSaveInfo": {
+    "description": "Backup keys warning"
+  },
+  "recoveryPhrase": "Recovery Phrase (12 words):",
+  "@recoveryPhrase": {
+    "description": "Recovery phrase label"
+  },
+  "mnemonicCopied": "Mnemonic copied",
+  "@mnemonicCopied": {
+    "description": "Mnemonic copied message"
+  },
+  "mnemonicNotAvailable": "Mnemonic not available.\nYou may have imported wallet using Private Key.",
+  "@mnemonicNotAvailable": {
+    "description": "Mnemonic unavailable message"
+  },
+  "noWalletConnected": "No wallet connected",
+  "@noWalletConnected": {
+    "description": "No wallet message"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading state"
+  },
+  
+  "verification": "Verification",
+  "@verification": {
+    "description": "Verification screen title"
+  },
+  "myQrCode": "My QR Code",
+  "@myQrCode": {
+    "description": "QR code title"
+  },
+  "shareQrCodeMessage": "Share this QR code so others can verify your identity",
+  "@shareQrCodeMessage": {
+    "description": "QR code sharing message"
+  },
+  "verifyVC": "Verify VC",
+  "@verifyVC": {
+    "description": "Verify VC button"
+  },
+  "manualInput": "Manual Input",
+  "@manualInput": {
+    "description": "Manual input button"
+  },
+  "scanQr": "Scan QR",
+  "@scanQr": {
+    "description": "Scan QR dialog title"
+  },
+  "qrScanningFeatureComingSoon": "QR scanning feature will be integrated in the next version",
+  "@qrScanningFeatureComingSoon": {
+    "description": "QR scanning coming soon message"
+  },
+  "youCanUseManualInput": "Currently you can use the \"Manual Input\" feature",
+  "@youCanUseManualInput": {
+    "description": "Manual input suggestion"
+  },
+  "verifyVCTitle": "Verify VC",
+  "@verifyVCTitle": {
+    "description": "Verify VC dialog title"
+  },
+  "vcIndex": "VC Index",
+  "@vcIndex": {
+    "description": "VC index label"
+  },
+  "credentialHash": "Credential Hash",
+  "@credentialHash": {
+    "description": "Credential hash label"
+  },
+  
+  "hashCopied": "Hash copied",
+  "@hashCopied": {
+    "description": "Hash copied message"
+  },
+  "universityDegree": "University Degree",
+  "@universityDegree": {
+    "description": "Credential type"
+  },
+  "professionalCertificate": "Professional Certificate",
+  "@professionalCertificate": {
+    "description": "Credential type"
+  },
+  "idCard": "ID Card",
+  "@idCard": {
+    "description": "Credential type"
+  },
+  "driversLicense": "Driver's License",
+  "@driversLicense": {
+    "description": "Credential type"
+  },
+  "healthInsurance": "Health Insurance",
+  "@healthInsurance": {
+    "description": "Credential type"
+  },
+  "membershipCard": "Membership Card",
+  "@membershipCard": {
+    "description": "Credential type"
+  },
+  "certificate": "Certificate",
+  "@certificate": {
+    "description": "Credential type"
+  },
+  "badge": "Badge",
+  "@badge": {
+    "description": "Credential type"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language option"
+  },
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  "network": "Network",
+  "@network": {
+    "description": "Network label"
+  },
+  "verify": "Verify",
+  "@verify": {
+    "description": "Verify button"
+  },
+  "verificationError": "Verification error: {error}",
+  "@verificationError": {
+    "description": "Verification error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "valid": "Valid",
+  "@valid": {
+    "description": "Valid status"
+  },
+  "invalid": "Invalid",
+  "@invalid": {
+    "description": "Invalid status"
+  },
+  "credentialVerified": "This credential has been verified and is valid",
+  "@credentialVerified": {
+    "description": "Credential verified message"
+  },
+  "credentialInvalid": "This credential is invalid or has been revoked",
+  "@credentialInvalid": {
+    "description": "Credential invalid message"
+  },
+  "invalidIndex": "Invalid index",
+  "@invalidIndex": {
+    "description": "Invalid index error"
+  },
+  "loadingCredentials": "Loading credentials...",
+  "@loadingCredentials": {
+    "description": "Loading credentials message"
+  },
+  "noCredentials": "No credentials",
+  "@noCredentials": {
+    "description": "No credentials message"
+  },
+  "pressAddToAddCredential": "Press the + button to add a new credential",
+  "@pressAddToAddCredential": {
+    "description": "Press add to add credential message"
+  },
+  "pleaseConnectWallet": "Please connect wallet first",
+  "@pleaseConnectWallet": {
+    "description": "Please connect wallet message"
+  },
+  "creatingVCAndUploading": "Creating VC and uploading to IPFS...",
+  "@creatingVCAndUploading": {
+    "description": "Creating VC and uploading message"
+  },
+  "revokingVC": "Revoking VC...",
+  "@revokingVC": {
+    "description": "Revoking VC message"
+  },
+  "vcRevoked": "VC has been revoked! TX: {txHash}",
+  "@vcRevoked": {
+    "description": "VC revoked message",
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "issuer": "Issuer",
+  "@issuer": {
+    "description": "Issuer label"
+  },
+  "index": "Index",
+  "@index": {
+    "description": "Index label"
+  },
+  "copyHash": "Copy Hash",
+  "@copyHash": {
+    "description": "Copy hash button"
+  },
+  "revoke": "Revoke",
+  "@revoke": {
+    "description": "Revoke button"
+  },
+  "revoked": "Revoked",
+  "@revoked": {
+    "description": "Revoked status"
+  },
+  "issueNewVC": "Issue New VC",
+  "@issueNewVC": {
+    "description": "Issue new VC dialog title"
+  },
+  "credentialType": "Credential Type",
+  "@credentialType": {
+    "description": "Credential type label"
+  },
+  "credentialName": "Credential Name",
+  "@credentialName": {
+    "description": "Credential name label"
+  },
+  "description": "Description",
+  "@description": {
+    "description": "Description label"
+  },
+  "exampleEducationalCredential": "Example: EducationalCredential, ProfessionalCredential",
+  "@exampleEducationalCredential": {
+    "description": "Example for credential type"
+  },
+  "exampleUniversityDegree": "Example: University Degree",
+  "@exampleUniversityDegree": {
+    "description": "Example for credential name"
+  },
+  "credentialDescription": "Detailed description of the credential",
+  "@credentialDescription": {
+    "description": "Credential description hint"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Unknown value"
+  },
+  "overview": "Overview",
+  "@overview": {
+    "description": "Bottom navigation bar label for dashboard/overview"
+  },
+  "createNewWallet": "Create New Wallet",
+  "@createNewWallet": {
+    "description": "Create wallet screen title"
+  },
+  "createDecentralizedIdentity": "Create decentralized\nidentity",
+  "@createDecentralizedIdentity": {
+    "description": "Create wallet screen subtitle"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name label"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password label"
+  },
+  "createWallet": "Create Wallet",
+  "@createWallet": {
+    "description": "Create wallet button"
+  },
+  "pleaseFillAllFields": "Please fill in all fields",
+  "@pleaseFillAllFields": {
+    "description": "Validation error for empty fields"
+  },
+  "walletCreationError": "Wallet creation error: {error}",
+  "@walletCreationError": {
+    "description": "Wallet creation error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "walletCreated": "Wallet Created",
+  "@walletCreated": {
+    "description": "Wallet created success title"
+  },
+  "yourWalletAddress": "Your wallet address:",
+  "@yourWalletAddress": {
+    "description": "Wallet address label"
+  },
+  "saveRecoveryPhrase": "Save the recovery phrase below!",
+  "@saveRecoveryPhrase": {
+    "description": "Save recovery phrase warning"
+  },
+  "recoveryPhraseCopied": "Recovery phrase copied",
+  "@recoveryPhraseCopied": {
+    "description": "Recovery phrase copied message"
+  },
+  "continueButton": "Continue",
+  "@continueButton": {
+    "description": "Continue button"
+  },
+  "unlockWallet": "Unlock Wallet",
+  "@unlockWallet": {
+    "description": "Unlock wallet screen title"
+  },
+  "authenticateToAccessWallet": "Authenticate to access your wallet",
+  "@authenticateToAccessWallet": {
+    "description": "Authentication screen subtitle"
+  },
+  "useBiometric": "Use Biometric",
+  "@useBiometric": {
+    "description": "Biometric authentication button"
+  },
+  "unlock": "Unlock",
+  "@unlock": {
+    "description": "Unlock button"
+  },
+  "authenticating": "Authenticating...",
+  "@authenticating": {
+    "description": "Authentication button loading state"
+  },
+  "pleaseEnterPassword": "Please enter your password",
+  "@pleaseEnterPassword": {
+    "description": "Validation error for empty password"
+  },
+  "incorrectPassword": "Incorrect password. Please try again.",
+  "@incorrectPassword": {
+    "description": "Incorrect password error message"
+  },
+  "biometricAuthenticationFailed": "Biometric authentication failed. Please try again or use password.",
+  "@biometricAuthenticationFailed": {
+    "description": "Biometric authentication error message"
+  },
+  "authenticationError": "Authentication error. Please try again.",
+  "@authenticationError": {
+    "description": "General authentication error message"
+  },
+  "setupPassword": "Set up Password",
+  "@setupPassword": {
+    "description": "Setup password dialog title"
+  },
+  "setupPasswordDescription": "Set a password to secure your wallet. You'll need this password to unlock your wallet in future sessions.",
+  "@setupPasswordDescription": {
+    "description": "Setup password dialog description"
+  },
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": {
+    "description": "Confirm password label"
+  },
+  "passwordsDoNotMatch": "Passwords do not match. Please try again.",
+  "@passwordsDoNotMatch": {
+    "description": "Password mismatch error"
+  },
+  "enableBiometric": "Enable Biometric Authentication",
+  "@enableBiometric": {
+    "description": "Enable biometric checkbox label"
+  },
+  "biometricDescription": "Use fingerprint or face recognition to quickly unlock your wallet",
+  "@biometricDescription": {
+    "description": "Biometric authentication description"
+  },
+  "setup": "Setup",
+  "@setup": {
+    "description": "Setup button"
+  },
+  "skip": "Skip",
+  "@skip": {
+    "description": "Skip button"
+  },
+  "biometricNotAvailable": "Biometric authentication is not available on this device",
+  "@biometricNotAvailable": {
+    "description": "Biometric not available message"
+  },
+  "forgotPassword": "Forgot Password",
+  "@forgotPassword": {
+    "description": "Forgot password link"
+  },
+  "changeAccount": "Change Account",
+  "@changeAccount": {
+    "description": "Change account link"
+  },
+  "support": "Support",
+  "@support": {
+    "description": "Support option"
+  },
+  "about": "About",
+  "@about": {
+    "description": "About option"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy link"
+  },
+  "authenticate": "Authenticate",
+  "@authenticate": {
+    "description": "Authenticate title"
+  },
+  "tapFingerprintToAuthenticate": "Tap your fingerprint to authenticate",
+  "@tapFingerprintToAuthenticate": {
+    "description": "Fingerprint authentication instruction"
+  },
+  "tapFaceIdToAuthenticate": "Look at the screen to authenticate with Face ID",
+  "@tapFaceIdToAuthenticate": {
+    "description": "Face ID authentication instruction"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+  "changeAccountDescription": "Enter your private key or mnemonic and set a new password to change account",
+  "@changeAccountDescription": {
+    "description": "Change account screen description"
+  },
+  "resetPasswordDescription": "Enter your private key or mnemonic to reset your password",
+  "@resetPasswordDescription": {
+    "description": "Reset password screen description"
+  },
+  "newPassword": "New Password",
+  "@newPassword": {
+    "description": "New password label"
+  },
+  "resetPassword": "Reset Password",
+  "@resetPassword": {
+    "description": "Reset password button"
+  },
+  "passwordResetSuccess": "Password reset successfully",
+  "@passwordResetSuccess": {
+    "description": "Password reset success message"
+  },
+  "enterPrivateKeyOrMnemonic": "Enter private key or mnemonic phrase",
+  "@enterPrivateKeyOrMnemonic": {
+    "description": "Private key or mnemonic hint"
+  },
+  "success": "Success",
+  "@success": {
+    "description": "Success title"
+  },
+  "useBiometricLogin": "Use Biometric",
+  "@useBiometricLogin": {
+    "description": "Use biometric login text"
+  },
+  "enterFullName": "Enter your full name",
+  "@enterFullName": {
+    "description": "Full name input hint"
+  },
+  "enterEmail": "Enter your email",
+  "@enterEmail": {
+    "description": "Email input hint"
+  },
+  "invalidQRCode": "Invalid QR Code",
+  "@invalidQRCode": {
+    "description": "Invalid QR code dialog title"
+  },
+  "invalidQRCodeMessage": "The scanned QR code does not contain valid SSI data. Please scan a valid DID, VC, or verification request QR code.",
+  "@invalidQRCodeMessage": {
+    "description": "Invalid QR code error message"
+  },
+  "positionQRCodeInFrame": "Position the QR code within the frame to scan",
+  "@positionQRCodeInFrame": {
+    "description": "QR scanner instruction"
+  },
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+  "details": "Details",
+  "@details": {
+    "description": "Details label"
+  },
+  "verifiableCredential": "Verifiable Credential",
+  "@verifiableCredential": {
+    "description": "Verifiable credential label"
+  }
+}
+

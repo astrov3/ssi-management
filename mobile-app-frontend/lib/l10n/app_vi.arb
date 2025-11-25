@@ -1,0 +1,185 @@
+{
+  "@@locale": "vi",
+  "appTitle": "SSI Blockchain",
+  "welcomeBack": "Chào mừng trở lại",
+  "loginToIdentityWallet": "Đăng nhập vào ví danh tính của bạn",
+  "privateKeyOrMnemonic": "Private Key hoặc Mnemonic (12 từ)",
+  "or": "hoặc",
+  "connectWithMetaMask": "Connect with MetaMask",
+  "connectWithTrustWallet": "Connect with Trust Wallet",
+  "login": "Đăng nhập",
+  "loggingIn": "Đang đăng nhập...",
+  "pleaseEnterPrivateKeyOrMnemonic": "Vui lòng nhập Private Key hoặc Mnemonic",
+  "loginError": "Lỗi đăng nhập: Private Key hoặc Mnemonic không hợp lệ",
+  "metamaskConnectionFailed": "Kết nối MetaMask thất bại",
+  "cannotGetWalletInfoFromMetamask": "Không thể lấy thông tin ví từ MetaMask. Vui lòng đảm bảo MetaMask đã được cài đặt và đăng nhập.",
+  "metamaskConnectionInterrupted": "Kết nối MetaMask bị gián đoạn. Vui lòng thử lại.",
+  "trustWalletConnectionFailed": "Kết nối Trust Wallet thất bại",
+  "cannotGetWalletInfoFromTrustWallet": "Không thể lấy thông tin ví từ Trust Wallet. Vui lòng đảm bảo Trust Wallet đã được cài đặt và đăng nhập.",
+  "trustWalletConnectionTimeout": "Kết nối Trust Wallet quá thời gian chờ. Vui lòng đảm bảo Trust Wallet đã được mở và chấp nhận kết nối.",
+  
+  "hello": "Xin chào,",
+  "user": "Người dùng",
+  "identityWallet": "Ví Danh Tính",
+  "sepoliaTestnet": "Sepolia Testnet",
+  "statistics": "Thống kê",
+  "credentials": "Chứng chỉ",
+  "verified": "Đã xác minh",
+  "balance": "Số dư",
+  "registerDid": "Đăng ký DID",
+  "quickActions": "Hành động nhanh",
+  "manageDid": "Quản lý DID",
+  "viewAndManageYourDid": "Xem và quản lý DID của bạn",
+  "issueCredential": "Phát hành chứng chỉ",
+  "createAndIssueNewVC": "Tạo và phát hành VC mới",
+  "registerDidOnBlockchain": "Đăng ký danh tính trên blockchain",
+  "loadingData": "Đang tải dữ liệu...",
+  "didRegistered": "DID đã được đăng ký! TX: {txHash}",
+  "@didRegistered": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "vcIssued": "VC đã được phát hành! TX: {txHash}",
+  "@vcIssued": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "error": "Lỗi",
+  "errorOccurred": "Lỗi: {error}",
+  "@errorOccurred": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "close": "Đóng",
+  "organizationId": "Organization ID",
+  "didUri": "DID URI (IPFS/URL)",
+  "vcUri": "VC URI (IPFS/URL)",
+  "cancel": "Hủy",
+  "register": "Đăng ký",
+  "issue": "Phát hành",
+  "processing": "Đang xử lý...",
+  "addressCopied": "Đã sao chép địa chỉ",
+  "didStatus": "DID Status",
+  "active": "Active",
+  "inactive": "Inactive",
+  "owner": "Owner",
+  
+  "profile": "Hồ Sơ",
+  "walletInfo": "Thông tin ví",
+  "changeWalletName": "Đổi tên ví",
+  "backupKeys": "Sao lưu khóa",
+  "security": "Bảo mật",
+  "transactionHistory": "Lịch sử giao dịch",
+  "settings": "Cài đặt",
+  "help": "Trợ giúp",
+  "soon": "Soon",
+  "logout": "Đăng xuất",
+  "confirmLogout": "Xác nhận đăng xuất",
+  "confirmLogoutMessage": "Bạn có chắc chắn muốn đăng xuất?\n\nĐảm bảo bạn đã sao lưu Private Key hoặc Mnemonic.",
+  "walletAddress": "Địa chỉ ví",
+  "doNotShareThisInfo": "Không chia sẻ thông tin này với bất kỳ ai!",
+  "changeWalletNameTitle": "Đổi tên ví",
+  "walletName": "Tên ví",
+  "enterWalletName": "Nhập tên cho ví của bạn",
+  "address": "Địa chỉ",
+  "save": "Lưu",
+  "walletNameSaved": "Đã lưu tên ví",
+  "backupKeysTitle": "Sao lưu khóa",
+  "importantSaveInfo": "QUAN TRỌNG: Lưu thông tin này ở nơi an toàn!",
+  "recoveryPhrase": "Cụm từ khôi phục (12 từ):",
+  "mnemonicCopied": "Đã sao chép mnemonic",
+  "mnemonicNotAvailable": "Mnemonic không khả dụng.\nBạn có thể đã import ví bằng Private Key.",
+  "noWalletConnected": "No wallet connected",
+  "loading": "Loading...",
+  
+  "verification": "Xác Minh",
+  "myQrCode": "Mã QR của tôi",
+  "shareQrCodeMessage": "Chia sẻ mã QR này để người khác có thể xác minh danh tính của bạn",
+  "verifyVC": "Xác minh VC",
+  "manualInput": "Nhập thủ công",
+  "scanQr": "Quét QR",
+  "qrScanningFeatureComingSoon": "Chức năng quét QR sẽ được tích hợp trong phiên bản tiếp theo",
+  "youCanUseManualInput": "Hiện tại bạn có thể sử dụng chức năng \"Nhập thủ công\"",
+  "verifyVCTitle": "Xác minh VC",
+  "vcIndex": "VC Index",
+  "credentialHash": "Credential Hash",
+  
+  "hashCopied": "Đã sao chép hash",
+  "universityDegree": "Bằng Đại Học",
+  "professionalCertificate": "Chứng Chỉ Nghề Nghiệp",
+  "idCard": "CMND/CCCD",
+  "driversLicense": "Giấy Phép Lái Xe",
+  "healthInsurance": "Bảo Hiểm Y Tế",
+  "membershipCard": "Thẻ Thành Viên",
+  "certificate": "Chứng Nhận",
+  "badge": "Huy Hiệu",
+  "language": "Ngôn ngữ",
+  "selectLanguage": "Chọn ngôn ngữ",
+  "network": "Mạng",
+  "verify": "Xác minh",
+  "verificationError": "Lỗi xác minh: {error}",
+  "@verificationError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "valid": "Hợp lệ",
+  "invalid": "Không hợp lệ",
+  "credentialVerified": "Chứng chỉ này đã được xác minh và còn hiệu lực",
+  "credentialInvalid": "Chứng chỉ này không hợp lệ hoặc đã bị thu hồi",
+  "invalidIndex": "Index không hợp lệ",
+  "loadingCredentials": "Đang tải chứng chỉ...",
+  "noCredentials": "Chưa có chứng chỉ",
+  "pressAddToAddCredential": "Nhấn nút + để thêm chứng chỉ mới",
+  "pleaseConnectWallet": "Vui lòng kết nối ví trước",
+  "creatingVCAndUploading": "Đang tạo VC và upload lên IPFS...",
+  "revokingVC": "Đang thu hồi VC...",
+  "vcRevoked": "VC đã bị thu hồi! TX: {txHash}",
+  "@vcRevoked": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "issuer": "Issuer",
+  "index": "Index",
+  "copyHash": "Copy Hash",
+  "revoke": "Revoke",
+  "revoked": "Revoked",
+  "issueNewVC": "Phát hành VC mới",
+  "credentialType": "Loại chứng chỉ",
+  "credentialName": "Tên chứng chỉ",
+  "description": "Mô tả",
+  "exampleEducationalCredential": "Ví dụ: EducationalCredential, ProfessionalCredential",
+  "exampleUniversityDegree": "Ví dụ: Bằng Đại Học",
+  "credentialDescription": "Mô tả chi tiết về chứng chỉ",
+  "unknown": "Unknown",
+  "overview": "Tổng quan",
+  "fullName": "Tên đầy đủ",
+  "email": "Email",
+  "password": "Mật khẩu",
+  "walletCreated": "Ví đã được tạo",
+  "yourWalletAddress": "Địa chỉ ví của bạn:",
+  "saveRecoveryPhrase": "Lưu cụm từ khôi phục bên dưới!",
+  "recoveryPhraseCopied": "Đã sao chép cụm từ khôi phục",
+  "continueButton": "Tiếp tục",
+  "invalidQRCode": "Mã QR không hợp lệ",
+  "invalidQRCodeMessage": "Mã QR đã quét không chứa dữ liệu SSI hợp lệ. Vui lòng quét mã QR DID, VC hoặc yêu cầu xác minh hợp lệ.",
+  "positionQRCodeInFrame": "Đặt mã QR trong khung để quét",
+  "tryAgain": "Thử lại",
+  "details": "Chi tiết",
+  "verifiableCredential": "Chứng chỉ có thể xác minh"
+}
+
