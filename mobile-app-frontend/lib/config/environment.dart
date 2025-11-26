@@ -3,7 +3,7 @@
 class Environment {
   // Defaults (used as fallbacks when .env is missing values)
   static const String CONTRACT_ADDRESS = '0x98e6c0Cbd5409e630D759F02ADfc8a9827E2D9ea';
-  static const String SEPOLIA_RPC_URL = 'https://eth-sepolia.g.alchemy.com/v2/JxqUhy9I3MbKS4oNblsuWrVJlmUg6AVE';
+  static const String SEPOLIA_RPC_URL = 'https://sepolia.infura.io/v3/0434eceeae73452a806d7f2669a1f6e1';
   static const int SEPOLIA_CHAIN_ID = 11155111;
   static const String SEPOLIA_CHAIN_NAME = 'Sepolia Testnet';
   static const String SEPOLIA_CHAIN_EIP155 = 'eip155:11155111';

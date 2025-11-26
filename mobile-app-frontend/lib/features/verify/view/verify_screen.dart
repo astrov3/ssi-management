@@ -3,11 +3,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/app/theme/app_gradients.dart';
-import 'package:ssi_app/core/widgets/glass_container.dart';
+import 'package:ssi_app/core/utils/navigation_utils.dart';
 import 'package:ssi_app/features/qr/display/qr_display_screen.dart';
 import 'package:ssi_app/features/qr/scanner/qr_scanner_screen.dart';
+import 'package:ssi_app/features/verify/view/verification_requests_screen.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
+import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -18,7 +20,9 @@ class VerifyScreen extends StatefulWidget {
 
 class _VerifyScreenState extends State<VerifyScreen> {
   final _web3Service = Web3Service();
+  final _walletConnectService = WalletConnectService();
   String _address = '';
+  bool _isTrustedVerifier = false;
 
   @override
   void initState() {
@@ -32,44 +36,45 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   Future<void> _loadAddress() async {
-    final address = await _web3Service.loadWallet();
+    String? address = await _web3Service.loadWallet();
+    address ??= await _walletConnectService.getStoredAddress();
+    
     if (address != null && mounted) {
-      setState(() => _address = address);
+      setState(() => _address = address!);
+      // Kiểm tra xem có phải trusted verifier không
+      final isTrusted = await _web3Service.isTrustedVerifier(address);
+      if (mounted) {
+        setState(() => _isTrustedVerifier = isTrusted);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Text(
-                AppLocalizations.of(context)!.verification,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 40),
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _QrCard(address: _address),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: _QrCard(address: _address),
+                        ),
                         const SizedBox(height: 32),
                         Text(
                           AppLocalizations.of(context)!.myQrCode,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.grey[900],
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -79,7 +84,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                             AppLocalizations.of(context)!.shareQrCodeMessage,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: Colors.grey[600],
                               fontSize: 14,
                               height: 1.5,
                             ),
@@ -96,7 +101,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                         const SizedBox(height: 16),
                         Text(
                           AppLocalizations.of(context)!.or,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
                         ),
                         const SizedBox(height: 16),
                         _GradientButton(
@@ -104,13 +109,29 @@ class _VerifyScreenState extends State<VerifyScreen> {
                           label: AppLocalizations.of(context)!.manualInput,
                           onPressed: _showManualVerifyDialog,
                         ),
+                        if (_isTrustedVerifier) ...[
+                          const SizedBox(height: 24),
+                          Divider(color: Colors.grey[300]),
+                          const SizedBox(height: 16),
+                          _OutlinedButton(
+                            icon: Icons.list_alt,
+                            label: 'Danh sách chờ xác thực',
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const VerificationRequestsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -153,19 +174,40 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   Future<void> _verifyVC(String orgID, int index, String hash) async {
-    final navigator = Navigator.of(context);
     try {
       _showBlockingSpinner();
       final isValid = await _web3Service.verifyVC(orgID, index, hash);
-      navigator.pop();
+      NavigationUtils.safePopDialog(mounted ? context : null);
       if (!mounted) return;
       _showVerificationResult(isValid);
     } catch (e) {
-      navigator.pop();
+      // Safely dismiss dialog even if context is invalid (e.g., returning from Metamask)
+      NavigationUtils.safePopDialog(mounted ? context : null);
+      
+      // Clear pending flags if transaction was rejected
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        _walletConnectService.clearPendingFlags();
+      }
+      
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
+      
+      // Provide user-friendly error message
+      String errorMessage = l10n.verificationError(e.toString());
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        errorMessage = 'Xác thực đã bị hủy trong ví. Vui lòng thử lại.';
+      } else if (e.toString().toLowerCase().contains('timeout')) {
+        errorMessage = 'Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.verificationError(e.toString())), backgroundColor: AppColors.danger),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
@@ -229,7 +271,7 @@ class _QrCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -274,15 +316,18 @@ class _AddressChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 12,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
       padding: const EdgeInsets.all(16),
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
       child: Text(
         address.isNotEmpty
             ? '${address.substring(0, 6)}...${address.substring(address.length - 6)}'
             : AppLocalizations.of(context)?.loading ?? 'Loading...',
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.secondary,
           fontSize: 14,
           fontFamily: 'Courier',
@@ -307,7 +352,7 @@ class _OutlinedButton extends StatelessWidget {
       height: 56,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: Colors.grey[50],
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.secondary, width: 2),
         ),

@@ -10,7 +10,6 @@ import 'package:ssi_app/features/auth/authenticate/view/authenticate_screen.dart
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/auth/auth_service.dart';
 import 'package:ssi_app/services/localization/language_service.dart';
-import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/wallet/wallet_name_service.dart';
@@ -27,15 +26,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _walletConnectService = WalletConnectService();
   final _walletNameService = WalletNameService();
   final _authService = AuthService();
-  final _roleService = RoleService();
   String _address = 'Loading...';
   String _mnemonic = '';
   String _walletName = '';
   bool _isLoading = true;
   bool _isBiometricEnabled = false;
   bool _isBiometricAvailable = false;
-  bool _isOwnerOnChain = false;
-  bool _isIssuerOnChain = false;
 
   @override
   void initState() {
@@ -76,36 +72,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Get wallet name
         final walletName = await _walletNameService.getWalletName(address);
         
-        // Check actual blockchain roles
-        // Note: By default, all users are owners and issuers of their own credentials
-        // They can only authorize others to issue VCs for their DID
-        bool isOwnerOnChain = false;
-        bool isIssuerOnChain = false;
-        
-        try {
-          // Check if user is owner of their DID
-          final did = await _web3Service.getDID(address);
-          if (did != null) {
-            isOwnerOnChain = did['owner'].toString().toLowerCase() == address.toLowerCase() && did['active'] == true;
-          }
-        } catch (_) {
-          // DID doesn't exist yet - user is still owner of their own credentials by default
-          isOwnerOnChain = false;
-        }
-        
-        // User is always an issuer of their own credentials
-        // They can also be authorized issuer for other orgIDs
-        // Check if user is authorized issuer for their own orgID (this is always true)
-        // or for other orgIDs
-        try {
-          isIssuerOnChain = await _roleService.isAuthorizedIssuerFor(address, address);
-          // If not authorized for own orgID, they are still issuer by default
-          // Authorization is only needed for issuing VCs for OTHER orgIDs
-        } catch (_) {
-          // User is issuer by default (can issue VCs for their own credentials)
-          isIssuerOnChain = true;
-        }
-        
         // Get mnemonic if available (only for private key wallets)
         try {
           final privateKeyAddress = await _web3Service.loadWallet();
@@ -117,8 +83,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _address = address!;
               _mnemonic = mnemonic;
               _walletName = walletName ?? '';
-              _isOwnerOnChain = isOwnerOnChain;
-              _isIssuerOnChain = isIssuerOnChain;
               _isLoading = false;
             });
           } else {
@@ -128,8 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _address = address!;
               _mnemonic = ''; // WalletConnect doesn't provide mnemonic
               _walletName = walletName ?? '';
-              _isOwnerOnChain = isOwnerOnChain;
-              _isIssuerOnChain = isIssuerOnChain;
               _isLoading = false;
             });
           }
@@ -140,8 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _address = address!;
             _mnemonic = '';
             _walletName = walletName ?? '';
-            _isOwnerOnChain = isOwnerOnChain;
-            _isIssuerOnChain = isIssuerOnChain;
             _isLoading = false;
           });
         }
@@ -292,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
@@ -306,18 +266,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Text(
                         AppLocalizations.of(context)!.profile,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.grey[900],
                         ),
                       ),
                       const SizedBox(height: 32),
                       _ProfileHeader(
                         address: _address,
                         walletName: _walletName,
-                        isOwnerOnChain: _isOwnerOnChain,
-                        isIssuerOnChain: _isIssuerOnChain,
                         onEditName: _showEditNameDialog,
                       ),
                       const SizedBox(height: 32),
@@ -390,15 +348,11 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.address,
     required this.walletName,
-    required this.isOwnerOnChain,
-    required this.isIssuerOnChain,
     required this.onEditName,
   });
 
   final String address;
   final String walletName;
-  final bool isOwnerOnChain;
-  final bool isIssuerOnChain;
   final VoidCallback onEditName;
 
   @override
@@ -414,10 +368,10 @@ class _ProfileHeader extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person, size: 60, color: Colors.white),
+            child: Icon(Icons.person, size: 60, color: Colors.grey[900]),
           ),
         ),
         const SizedBox(height: 20),
@@ -427,12 +381,11 @@ class _ProfileHeader extends StatelessWidget {
             Flexible(
               child: Text(
                 walletName.isNotEmpty ? walletName : address,
-                style: TextStyle(
-                  fontSize: walletName.isNotEmpty ? 22 : 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontFamily: walletName.isEmpty ? 'Courier' : null,
-                ),
+            style: TextStyle(
+              fontSize: walletName.isNotEmpty ? 22 : 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -455,75 +408,10 @@ class _ProfileHeader extends StatelessWidget {
                 : address,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.6),
-              fontFamily: 'Courier',
+              color: Colors.grey[600],
             ),
           ),
         ],
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            // All users are owners and issuers by default
-            // Display badges based on blockchain status
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.secondary),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isOwnerOnChain ? Icons.badge : Icons.badge_outlined,
-                    color: AppColors.secondary,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Owner',
-                    style: TextStyle(
-                      color: AppColors.secondary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF3B82F6)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isIssuerOnChain ? Icons.verified_user : Icons.verified_user_outlined,
-                    color: const Color(0xFF3B82F6),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Issuer',
-                    style: const TextStyle(
-                      color: Color(0xFF3B82F6),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -533,14 +421,12 @@ class _ProfileOption extends StatelessWidget {
   const _ProfileOption({
     required this.icon,
     required this.title,
-    this.subtitle,
     this.onTap,
     this.badge,
   });
 
   final IconData icon;
   final String title;
-  final String? subtitle;
   final VoidCallback? onTap;
   final String? badge;
 
@@ -551,10 +437,13 @@ class _ProfileOption extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-          child: GlassContainer(
-            borderRadius: 16,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            backgroundColor: Colors.white.withValues(alpha: 0.05),
           child: Row(
             children: [
               Container(
@@ -572,22 +461,12 @@ class _ProfileOption extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Colors.grey[900],
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -608,7 +487,7 @@ class _ProfileOption extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             ],
           ),
         ),

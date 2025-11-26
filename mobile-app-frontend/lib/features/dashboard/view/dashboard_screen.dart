@@ -1,11 +1,21 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
-import 'package:ssi_app/app/theme/app_gradients.dart';
-import 'package:ssi_app/core/widgets/glass_container.dart';
+import 'package:ssi_app/features/dashboard/dialogs/admin_panel_dialog.dart';
+import 'package:ssi_app/features/dashboard/dialogs/issue_vc_dialog.dart';
+import 'package:ssi_app/features/dashboard/dialogs/register_did_dialog.dart';
+import 'package:ssi_app/features/dashboard/widgets/dashboard_header.dart';
+import 'package:ssi_app/features/dashboard/widgets/did_status_card.dart';
+import 'package:ssi_app/features/dashboard/widgets/loading_state.dart';
+import 'package:ssi_app/features/dashboard/widgets/quick_actions.dart';
+import 'package:ssi_app/features/dashboard/widgets/statistics_row.dart';
+import 'package:ssi_app/features/dashboard/widgets/wallet_card.dart';
 import 'package:ssi_app/features/did/view/did_management_screen.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
+import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
@@ -23,8 +33,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _walletConnectService = WalletConnectService();
   final _roleService = RoleService();
   final _walletNameService = WalletNameService();
+  final _pinataService = PinataService();
   String _address = 'Loading...';
   int _vcCount = 0;
+  int _verifiedCount = 0;
   bool _isLoading = true;
   Map<String, dynamic>? _didData;
   bool _isOwner = false;
@@ -67,6 +79,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       final vcs = await _safeFetchVCs(address);
+      
+      // Count verified credentials (only those verified by trusted verifier)
+      final verifiedCount = vcs.where((vc) => vc['verified'] == true).length;
 
       // Check DID status
       Map<String, dynamic>? didData;
@@ -103,6 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _address = address!;
         _vcCount = vcs.length;
+        _verifiedCount = verifiedCount;
         _didData = didData;
         _isOwner = isOwner;
         _isAdmin = isAdmin;
@@ -140,10 +156,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: _isLoading
-            ? const _LoadingState()
+            ? const LoadingState()
             : RefreshIndicator(
                 onRefresh: _loadWalletData,
                 color: AppColors.secondary,
@@ -153,22 +169,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DashboardHeader(
+                      DashboardHeader(
                         walletName: _walletName,
                         onNotificationsTap: () {},
                       ),
                       const SizedBox(height: 24),
-                      _WalletCard(
+                      WalletCard(
                         address: _address,
                         walletName: _walletName,
                         formattedAddress: _shortenAddress(_address),
                         onCopy: () => _copyToClipboard(_address, AppLocalizations.of(context)!.addressCopied),
                       ),
                       const SizedBox(height: 32),
-                      _StatisticsRow(vcCount: _vcCount),
+                      StatisticsRow(vcCount: _vcCount, verifiedCount: _verifiedCount),
                       if (_didData != null) ...[
                         const SizedBox(height: 24),
-                        _DIDStatusCard(
+                        DIDStatusCard(
                           didData: _didData!,
                           isOwner: _isOwner,
                           onManageTap: () {
@@ -180,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                       const SizedBox(height: 32),
-                      _QuickActions(
+                      QuickActions(
                         orgId: _address,
                         isOwnerOnChain: _isOwner,
                         isAdmin: _isAdmin,
@@ -207,94 +223,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _showRegisterDIDDialog() {
     final orgIDController = TextEditingController(text: _address);
-    final uriController = TextEditingController();
 
     showDialog<void>(
       context: context,
-      builder: (context) => _RegisterDidDialog(
+      builder: (context) => RegisterDidDialog(
         orgIDController: orgIDController,
-        uriController: uriController,
-        onSubmit: (orgID, uri) async {
-          Navigator.pop(context);
-          await _registerDID(orgID, uri);
+        onSubmit: (orgID, uri, metadata) async {
+          await _registerDID(orgID, metadata);
         },
       ),
     );
   }
 
   void _showAdminPanel() {
-    final verifierAddressController = TextEditingController();
-    bool isAdding = true;
-
     showDialog<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Admin Panel - Manage Trusted Verifiers', style: TextStyle(color: Colors.white)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: verifierAddressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Verifier Address *',
-                    hintText: '0x...',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<bool>(
-                        title: const Text('Add/Enable', style: TextStyle(color: Colors.white)),
-                        value: true,
-                        groupValue: isAdding,
-                        onChanged: (value) => setState(() => isAdding = value!),
-                        activeColor: AppColors.primary,
-                      ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<bool>(
-                        title: const Text('Remove/Disable', style: TextStyle(color: Colors.white)),
-                        value: false,
-                        groupValue: isAdding,
-                        onChanged: (value) => setState(() => isAdding = value!),
-                        activeColor: AppColors.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (verifierAddressController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter verifier address'), backgroundColor: AppColors.danger),
-                  );
-                  return;
-                }
-                Navigator.pop(context);
-                await _setTrustedVerifier(verifierAddressController.text.trim(), isAdding);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: Text(isAdding ? 'Add Verifier' : 'Remove Verifier'),
-            ),
-          ],
-        ),
+      builder: (context) => AdminPanelDialog(
+        onSubmit: (verifierAddress, isAdding) async {
+          await _setTrustedVerifier(verifierAddress, isAdding);
+        },
       ),
     );
   }
@@ -322,12 +269,120 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _registerDID(String orgID, String uri) async {
+  Future<void> _registerDID(String orgID, Map<String, dynamic>? metadata) async {
     final navigator = Navigator.of(context);
     try {
-      _showBlockingSpinner();
-      final hashData = '0x${orgID.replaceAll('0x', '').padRight(64, '0').substring(0, 64)}';
-      final txHash = await _web3Service.registerDID(orgID, hashData, uri);
+      _showBlockingSpinner('Đang tạo DID document và upload lên IPFS...');
+
+      // Handle file uploads if any
+      String? logoIpfsUri;
+      String? documentIpfsUri;
+      Map<String, dynamic> finalMetadata = {};
+      
+      if (metadata != null) {
+        // Upload logo if provided
+        if (metadata.containsKey('logoPath') && metadata['logoPath'] != null) {
+          try {
+            final logoFile = File(metadata['logoPath'] as String);
+            if (await logoFile.exists()) {
+              _updateSpinnerMessage('Đang upload logo lên IPFS...');
+              final logoBytes = await logoFile.readAsBytes();
+              final logoFileName = logoFile.path.split('/').last;
+              logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
+              finalMetadata['logo'] = logoIpfsUri;
+            }
+          } catch (e) {
+            debugPrint('Error uploading logo: $e');
+          }
+        }
+
+        // Upload document if provided
+        if (metadata.containsKey('documentPath') && metadata['documentPath'] != null) {
+          try {
+            final docFile = File(metadata['documentPath'] as String);
+            if (await docFile.exists()) {
+              _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
+              final docBytes = await docFile.readAsBytes();
+              final docFileName = docFile.path.split('/').last;
+              documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
+              finalMetadata['document'] = documentIpfsUri;
+
+              // If JSON, parse and merge metadata
+              final extension = docFile.path.split('.').last.toLowerCase();
+              if (extension == 'json') {
+                try {
+                  final jsonContent = await docFile.readAsString();
+                  final docData = jsonDecode(jsonContent) as Map<String, dynamic>?;
+                  if (docData != null) {
+                    finalMetadata.addAll(docData);
+                    finalMetadata['document'] = documentIpfsUri;
+                  }
+                } catch (e) {
+                  debugPrint('Error parsing document JSON: $e');
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('Error uploading document: $e');
+          }
+        }
+
+        // Add other metadata fields
+        finalMetadata.addAll({
+          if (metadata.containsKey('name') && metadata['name'] != null) 'name': metadata['name'],
+          if (metadata.containsKey('description') && metadata['description'] != null) 'description': metadata['description'],
+          if (metadata.containsKey('email') && metadata['email'] != null) 'email': metadata['email'],
+          if (metadata.containsKey('website') && metadata['website'] != null) 'website': metadata['website'],
+          if (metadata.containsKey('address') && metadata['address'] != null) 'address': metadata['address'],
+          if (metadata.containsKey('phone') && metadata['phone'] != null) 'phone': metadata['phone'],
+        });
+      }
+
+      // Ensure we have at least a name
+      if (!finalMetadata.containsKey('name') || finalMetadata['name'] == null || finalMetadata['name'].toString().isEmpty) {
+        finalMetadata['name'] = 'DID ${orgID.substring(0, orgID.length > 8 ? 8 : orgID.length)}...';
+      }
+
+      _updateSpinnerMessage('Đang tạo DID document...');
+
+      // Get current address for controller
+      String? currentAddress;
+      try {
+        currentAddress = await _web3Service.loadWallet();
+        if (currentAddress == null) {
+          currentAddress = await _walletConnectService.getStoredAddress();
+        }
+      } catch (e) {
+        debugPrint('Error getting current address: $e');
+      }
+
+      if (currentAddress == null) {
+        throw StateError('Không thể lấy địa chỉ ví hiện tại');
+      }
+
+      // Create DID document
+      final didDocument = _pinataService.createDIDDocument(
+        id: 'did:ethr:$orgID',
+        controller: currentAddress,
+        serviceEndpoint: finalMetadata['website']?.toString() ?? 'https://ssi.example.com',
+        metadata: finalMetadata.isEmpty ? null : finalMetadata,
+      );
+
+      // Upload to IPFS
+      final ipfsUri = await _pinataService.uploadJSON(didDocument);
+      final hashData = _pinataService.generateHash(didDocument);
+
+      // Check if using WalletConnect
+      final isWC = await _walletConnectService.isConnected();
+      if (isWC) {
+        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.');
+      } else {
+        _updateSpinnerMessage('Đang đăng ký DID trên blockchain...');
+      }
+
+      // Register DID on blockchain
+      final txHash = await _web3Service.registerDID(orgID, hashData, ipfsUri);
+      
       navigator.pop();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -348,30 +403,135 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _updateSpinnerMessage(String message) {
+    Navigator.of(context).pop();
+    _showBlockingSpinner(message);
+  }
+
   void _showIssueVCDialog() {
     final orgIDController = TextEditingController(text: _address);
-    final uriController = TextEditingController();
 
     showDialog<void>(
       context: context,
-      builder: (context) => _IssueVcDialog(
+      builder: (context) => IssueVcDialog(
         orgIDController: orgIDController,
-        uriController: uriController,
-        onSubmit: (orgID, uri) async {
-          Navigator.pop(context);
-          await _issueVC(orgID, uri);
+        onSubmit: (orgID, uri, metadata, expirationDate) async {
+          await _issueVC(orgID, metadata, expirationDate);
         },
       ),
     );
   }
 
-  Future<void> _issueVC(String orgID, String uri) async {
+  Future<void> _issueVC(String orgID, Map<String, dynamic>? metadata, String? expirationDateIso) async {
     final navigator = Navigator.of(context);
     try {
-      _showBlockingSpinner();
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final hashData = '0x${(orgID + timestamp).replaceAll('0x', '').padRight(64, '0').substring(0, 64)}';
-      final txHash = await _web3Service.issueVC(orgID, hashData, uri);
+      _showBlockingSpinner('Đang tạo VC document và upload lên IPFS...');
+
+      // Handle file uploads if any
+      String? documentIpfsUri;
+      Map<String, dynamic> credentialData = {};
+      
+      if (metadata != null) {
+        // Upload document if provided
+        if (metadata.containsKey('documentPath') && metadata['documentPath'] != null) {
+          try {
+            final docFile = File(metadata['documentPath'] as String);
+            if (await docFile.exists()) {
+              _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
+              final docBytes = await docFile.readAsBytes();
+              final docFileName = docFile.path.split('/').last;
+              documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
+              credentialData['document'] = documentIpfsUri;
+
+              // If JSON, parse and merge metadata
+              final extension = docFile.path.split('.').last.toLowerCase();
+              if (extension == 'json') {
+                try {
+                  final jsonContent = await docFile.readAsString();
+                  final docData = jsonDecode(jsonContent) as Map<String, dynamic>?;
+                  if (docData != null) {
+                    credentialData.addAll(docData);
+                    credentialData['document'] = documentIpfsUri;
+                  }
+                } catch (e) {
+                  debugPrint('Error parsing document JSON: $e');
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('Error uploading document: $e');
+          }
+        }
+
+        // Add other metadata fields
+        credentialData.addAll({
+          if (metadata.containsKey('name') && metadata['name'] != null) 'name': metadata['name'],
+          if (metadata.containsKey('email') && metadata['email'] != null) 'email': metadata['email'],
+          if (metadata.containsKey('description') && metadata['description'] != null) 'description': metadata['description'],
+        });
+      }
+
+      // Ensure we have at least a name
+      if (!credentialData.containsKey('name') || credentialData['name'] == null || credentialData['name'].toString().isEmpty) {
+        credentialData['name'] = 'Credential Subject';
+      }
+
+      _updateSpinnerMessage('Đang tạo VC document...');
+
+      // Get issuer address
+      String? issuerAddress;
+      try {
+        issuerAddress = await _web3Service.loadWallet();
+        if (issuerAddress == null) {
+          issuerAddress = await _walletConnectService.getStoredAddress();
+        }
+      } catch (e) {
+        debugPrint('Error getting issuer address: $e');
+      }
+
+      if (issuerAddress == null) {
+        throw StateError('Không thể lấy địa chỉ ví hiện tại');
+      }
+
+      final issuerDid = 'did:ethr:$issuerAddress';
+      final vcType = metadata?['type']?.toString() ?? 'Credential';
+
+      // Create VC document
+      final vcDocument = _pinataService.createVerifiableCredential(
+        id: 'vc:${DateTime.now().millisecondsSinceEpoch}:${issuerAddress.substring(0, 8)}',
+        type: ['VerifiableCredential', vcType],
+        issuer: issuerDid,
+        credentialSubject: 'did:ethr:$orgID',
+        credentialData: credentialData,
+        expirationDate: expirationDateIso,
+      );
+
+      // Upload to IPFS
+      final ipfsUri = await _pinataService.uploadJSON(vcDocument);
+      final hashData = _pinataService.generateHash(vcDocument);
+
+      // Convert expiration date to timestamp if provided
+      int? expirationTimestamp;
+      if (expirationDateIso != null && expirationDateIso.isNotEmpty) {
+        try {
+          final expirationDate = DateTime.parse(expirationDateIso);
+          expirationTimestamp = expirationDate.millisecondsSinceEpoch ~/ 1000;
+        } catch (e) {
+          debugPrint('Error parsing expiration date: $e');
+        }
+      }
+
+      // Check if using WalletConnect
+      final isWC = await _walletConnectService.isConnected();
+      if (isWC) {
+        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.');
+      } else {
+        _updateSpinnerMessage('Đang phát hành VC trên blockchain...');
+      }
+
+      // Issue VC on blockchain
+      final txHash = await _web3Service.issueVC(orgID, hashData, ipfsUri, expirationTimestamp: expirationTimestamp);
+      
       navigator.pop();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -392,638 +552,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showBlockingSpinner() {
+  void _showBlockingSpinner([String? message]) {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.secondary),
-      ),
-    );
-  }
-}
-
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(color: AppColors.secondary),
-          SizedBox(height: 16),
-          Text('Đang tải dữ liệu...', style: TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({
-    required this.walletName,
-    required this.onNotificationsTap,
-  });
-
-  final String walletName;
-  final VoidCallback onNotificationsTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              walletName.isEmpty ? 'SSI Account' : walletName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        IconButton(
-          onPressed: onNotificationsTap,
-          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-        ),
-      ],
-    );
-  }
-}
-
-class _WalletCard extends StatelessWidget {
-  const _WalletCard({
-    required this.address,
-    required this.walletName,
-    required this.formattedAddress,
-    required this.onCopy,
-  });
-
-  final String address;
-  final String walletName;
-  final String formattedAddress;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        gradient: AppGradients.primary,
-        borderRadius: BorderRadius.all(Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x806366F1),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            const CircularProgressIndicator(color: AppColors.secondary),
+            if (message != null) ...[
+              const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context)!.identityWallet,
-                style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 14,
-                ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: onCopy,
-                    icon: const Icon(Icons.copy, color: Colors.white, size: 18),
-                  ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.more_horiz, color: Colors.white),
-                  ),
-                ],
+                message,
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
               ),
             ],
-          ),
-          const SizedBox(height: 20),
-          if (walletName.isNotEmpty) ...[
-            Text(
-              walletName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              formattedAddress,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-                letterSpacing: 1.0,
-                fontFamily: 'Courier',
-              ),
-            ),
-          ] else
-            Text(
-              formattedAddress,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Icon(Icons.verified, color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              Text(AppLocalizations.of(context)!.sepoliaTestnet, style: const TextStyle(color: Colors.white, fontSize: 12)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatisticsRow extends StatelessWidget {
-  const _StatisticsRow({required this.vcCount});
-
-  final int vcCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.statistics,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: AppLocalizations.of(context)!.credentials,
-                value: vcCount.toString(),
-                icon: Icons.card_membership,
-                color: const Color(0xFF3B82F6),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                title: AppLocalizations.of(context)!.verified,
-                value: vcCount.toString(),
-                icon: Icons.verified,
-                color: const Color(0xFF10B981),
-              ),
-            ),
           ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 20,
-      padding: const EdgeInsets.all(20),
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 20,
-      padding: const EdgeInsets.all(20),
-      backgroundColor: Colors.white.withValues(alpha: 0.05),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.secondary.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.secondary, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.orgId,
-    this.isOwnerOnChain = false,
-    this.isAdmin = false,
-    this.isVerifier = false,
-    this.onRegister,
-    required this.onIssue,
-    this.onManageDID,
-    this.onAdminPanel,
-  });
-
-  final String orgId;
-  final bool isOwnerOnChain;
-  final bool isAdmin;
-  final bool isVerifier;
-  final VoidCallback? onRegister;
-  final VoidCallback onIssue;
-  final VoidCallback? onManageDID;
-  final VoidCallback? onAdminPanel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.quickActions,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (onManageDID != null)
-          _QuickActionTile(
-            title: AppLocalizations.of(context)!.manageDid,
-            subtitle: AppLocalizations.of(context)!.viewAndManageYourDid,
-            icon: Icons.badge,
-            iconColor: AppColors.secondary,
-            onTap: onManageDID!,
-          ),
-        _QuickActionTile(
-          title: AppLocalizations.of(context)!.issueCredential,
-          subtitle: AppLocalizations.of(context)!.createAndIssueNewVC,
-          icon: Icons.add_card,
-          iconColor: const Color(0xFF3B82F6),
-          onTap: onIssue,
-        ),
-        // All users can register DID (they are owners by default)
-        if (onRegister != null)
-          _QuickActionTile(
-            title: AppLocalizations.of(context)!.registerDid,
-            subtitle: isOwnerOnChain 
-                ? 'You are an owner. Register or manage your DID.'
-                : AppLocalizations.of(context)!.registerDidOnBlockchain,
-            icon: Icons.person_add,
-            iconColor: AppColors.secondary,
-            onTap: onRegister!,
-          ),
-        if (onAdminPanel != null)
-          _QuickActionTile(
-            title: 'Admin Panel',
-            subtitle: 'Manage trusted verifiers',
-            icon: Icons.admin_panel_settings,
-            iconColor: Colors.orange,
-            onTap: onAdminPanel!,
-          ),
-      ],
-    );
-  }
-}
-
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.iconColor,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: GlassContainer(
-          borderRadius: 16,
-          padding: const EdgeInsets.all(16),
-          backgroundColor: Colors.white.withValues(alpha: 0.05),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 20),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, color: Colors.white.withValues(alpha: 0.3), size: 14),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RegisterDidDialog extends StatelessWidget {
-  const _RegisterDidDialog({
-    required this.orgIDController,
-    required this.uriController,
-    required this.onSubmit,
-  });
-
-  final TextEditingController orgIDController;
-  final TextEditingController uriController;
-  final void Function(String orgId, String uri) onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(AppLocalizations.of(context)!.registerDid, style: const TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _DialogTextField(label: AppLocalizations.of(context)!.organizationId, controller: orgIDController),
-          const SizedBox(height: 16),
-          _DialogTextField(label: AppLocalizations.of(context)!.didUri, controller: uriController),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.white54)),
-        ),
-        ElevatedButton(
-          onPressed: () => onSubmit(orgIDController.text, uriController.text),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-          child: Text(AppLocalizations.of(context)!.register),
-        ),
-      ],
-    );
-  }
-}
-
-class _IssueVcDialog extends StatelessWidget {
-  const _IssueVcDialog({
-    required this.orgIDController,
-    required this.uriController,
-    required this.onSubmit,
-  });
-
-  final TextEditingController orgIDController;
-  final TextEditingController uriController;
-  final void Function(String orgId, String uri) onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(AppLocalizations.of(context)!.issueCredential, style: const TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _DialogTextField(label: AppLocalizations.of(context)!.organizationId, controller: orgIDController),
-          const SizedBox(height: 16),
-          _DialogTextField(label: AppLocalizations.of(context)!.vcUri, controller: uriController),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.white54)),
-        ),
-        ElevatedButton(
-          onPressed: () => onSubmit(orgIDController.text, uriController.text),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-          child: Text(AppLocalizations.of(context)!.issue),
-        ),
-      ],
-    );
-  }
-}
-
-class _DIDStatusCard extends StatelessWidget {
-  const _DIDStatusCard({
-    required this.didData,
-    required this.isOwner,
-    required this.onManageTap,
-  });
-
-  final Map<String, dynamic> didData;
-  final bool isOwner;
-  final VoidCallback onManageTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = didData['active'] as bool;
-    return InkWell(
-      onTap: onManageTap,
-      borderRadius: BorderRadius.circular(20),
-      child: GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.all(20),
-        backgroundColor: Colors.white.withValues(alpha: 0.05),
-        borderColor: (active ? AppColors.success : AppColors.danger).withValues(alpha: 0.3),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.badge, color: AppColors.secondary, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.didStatus,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: (active ? AppColors.success : AppColors.danger).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          active ? AppLocalizations.of(context)!.active : AppLocalizations.of(context)!.inactive,
-                          style: TextStyle(
-                            color: active ? AppColors.success : AppColors.danger,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (isOwner) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)!.owner,
-                            style: const TextStyle(
-                              color: AppColors.secondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.white.withValues(alpha: 0.3), size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogTextField extends StatelessWidget {
-  const _DialogTextField({required this.label, required this.controller});
-
-  final String label;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
         ),
       ),
     );

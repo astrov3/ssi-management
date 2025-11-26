@@ -229,11 +229,11 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
     final type = widget.qrData['type'] as String?;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -242,7 +242,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
               : type == 'DID' 
                   ? 'DID Document' 
                   : l10n.verification,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.grey[900]),
         ),
       ),
       body: SafeArea(
@@ -259,7 +259,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _error!,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                          style: TextStyle(color: Colors.grey[700]),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),

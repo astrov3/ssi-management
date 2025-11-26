@@ -4,93 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/app/theme/app_gradients.dart';
-import 'package:ssi_app/core/widgets/glass_container.dart';
+import 'package:ssi_app/core/utils/navigation_utils.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
-import 'package:ssi_app/widgets/credential_form_dialog.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-class _CredentialTypeMetadata {
-  final String title;
-  final IconData icon;
-
-  const _CredentialTypeMetadata({required this.title, required this.icon});
-}
-
-class _CredentialAttachment {
-  final String rawKey;
-  final String label;
-  final String uri;
-  final String? fileName;
-
-  const _CredentialAttachment({
-    required this.rawKey,
-    required this.label,
-    required this.uri,
-    this.fileName,
-  });
-}
-
-class _GatewayLink {
-  final String label;
-  final String url;
-
-  const _GatewayLink({required this.label, required this.url});
-}
-
-const Map<String, _CredentialTypeMetadata> _credentialTypeMetadata = {
-  'IdentityCredential': _CredentialTypeMetadata(
-    title: 'Government ID',
-    icon: Icons.credit_card,
-  ),
-  'PassportCredential': _CredentialTypeMetadata(
-    title: 'Passport',
-    icon: Icons.article,
-  ),
-  'DriverLicenseCredential': _CredentialTypeMetadata(
-    title: 'Driver License',
-    icon: Icons.drive_eta,
-  ),
-  'EducationalCredential': _CredentialTypeMetadata(
-    title: 'University Degree',
-    icon: Icons.school,
-  ),
-  'ProfessionalCredential': _CredentialTypeMetadata(
-    title: 'Professional Certificate',
-    icon: Icons.workspace_premium,
-  ),
-  'TrainingCredential': _CredentialTypeMetadata(
-    title: 'Training Certificate',
-    icon: Icons.book,
-  ),
-  'EmploymentCredential': _CredentialTypeMetadata(
-    title: 'Employment Credential',
-    icon: Icons.business_center,
-  ),
-  'WorkPermitCredential': _CredentialTypeMetadata(
-    title: 'Work Permit',
-    icon: Icons.work,
-  ),
-  'HealthInsuranceCredential': _CredentialTypeMetadata(
-    title: 'Health Insurance',
-    icon: Icons.medical_services,
-  ),
-  'VaccinationCredential': _CredentialTypeMetadata(
-    title: 'Vaccination Certificate',
-    icon: Icons.vaccines,
-  ),
-  'MembershipCredential': _CredentialTypeMetadata(
-    title: 'Membership Card',
-    icon: Icons.card_membership,
-  ),
-  'Credential': _CredentialTypeMetadata(
-    title: 'Credential',
-    icon: Icons.verified,
-  ),
-};
+import 'package:ssi_app/features/credentials/widgets/credential_form_dialog.dart';
+import 'package:ssi_app/features/credentials/models/credential_models.dart';
+import 'package:ssi_app/features/credentials/widgets/credential_list_widgets.dart';
+import 'package:ssi_app/features/credentials/widgets/credential_details_dialog.dart';
 
 class CredentialsScreen extends StatefulWidget {
   const CredentialsScreen({super.key});
@@ -267,7 +190,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     return null;
   }
 
-  List<_CredentialAttachment> _extractFileAttachments(
+  List<CredentialAttachment> _extractFileAttachments(
     Map<String, dynamic>? doc,
   ) {
     if (doc == null) {
@@ -278,7 +201,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       return const [];
     }
 
-    final attachments = <_CredentialAttachment>[];
+    final attachments = <CredentialAttachment>[];
     subject.forEach((key, value) {
       if (value is! String || value.isEmpty) {
         return;
@@ -307,7 +230,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       }
 
       attachments.add(
-        _CredentialAttachment(
+        CredentialAttachment(
           rawKey: key.toString(),
           label: _formatFieldLabel(key.toString()),
           uri: value,
@@ -317,6 +240,18 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     });
 
     return attachments;
+  }
+
+  /// Format hash/txHash safely, handling short strings
+  String _formatHash(String hash, {int prefixLength = 10, int suffixLength = 0}) {
+    if (hash.isEmpty) return '';
+    if (hash.length <= prefixLength + suffixLength) {
+      return hash; // Return as-is if too short
+    }
+    if (suffixLength == 0) {
+      return '${hash.substring(0, prefixLength)}...';
+    }
+    return '${hash.substring(0, prefixLength)}...${hash.substring(hash.length - suffixLength)}';
   }
 
   String _formatFieldLabel(String key) {
@@ -339,260 +274,6 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     return buffer.toString().replaceAll('_', ' ');
   }
 
-  List<_GatewayLink> _buildGatewayLinks(String uri) {
-    final links = <_GatewayLink>[];
-    final defaultUrl = _pinataService.resolveToHttp(uri);
-    if (defaultUrl.isNotEmpty) {
-      links.add(_GatewayLink(label: 'Pinata', url: defaultUrl));
-    }
-
-    final hash = _extractIpfsHash(uri);
-    if (hash != null && hash.isNotEmpty) {
-      final ipfsIo = 'https://ipfs.io/ipfs/$hash';
-      if (!links.any((link) => link.url == ipfsIo)) {
-        links.add(_GatewayLink(label: 'ipfs.io', url: ipfsIo));
-      }
-
-      final dwebLink = 'https://dweb.link/ipfs/$hash';
-      if (!links.any((link) => link.url == dwebLink)) {
-        links.add(_GatewayLink(label: 'dweb.link', url: dwebLink));
-      }
-    }
-
-    return links;
-  }
-
-  String? _extractIpfsHash(String uri) {
-    if (uri.isEmpty) {
-      return null;
-    }
-    if (uri.startsWith('ipfs://')) {
-      return uri.replaceFirst('ipfs://', '');
-    }
-    final ipfsIndex = uri.indexOf('/ipfs/');
-    if (ipfsIndex != -1) {
-      final hash = uri.substring(ipfsIndex + 6);
-      return hash.split('?').first;
-    }
-    final segments = uri.split('/');
-    if (segments.isNotEmpty) {
-      return segments.last.split('?').first;
-    }
-    return null;
-  }
-
-  void _showFilePreview(_CredentialAttachment attachment) {
-    debugPrint('_showFilePreview called for: ${attachment.uri}');
-    final gateways = _buildGatewayLinks(attachment.uri);
-    debugPrint('Built ${gateways.length} gateway links');
-    if (gateways.isEmpty) {
-      debugPrint('No gateways found, opening external link');
-      _openExternalLink(_pinataService.resolveToHttp(attachment.uri));
-      return;
-    }
-
-    var selectedLink = gateways.first;
-
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            final isImage = _isImageUrl(selectedLink.url);
-            return Dialog(
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: 600,
-                  maxWidth: 460,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.insert_drive_file,
-                            color: Colors.white70,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              attachment.fileName ?? attachment.label,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          PopupMenuButton<_GatewayLink>(
-                            initialValue: selectedLink,
-                            icon: const Icon(Icons.link, color: Colors.white70),
-                            onSelected: (link) {
-                              setState(() {
-                                selectedLink = link;
-                              });
-                            },
-                            itemBuilder:
-                                (context) =>
-                                    gateways
-                                        .map(
-                                          (link) => PopupMenuItem<_GatewayLink>(
-                                            value: link,
-                                            child: Text(link.label),
-                                          ),
-                                        )
-                                        .toList(),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.open_in_new,
-                              color: Colors.white70,
-                            ),
-                            onPressed:
-                                () => _openExternalLink(selectedLink.url),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: 360,
-                        child:
-                            isImage
-                                ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: InteractiveViewer(
-                                    child: Image.network(
-                                      selectedLink.url,
-                                      fit: BoxFit.contain,
-                                      loadingBuilder: (
-                                        context,
-                                        child,
-                                        progress,
-                                      ) {
-                                        if (progress == null) return child;
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            value:
-                                                progress.expectedTotalBytes !=
-                                                        null
-                                                    ? progress
-                                                            .cumulativeBytesLoaded /
-                                                        (progress
-                                                                .expectedTotalBytes ??
-                                                            1)
-                                                    : null,
-                                            color: AppColors.secondary,
-                                          ),
-                                        );
-                                      },
-                                      errorBuilder: (
-                                        context,
-                                        error,
-                                        stackTrace,
-                                      ) {
-                                        return _AttachmentPreviewFallback(
-                                          url: selectedLink.url,
-                                          onOpenExternal:
-                                              () => _openExternalLink(
-                                                selectedLink.url,
-                                              ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                )
-                                : _AttachmentPreviewFallback(
-                                  url: selectedLink.url,
-                                  onOpenExternal:
-                                      () => _openExternalLink(selectedLink.url),
-                                ),
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Gateway',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                            gateways
-                                .map(
-                                  (link) => ChoiceChip(
-                                    label: Text(
-                                      link.label,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    selected: selectedLink.url == link.url,
-                                    onSelected:
-                                        (_) =>
-                                            setState(() => selectedLink = link),
-                                    selectedColor: AppColors.secondary
-                                        .withValues(alpha: 0.3),
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  bool _isImageUrl(String url) {
-    final lower = url.toLowerCase();
-    return lower.endsWith('.png') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.gif') ||
-        lower.endsWith('.bmp') ||
-        lower.endsWith('.webp');
-  }
-
-  Future<void> _openExternalLink(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        throw 'Không thể mở liên kết';
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không thể mở file: $e'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-    }
-  }
 
   Future<void> _showCredentialDetails(int index) async {
     final credential = _credentials[index];
@@ -629,7 +310,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
     // Always extract attachments from vcDocument to ensure proper type
     // Don't rely on stored attachments in credential map as type information may be lost
-    List<_CredentialAttachment> attachments = <_CredentialAttachment>[];
+    List<CredentialAttachment> attachments = <CredentialAttachment>[];
     if (vcDoc != null) {
       attachments = _extractFileAttachments(vcDoc);
       debugPrint(
@@ -652,7 +333,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     showDialog<void>(
       context: context,
       builder:
-          (context) => _CredentialDetailsDialog(
+          (context) => CredentialDetailsDialog(
             credential: credential,
             vcDocument: vcDoc,
             signatureValid: sigValid,
@@ -667,16 +348,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                       debugPrint(
                         'Preview attachment clicked: ${attachment.label} - ${attachment.uri}',
                       );
-                      // Close credential details dialog first, then show preview
-                      Navigator.of(dialogContext).pop();
-                      // Use a post-frame callback to ensure dialog is closed before showing preview
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          _showFilePreview(attachment);
-                        }
-                      });
+                      // Just trigger state update in dialog, don't close it
                     }
                     : null,
+            pinataService: _pinataService,
             onCopyHash:
                 () => _copyToClipboard(
                   credential['hashCredential'],
@@ -711,7 +386,6 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     String orgID,
     Map<String, dynamic>? credentialData,
   ) async {
-    final navigator = Navigator.of(context);
     try {
       final l10n = AppLocalizations.of(context)!;
       _showBlockingSpinner('Đang xử lý files và tạo chứng nhận...');
@@ -818,7 +492,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         );
       } catch (e) {
         // Nếu validation fail, hiển thị error message ngay
-        navigator.pop();
+        NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
         _spinnerContext = null;
         if (!mounted) return;
 
@@ -857,7 +531,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       final success = await _web3Service.waitForTransactionReceipt(txHash);
 
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
       _spinnerContext = null;
       if (!mounted) return;
 
@@ -867,7 +541,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             content: Text(
               AppLocalizations.of(
                 context,
-              )!.vcIssued('${txHash.substring(0, 10)}...'),
+              )!.vcIssued(_formatHash(txHash)),
             ),
             backgroundColor: AppColors.success,
           ),
@@ -878,7 +552,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Transaction failed: Transaction đã bị revert trên blockchain.\n\nCó thể do:\n- DID chưa được đăng ký\n- Bạn không có quyền issue VC\n- DID đã bị deactivate\n\nHash: ${txHash.substring(0, 10)}...',
+              'Transaction failed: Transaction đã bị revert trên blockchain.\n\nCó thể do:\n- DID chưa được đăng ký\n- Bạn không có quyền issue VC\n- DID đã bị deactivate\n\nHash: ${_formatHash(txHash)}',
             ),
             backgroundColor: AppColors.danger,
             duration: const Duration(seconds: 5),
@@ -886,22 +560,30 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         );
       }
     } catch (e) {
-      navigator.pop();
+      // Safely dismiss dialog even if context is invalid
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
       _spinnerContext = null;
+      
+      // Clear pending flags if transaction was rejected
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        _walletConnectService.clearPendingFlags();
+      }
+      
       if (!mounted) return;
 
       // Provide more helpful error messages
       String errorMessage = AppLocalizations.of(
         context,
       )!.errorOccurred(e.toString());
-      if (e.toString().contains('timeout')) {
+      if (e.toString().toLowerCase().contains('timeout')) {
         errorMessage =
             'Request timeout. Vui lòng kiểm tra MetaMask wallet và xác nhận, sau đó thử lại.';
-      } else if (e.toString().contains('rejected') ||
-          e.toString().contains('denied')) {
-        errorMessage = 'Request đã bị từ chối trong MetaMask wallet.';
-      } else if (e.toString().contains('session') &&
-          e.toString().contains('disconnected')) {
+      } else if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        errorMessage = 'Giao dịch đã bị hủy trong ví. Vui lòng thử lại.';
+      } else if (e.toString().toLowerCase().contains('session') &&
+          e.toString().toLowerCase().contains('disconnected')) {
         errorMessage =
             'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
       }
@@ -910,46 +592,60 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
   }
 
   Future<void> _revokeCredential(int index) async {
-    final navigator = Navigator.of(context);
     try {
       final l10n = AppLocalizations.of(context)!;
       _showBlockingSpinner(l10n.revokingVC);
       final txHash = await _web3Service.revokeVC(_address, index);
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppLocalizations.of(
               context,
-            )!.vcRevoked('${txHash.substring(0, 10)}...'),
+            )!.vcRevoked(_formatHash(txHash)),
           ),
           backgroundColor: AppColors.danger,
         ),
       );
       _loadCredentials();
     } catch (e) {
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
+      
+      // Clear pending flags if transaction was rejected
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        _walletConnectService.clearPendingFlags();
+      }
+      
       if (!mounted) return;
+      
+      String errorMessage = AppLocalizations.of(context)!.errorOccurred(e.toString());
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        errorMessage = 'Hủy credential đã bị hủy trong ví. Vui lòng thử lại.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.errorOccurred(e.toString()),
-          ),
+          content: Text(errorMessage),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
   }
 
   Future<void> _showVerificationRequestDialog(int index) async {
-    final metadataUriController = TextEditingController();
     final targetVerifierController = TextEditingController();
 
     if (!mounted) return;
@@ -971,28 +667,20 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                     'VC Index: ${_credentials[index]['index']}',
                     style: const TextStyle(color: Colors.white70),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: metadataUriController,
-                    decoration: const InputDecoration(
-                      labelText: 'Metadata URI (IPFS) *',
-                      hintText: 'ipfs://Qm...',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white30),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Toàn bộ nội dung credential sẽ được gửi tự động đến cơ quan xác thực.',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
                     ),
-                    style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: targetVerifierController,
                     decoration: const InputDecoration(
-                      labelText: 'Target Verifier (Optional)',
-                      hintText: 'Leave empty for any verifier',
+                      labelText: 'Địa chỉ cơ quan xác thực *',
+                      hintText: '0x... (để trống nếu cho phép bất kỳ verifier nào)',
                       labelStyle: TextStyle(color: Colors.white70),
                       enabledBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.white30),
@@ -1009,23 +697,22 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: const Text('Hủy'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
-                child: const Text('Request'),
+                child: const Text('Gửi yêu cầu'),
               ),
             ],
           ),
     );
 
-    if (result == true && metadataUriController.text.isNotEmpty) {
+    if (result == true) {
       await _requestVerification(
         index,
-        metadataUriController.text.trim(),
         targetVerifierController.text.trim(),
       );
     }
@@ -1033,43 +720,116 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
   Future<void> _requestVerification(
     int index,
-    String metadataUri,
     String targetVerifier,
   ) async {
-    final navigator = Navigator.of(context);
     try {
-      _showBlockingSpinner('Đang tạo yêu cầu xác thực...');
+      final credential = _credentials[index];
+      
+      // Lấy vcDocument từ credential hoặc load từ IPFS
+      Map<String, dynamic>? vcDocument = credential['vcDocument'] as Map<String, dynamic>?;
+      
+      if (vcDocument == null) {
+        // Nếu chưa có vcDocument, thử load từ URI
+        final uri = credential['uri'] as String?;
+        if (uri != null && uri.isNotEmpty) {
+          _showBlockingSpinner('Đang tải thông tin credential...');
+          try {
+            vcDocument = await _pinataService.getJSON(uri);
+          } catch (e) {
+            debugPrint('Error loading VC document from URI: $e');
+            NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+            _spinnerContext = null;
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Không thể tải thông tin credential: ${e.toString()}'),
+                backgroundColor: AppColors.danger,
+              ),
+            );
+            return;
+          }
+        } else {
+          NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+          _spinnerContext = null;
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Credential không có thông tin để gửi. Vui lòng kiểm tra lại.'),
+              backgroundColor: AppColors.danger,
+            ),
+          );
+          return;
+        }
+      }
+      
+      // Upload toàn bộ nội dung credential lên IPFS
+      _updateSpinnerMessage('Đang tải toàn bộ nội dung credential lên IPFS...');
+      final metadataUri = await _pinataService.uploadJSON(vcDocument);
+      
+      // Gửi yêu cầu xác thực với metadataUri chứa toàn bộ credential
+      _updateSpinnerMessage('Đang gửi yêu cầu xác thực đến blockchain...');
       final txHash = await _web3Service.requestVerification(
         _address,
         index,
         targetVerifier.isNotEmpty ? targetVerifier : null,
         metadataUri,
       );
-      navigator.pop();
+      
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Verification request created: ${txHash.substring(0, 10)}...',
+            'Yêu cầu xác thực đã được gửi thành công!\nHash: ${_formatHash(txHash)}',
           ),
           backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 3),
         ),
       );
       _loadCredentials();
     } catch (e) {
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
+      
+      // Clear pending flags if transaction was rejected
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        _walletConnectService.clearPendingFlags();
+      }
+      
       if (!mounted) return;
+      
+      String errorMessage = 'Lỗi: ${e.toString()}';
+      
+      // Handle specific error cases
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        errorMessage = 'Yêu cầu xác thực đã bị hủy trong ví. Vui lòng thử lại.';
+      } else if (e.toString().contains('gas limit too high') ||
+                 e.toString().contains('16777216') ||
+                 e.toString().contains('gas limit quá cao')) {
+        errorMessage = 'Gas limit quá cao. '
+            'Hệ thống đã tự động điều chỉnh, nhưng ví của bạn có thể đang estimate lại. '
+            'Vui lòng thử lại hoặc giảm kích thước metadata nếu có thể.';
+      } else if (e.toString().toLowerCase().contains('timeout')) {
+        errorMessage = 'Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.';
+      } else if (e.toString().toLowerCase().contains('session') &&
+                 e.toString().toLowerCase().contains('disconnected')) {
+        errorMessage = 'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text(errorMessage),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
   }
 
   Future<void> _verifyCredential(int index) async {
-    final navigator = Navigator.of(context);
     try {
       final result = await showDialog<bool>(
         context: context,
@@ -1104,22 +864,39 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       _showBlockingSpinner('Đang xác thực credential...');
       final txHash = await _web3Service.verifyCredential(_address, index);
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Credential verified: ${txHash.substring(0, 10)}...'),
+          content: Text('Credential verified: ${_formatHash(txHash)}'),
           backgroundColor: AppColors.success,
         ),
       );
       _loadCredentials();
     } catch (e) {
-      navigator.pop();
+      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _spinnerContext = null;
+      
+      // Clear pending flags if transaction was rejected
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        _walletConnectService.clearPendingFlags();
+      }
+      
       if (!mounted) return;
+      
+      String errorMessage = 'Error: ${e.toString()}';
+      if (e.toString().toLowerCase().contains('rejected') ||
+          e.toString().toLowerCase().contains('denied')) {
+        errorMessage = 'Xác thực credential đã bị hủy trong ví. Vui lòng thử lại.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text(errorMessage),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -1203,7 +980,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
   IconData _iconForCredential(Map<String, dynamic> credential, int index) {
     final vcType = credential['vcType'] as String?;
-    final metadata = vcType != null ? _credentialTypeMetadata[vcType] : null;
+    final metadata = vcType != null ? credentialTypeMetadata[vcType] : null;
     if (metadata != null) {
       return metadata.icon;
     }
@@ -1260,13 +1037,13 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     if (vcType == null) {
       return null;
     }
-    return _credentialTypeMetadata[vcType]?.title;
+    return credentialTypeMetadata[vcType]?.title;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -1277,10 +1054,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 children: [
                   Text(
                     AppLocalizations.of(context)!.credentials,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.grey[900],
                     ),
                   ),
                   if (_canIssueVC[_address] == true)
@@ -1300,9 +1077,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             Expanded(
               child:
                   _isLoading
-                      ? const _LoadingState()
+                      ? const CredentialLoadingState()
                       : _credentials.isEmpty
-                      ? _EmptyState(onAddCredential: _showAddCredentialDialog)
+                      ? CredentialEmptyState(onAddCredential: _showAddCredentialDialog)
                       : RefreshIndicator(
                         onRefresh: _loadCredentials,
                         color: AppColors.secondary,
@@ -1311,7 +1088,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                           itemCount: _credentials.length,
                           itemBuilder: (context, index) {
                             final credential = _credentials[index];
-                            return _CredentialCard(
+                            return CredentialCard(
                               title: _titleForCredential(
                                 credential,
                                 index,
@@ -1321,7 +1098,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                                   credential['issuer'] ??
                                   AppLocalizations.of(context)!.unknown,
                               details:
-                                  'Hash: ${credential['hashCredential'].substring(0, 10)}...',
+                                  'Hash: ${_formatHash(credential['hashCredential'] ?? '')}',
                               uri: credential['uri'] ?? '',
                               icon: _iconForCredential(credential, index),
                               color: _colorForIndex(index),
@@ -1345,767 +1122,6 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 label: Text(AppLocalizations.of(context)!.issueCredential),
               )
               : null,
-    );
-  }
-}
-
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: AppColors.secondary),
-          const SizedBox(height: 16),
-          Text(
-            AppLocalizations.of(context)!.loadingCredentials,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({this.onAddCredential});
-
-  final VoidCallback? onAddCredential;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open,
-            size: 80,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            AppLocalizations.of(context)!.noCredentials,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context)!.pressAddToAddCredential,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
-            ),
-          ),
-          if (onAddCredential != null) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onAddCredential,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: Text(AppLocalizations.of(context)!.issueCredential),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CredentialCard extends StatelessWidget {
-  const _CredentialCard({
-    required this.title,
-    required this.issuer,
-    required this.details,
-    required this.uri,
-    required this.icon,
-    required this.color,
-    required this.isValid,
-    required this.isVerified,
-    required this.onTap,
-  });
-
-  final String title;
-  final String issuer;
-  final String details;
-  final String uri;
-  final IconData icon;
-  final Color color;
-  final bool isValid;
-  final bool isVerified;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: GlassContainer(
-          borderRadius: 20,
-          padding: const EdgeInsets.all(20),
-          backgroundColor: Colors.white.withValues(alpha: 0.05),
-          borderColor:
-              isValid
-                  ? color.withValues(alpha: 0.3)
-                  : AppColors.danger.withValues(alpha: 0.3),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (isValid
-                                        ? AppColors.success
-                                        : AppColors.danger)
-                                    .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isValid
-                                    ? AppLocalizations.of(context)!.valid
-                                    : AppLocalizations.of(context)!.revoked,
-                                style: TextStyle(
-                                  color:
-                                      isValid
-                                          ? AppColors.success
-                                          : AppColors.danger,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (isVerified) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.verified,
-                                      color: AppColors.success,
-                                      size: 12,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Verified',
-                                      style: TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${AppLocalizations.of(context)!.issuer}: ${issuer.substring(0, 10)}...',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      details,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.white.withValues(alpha: 0.3),
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CredentialDetailsDialog extends StatelessWidget {
-  const _CredentialDetailsDialog({
-    required this.credential,
-    required this.vcDocument,
-    required this.signatureValid,
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.orgID,
-    required this.onCopyHash,
-    required this.attachments,
-    this.onRevoke,
-    this.onRequestVerification,
-    this.onVerifyCredential,
-    this.onViewAttachment,
-  });
-
-  final Map<String, dynamic> credential;
-  final Map<String, dynamic>? vcDocument;
-  final bool? signatureValid;
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String orgID;
-  final VoidCallback onCopyHash;
-  final List<_CredentialAttachment> attachments;
-  final VoidCallback? onRevoke;
-  final VoidCallback? onRequestVerification;
-  final VoidCallback? onVerifyCredential;
-  final void Function(
-    _CredentialAttachment attachment,
-    BuildContext dialogContext,
-  )?
-  onViewAttachment;
-
-  @override
-  Widget build(BuildContext context) {
-    bool isAttachmentKey(String key) {
-      for (final attachment in attachments) {
-        if (attachment.rawKey == key) {
-          return true;
-        }
-        final candidates = [
-          '${attachment.rawKey}FileName',
-          '${attachment.rawKey}Filename',
-          '${attachment.rawKey}fileName',
-          '${attachment.rawKey}filename',
-        ];
-        if (candidates.contains(key)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 600),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: color, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (credential['valid']
-                                        ? AppColors.success
-                                        : AppColors.danger)
-                                    .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                credential['valid']
-                                    ? AppLocalizations.of(context)!.valid
-                                    : AppLocalizations.of(context)!.revoked,
-                                style: TextStyle(
-                                  color:
-                                      credential['valid']
-                                          ? AppColors.success
-                                          : AppColors.danger,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (credential['verified'] == true) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.verified,
-                                      color: AppColors.success,
-                                      size: 14,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Verified',
-                                      style: TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _DetailRow(
-                label: AppLocalizations.of(context)!.index,
-                value: credential['index'].toString(),
-              ),
-              _DetailRow(
-                label: AppLocalizations.of(context)!.issuer,
-                value: credential['issuer'],
-              ),
-              _DetailRow(
-                label: AppLocalizations.of(context)!.credentialHash,
-                value: credential['hashCredential'],
-              ),
-              _DetailRow(label: 'URI', value: credential['uri']),
-              if (credential['issuedAt'] != null)
-                _DetailRow(
-                  label: 'Issued At',
-                  value:
-                      DateTime.fromMillisecondsSinceEpoch(
-                        (credential['issuedAt'] as int) * 1000,
-                      ).toIso8601String(),
-                ),
-              if (credential['expirationDate'] != null &&
-                  (credential['expirationDate'] as int) > 0)
-                _DetailRow(
-                  label: 'Expiration',
-                  value:
-                      DateTime.fromMillisecondsSinceEpoch(
-                        (credential['expirationDate'] as int) * 1000,
-                      ).toIso8601String(),
-                ),
-              if (credential['verified'] == true) ...[
-                if (credential['verifier'] != null)
-                  _DetailRow(
-                    label: 'Verified By',
-                    value: credential['verifier'],
-                  ),
-                if (credential['verifiedAt'] != null &&
-                    (credential['verifiedAt'] as int) > 0)
-                  _DetailRow(
-                    label: 'Verified At',
-                    value:
-                        DateTime.fromMillisecondsSinceEpoch(
-                          (credential['verifiedAt'] as int) * 1000,
-                        ).toIso8601String(),
-                  ),
-              ],
-              if (vcDocument != null) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Details',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _DetailRow(
-                  label: 'Type',
-                  value:
-                      (vcDocument!['type'] as List?)?.join(', ') ??
-                      'VerifiableCredential',
-                ),
-                _DetailRow(
-                  label: 'Subject',
-                  value:
-                      (vcDocument!['credentialSubject'] as Map?)?['id']
-                          ?.toString() ??
-                      '',
-                ),
-                if ((vcDocument!['credentialSubject'] as Map?) != null)
-                  ...((vcDocument!['credentialSubject'] as Map).entries
-                      .where(
-                        (e) =>
-                            e.key != 'id' && !isAttachmentKey(e.key.toString()),
-                      )
-                      .map(
-                        (e) => _DetailRow(
-                          label: e.key.toString(),
-                          value: e.value.toString(),
-                        ),
-                      )),
-                if (signatureValid != null)
-                  _DetailRow(
-                    label: 'Signature',
-                    value: signatureValid! ? 'Valid' : 'Invalid',
-                  ),
-              ],
-              if (attachments.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Files',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Builder(
-                  builder: (dialogContext) {
-                    debugPrint(
-                      'Rendering ${attachments.length} attachment rows',
-                    );
-                    debugPrint(
-                      'onViewAttachment is ${onViewAttachment != null ? "not null" : "null"}',
-                    );
-                    return Column(
-                      children:
-                          attachments.map((attachment) {
-                            debugPrint(
-                              'Rendering attachment row: ${attachment.label}',
-                            );
-                            return _AttachmentRow(
-                              attachment: attachment,
-                              onView:
-                                  onViewAttachment != null
-                                      ? () {
-                                        debugPrint(
-                                          'Attachment row clicked: ${attachment.label}',
-                                        );
-                                        onViewAttachment!(
-                                          attachment,
-                                          dialogContext,
-                                        );
-                                      }
-                                      : null,
-                            );
-                          }).toList(),
-                    );
-                  },
-                ),
-              ],
-              const SizedBox(height: 24),
-              Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: onCopyHash,
-                      icon: const Icon(Icons.copy),
-                      label: Text(AppLocalizations.of(context)!.copyHash),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  if (onRequestVerification != null) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onRequestVerification,
-                        icon: const Icon(Icons.send),
-                        label: const Text('Request Verification'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (onVerifyCredential != null) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onVerifyCredential,
-                        icon: const Icon(Icons.verified),
-                        label: const Text('Verify'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (onRevoke != null) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onRevoke,
-                        icon: const Icon(Icons.block),
-                        label: Text(AppLocalizations.of(context)!.revoke),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.danger,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontFamily: 'Courier',
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AttachmentPreviewFallback extends StatelessWidget {
-  const _AttachmentPreviewFallback({
-    required this.url,
-    required this.onOpenExternal,
-  });
-
-  final String url;
-  final VoidCallback onOpenExternal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.insert_drive_file,
-          size: 48,
-          color: Colors.white.withValues(alpha: 0.6),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Không thể preview file này',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Vui lòng thử mở bằng gateway khác hoặc trình duyệt.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 12,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          url,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
-            fontSize: 12,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          onPressed: onOpenExternal,
-          icon: const Icon(Icons.open_in_new),
-          label: const Text('Mở trong trình duyệt'),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _AttachmentRow extends StatelessWidget {
-  const _AttachmentRow({required this.attachment, this.onView});
-
-  final _CredentialAttachment attachment;
-  final VoidCallback? onView;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = attachment.fileName ?? attachment.label;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.insert_drive_file,
-              color: Colors.white70,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  attachment.label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onView,
-            icon: const Icon(Icons.visibility, color: Colors.white70),
-            tooltip: 'Xem file',
-          ),
-        ],
-      ),
     );
   }
 }

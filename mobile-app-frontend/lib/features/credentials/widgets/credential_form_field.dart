@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
-import 'package:ssi_app/models/credential_template.dart';
+import 'package:ssi_app/features/credentials/models/credential_template.dart';
 
 /// Form field widget for credential fields
 class CredentialFormField extends StatelessWidget {

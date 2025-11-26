@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:ssi_app/app/router/app_router.dart';
 import 'package:ssi_app/app/theme/app_theme.dart';
+import 'package:ssi_app/core/utils/navigation_utils.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/localization/language_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
@@ -62,13 +63,32 @@ class SSIAppState extends State<SSIApp> with WidgetsBindingObserver {
       
       // Kiểm tra xem có pending transaction/signature không
       final hasPending = _walletConnectService.hasPendingRequest();
-      if (hasPending) {
+      final isPendingTransaction = _walletConnectService.isPendingTransactionOrSignature();
+      
+      if (hasPending || isPendingTransaction) {
         debugPrint('[SSIApp] App resumed with pending WalletConnect request - waiting for completion');
         // WalletConnect sẽ tự động handle response khi app resume
         // Không cần làm gì thêm vì ReownAppKit sẽ tự động process pending requests
+        
+        // Đợi thêm một chút để xem transaction có được complete không
+        await Future.delayed(const Duration(seconds: 2));
+        
+        // Nếu vẫn còn pending sau khi đợi, có thể user đã cancel
+        // Clear flags và dismiss any dialogs
+        final stillPending = _walletConnectService.isPendingTransactionOrSignature();
+        if (stillPending) {
+          debugPrint('[SSIApp] Transaction still pending after delay - user may have cancelled');
+          // Clear pending flags to allow app to function normally
+          _walletConnectService.clearPendingFlags();
+          // Dismiss any blocking dialogs that might be showing
+          NavigationUtils.safePopDialog(null);
+        }
       } else {
         // Không có pending request - có thể session đã được approve hoặc user đã quay lại
         debugPrint('[SSIApp] App resumed - no pending requests');
+        
+        // Dismiss any dialogs that might be stuck (fallback)
+        NavigationUtils.safePopDialog(null);
       }
       
       // Kiểm tra xem có active session không (có thể đã được approve trong background)
@@ -78,6 +98,13 @@ class SSIAppState extends State<SSIApp> with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('[SSIApp] Error handling app resume: $e');
+      // Fallback: clear flags and dismiss dialogs on error
+      try {
+        _walletConnectService.clearPendingFlags();
+        NavigationUtils.safePopDialog(null);
+      } catch (fallbackError) {
+        debugPrint('[SSIApp] Error in fallback cleanup: $fallbackError');
+      }
     }
   }
 

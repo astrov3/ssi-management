@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
-import 'package:ssi_app/app/theme/app_gradients.dart';
-import 'package:ssi_app/core/widgets/gradient_background.dart';
 import 'package:ssi_app/features/auth/shared/dialogs/auth_dialogs.dart';
 import 'package:ssi_app/features/home/view/home_screen.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
@@ -19,7 +17,6 @@ class AuthenticateScreen extends StatefulWidget {
 class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBindingObserver {
   final _walletConnectService = WalletConnectService();
   bool _isLoading = false;
-  bool _hasWallet = false;
   bool _isConnectingWallet = false;
 
   @override
@@ -40,10 +37,6 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
     try {
       final address = await _walletConnectService.getStoredAddress();
       if (mounted) {
-        setState(() {
-          _hasWallet = address != null && address.isNotEmpty;
-        });
-        
         // If we have a stored WalletConnect address, check if we need authentication
         // If no password/biometric is set up, auto-login to home
         if (address != null && address.isNotEmpty) {
@@ -268,10 +261,9 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
-      body: GradientBackground(
-        gradient: AppGradients.primary,
-        child: SafeArea(
+      body: SafeArea(
           child: Stack(
             children: [
               // Main scrollable content
@@ -312,7 +304,6 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -326,7 +317,7 @@ class _TopHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
             onPressed: () => Navigator.of(context).pop(),
           ),
 
@@ -344,10 +335,10 @@ class _InstructionText extends StatelessWidget {
       children: [
         Text(
           l10n.loginToIdentityWallet,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.grey[900],
             height: 1.3,
           ),
           textAlign: TextAlign.center,
@@ -357,7 +348,7 @@ class _InstructionText extends StatelessWidget {
           'Connect your wallet to continue',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.7),
+            color: Colors.grey[600],
             height: 1.4,
           ),
           textAlign: TextAlign.center,
@@ -389,10 +380,11 @@ class _WalletButtons extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: AppColors.primary,
-              elevation: 0,
-              shadowColor: Colors.transparent,
+              elevation: 4,
+              shadowColor: Colors.black.withValues(alpha: 0.15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
             icon: const Icon(Icons.account_balance_wallet_outlined, size: 24),
@@ -413,10 +405,11 @@ class _WalletButtons extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: AppColors.primary,
-              elevation: 0,
-              shadowColor: Colors.transparent,
+              elevation: 4,
+              shadowColor: Colors.black.withValues(alpha: 0.15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
             icon: const Icon(Icons.verified_user_outlined, size: 24),
@@ -434,38 +427,6 @@ class _WalletButtons extends StatelessWidget {
   }
 }
 
-class _ChangeAccountButton extends StatelessWidget {
-  const _ChangeAccountButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.3),
-            width: 1,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        icon: const Icon(Icons.swap_horiz, size: 20),
-        label: Text(
-          l10n.changeAccount,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
-  }
-}
-
 class _SupportSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -473,11 +434,19 @@ class _SupportSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: Colors.white,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -515,7 +484,7 @@ class _SupportSection extends StatelessWidget {
             child: Text(
               AppLocalizations.of(context)!.privacyPolicy,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.grey[700],
                 fontSize: 12,
                 decoration: TextDecoration.underline,
               ),
@@ -548,12 +517,12 @@ class _SupportItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 24),
+            Icon(icon, color: Colors.grey[900], size: 24),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: Colors.grey[700],
                 fontSize: 12,
               ),
             ),

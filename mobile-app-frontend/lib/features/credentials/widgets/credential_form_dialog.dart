@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/features/qr/scanner/qr_scanner_screen.dart';
-import 'package:ssi_app/models/credential_template.dart';
+import 'package:ssi_app/features/credentials/models/credential_template.dart';
 import 'package:ssi_app/services/ocr/ocr_service.dart';
 import 'package:ssi_app/services/parser/document_parser_service.dart';
-import 'package:ssi_app/widgets/credential_form_field.dart';
+import 'package:ssi_app/features/credentials/widgets/credential_form_field.dart';
 
 /// Dialog for issuing credentials with template-based forms
 class CredentialFormDialog extends StatefulWidget {

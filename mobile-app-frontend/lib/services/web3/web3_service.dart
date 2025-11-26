@@ -1008,6 +1008,69 @@ class Web3Service {
     return result.first as bool;
   }
 
+  /// Estimate gas for a transaction
+  /// Returns estimated gas with a safety buffer, capped at network limit
+  Future<BigInt> _estimateGas({
+    required String from,
+    required String to,
+    required String data,
+  }) async {
+    try {
+      final requestBody = jsonEncode({
+        'jsonrpc': '2.0',
+        'method': 'eth_estimateGas',
+        'params': [
+          {
+            'from': from,
+            'to': to,
+            'data': data,
+          },
+        ],
+        'id': 1,
+      });
+
+      final response = await _httpClient.post(
+        Uri.parse(Environment.rpcUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: requestBody,
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
+        if (jsonResponse['error'] != null) {
+          final error = jsonResponse['error'] as Map<String, dynamic>;
+          final message = error['message']?.toString() ?? 'Gas estimation failed';
+          throw StateError(message);
+        }
+        
+        final result = jsonResponse['result'] as String?;
+        if (result != null) {
+          // Remove '0x' prefix and parse as hex
+          final gasHex = result.startsWith('0x') ? result.substring(2) : result;
+          final estimatedGas = BigInt.parse(gasHex, radix: 16);
+          
+          // Add 30% buffer for safety (network conditions, state changes, etc.)
+          final gasWithBuffer = (estimatedGas * BigInt.from(130) ~/ BigInt.from(100));
+          
+          // Network gas limit cap (16,777,216) - leave some margin (use 15,000,000 as safe max)
+          const networkGasCap = 15000000;
+          final finalGas = gasWithBuffer > BigInt.from(networkGasCap) 
+              ? BigInt.from(networkGasCap) 
+              : gasWithBuffer;
+          
+          debugPrint('[Web3Service] Gas estimation: $estimatedGas -> with 30% buffer: $gasWithBuffer -> final (capped): $finalGas');
+          
+          return finalGas;
+        }
+      }
+      
+      throw StateError('Failed to estimate gas');
+    } catch (e) {
+      debugPrint('[Web3Service] Error estimating gas: $e');
+      rethrow;
+    }
+  }
+
   /// Yêu cầu xác thực VC on-chain
   Future<String> requestVerification(String orgID, int index, String? targetVerifier, String metadataUri) async {
     final function = _contract.function('requestVerification');
@@ -1016,13 +1079,61 @@ class Web3Service {
         ? EthereumAddress.fromHex(targetVerifier)
         : EthereumAddress.fromHex('0x0000000000000000000000000000000000000000');
     
+    final contractAddress = Environment.contractAddress;
+    final encodedData = _encodeFunctionCall(function, [orgID, BigInt.from(index), targetVerifierAddress, metadataUri]);
+    
     if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID, BigInt.from(index), targetVerifierAddress, metadataUri]);
+      // Estimate gas automatically with buffer and network cap
+      // This ensures flexibility while staying within network limits
+      try {
+        final callerAddress = await _getCurrentAddress();
+        if (callerAddress != null) {
+          debugPrint('[Web3Service] Auto-estimating gas for requestVerification...');
+          debugPrint('[Web3Service] orgID: $orgID, index: $index, metadataUri length: ${metadataUri.length}');
+          
+          // _estimateGas already includes 30% buffer and network cap (15M)
+          final finalGas = await _estimateGas(
+            from: callerAddress,
+            to: contractAddress,
+            data: encodedData,
+          );
+          
+          debugPrint('[Web3Service] Final gas limit (with buffer and cap): $finalGas');
+          
+          return await _walletConnectService.sendTransaction(
+            to: contractAddress,
+            data: encodedData,
+            gas: finalGas.toRadixString(10), // Pass as decimal string
+          );
+        }
+      } catch (e) {
+        debugPrint('[Web3Service] Gas estimation failed: $e');
+        
+        // Check if it's a gas limit error - don't retry with default
+        if (e.toString().contains('gas limit too high') || 
+            e.toString().contains('16777216')) {
+          rethrow; // Re-throw gas limit errors
+        }
+        
+        // For estimation failures, use a safe default
+        // requestVerification typically uses 100k-300k gas, so 500k is safe
+        debugPrint('[Web3Service] Using safe default gas limit: 500,000');
+        const safeGasLimit = 500000;
+        
+        return await _walletConnectService.sendTransaction(
+          to: contractAddress,
+          data: encodedData,
+          gas: safeGasLimit.toString(),
+        );
+      }
       
+      // If no address available, use safe default
+      debugPrint('[Web3Service] No address available, using safe default gas limit: 500,000');
+      const safeGasLimit = 500000;
       return await _walletConnectService.sendTransaction(
         to: contractAddress,
         data: encodedData,
+        gas: safeGasLimit.toString(),
       );
     } else {
       final txHash = await _client.sendTransaction(
@@ -1051,6 +1162,104 @@ class Web3Service {
       return (result.first as EthereumAddress).hex;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Lấy nextRequestId (số lượng requests hiện tại)
+  Future<int> getNextRequestId() async {
+    final function = _contract.function('nextRequestId');
+    try {
+      final result = await _client.call(
+        contract: _contract,
+        function: function,
+        params: [],
+      );
+      return (result.first as BigInt).toInt();
+    } catch (e) {
+      debugPrint('[Web3Service] Error getting nextRequestId: $e');
+      return 0;
+    }
+  }
+
+  /// Lấy thông tin verification request theo requestId
+  Future<Map<String, dynamic>?> getVerificationRequest(int requestId) async {
+    final function = _contract.function('getVerificationRequest');
+    try {
+      final result = await _client.call(
+        contract: _contract,
+        function: function,
+        params: [BigInt.from(requestId)],
+      );
+
+      return {
+        'requestId': requestId,
+        'orgID': result[0] as String,
+        'vcIndex': (result[1] as BigInt).toInt(),
+        'requester': (result[2] as EthereumAddress).hex,
+        'targetVerifier': (result[3] as EthereumAddress).hex,
+        'metadataUri': result[4] as String,
+        'requestedAt': (result[5] as BigInt).toInt(),
+        'processed': result[6] as bool,
+      };
+    } catch (e) {
+      debugPrint('[Web3Service] Error getting verification request $requestId: $e');
+      return null;
+    }
+  }
+
+  /// Lấy tất cả verification requests (pending và processed)
+  /// Chỉ lấy các requests chưa được xử lý nếu onlyPending = true
+  Future<List<Map<String, dynamic>>> getAllVerificationRequests({bool onlyPending = true}) async {
+    final requests = <Map<String, dynamic>>[];
+    try {
+      final nextRequestId = await getNextRequestId();
+      
+      // Lấy tất cả requests từ 1 đến nextRequestId
+      for (int i = 1; i < nextRequestId; i++) {
+        final request = await getVerificationRequest(i);
+        if (request != null) {
+          // Nếu onlyPending = true, chỉ lấy requests chưa được xử lý
+          if (!onlyPending || !request['processed']) {
+            requests.add(request);
+          }
+        }
+      }
+      
+      // Sắp xếp theo requestedAt (mới nhất trước)
+      requests.sort((a, b) => (b['requestedAt'] as int).compareTo(a['requestedAt'] as int));
+      
+      return requests;
+    } catch (e) {
+      debugPrint('[Web3Service] Error getting all verification requests: $e');
+      return [];
+    }
+  }
+
+  /// Hủy verification request (chỉ requester mới có thể hủy)
+  Future<String> cancelVerificationRequest(int requestId) async {
+    final function = _contract.function('cancelVerificationRequest');
+    final isWC = await _isUsingWalletConnect();
+    
+    if (isWC) {
+      final contractAddress = Environment.contractAddress;
+      final encodedData = _encodeFunctionCall(function, [BigInt.from(requestId)]);
+      
+      return await _walletConnectService.sendTransaction(
+        to: contractAddress,
+        data: encodedData,
+      );
+    } else {
+      final txHash = await _client.sendTransaction(
+        await _requireCredentials(),
+        Transaction.callContract(
+          contract: _contract,
+          function: function,
+          parameters: [BigInt.from(requestId)],
+        ),
+        chainId: Environment.chainId,
+      );
+
+      return txHash;
     }
   }
 
