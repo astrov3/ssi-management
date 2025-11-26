@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/features/did/dialogs/authorize_issuer_dialog.dart';
+import 'package:ssi_app/features/did/dialogs/did_details_dialog.dart';
 import 'package:ssi_app/features/did/dialogs/register_did_dialog.dart';
 import 'package:ssi_app/features/did/dialogs/update_did_dialog.dart';
 import 'package:ssi_app/features/did/widgets/action_button.dart';
@@ -652,6 +653,45 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
     }
   }
 
+  Future<void> _showDIDDetails() async {
+    if (_currentOrgID == null || _didData == null) {
+      _showError('Không có thông tin DID');
+      return;
+    }
+
+    // Load DID document from IPFS
+    Map<String, dynamic>? didDocument;
+    try {
+      final uri = _didData!['uri'] as String?;
+      if (uri != null && uri.isNotEmpty) {
+        didDocument = await _pinataService.getJSON(uri);
+      }
+    } catch (e) {
+      debugPrint('Error loading DID document: $e');
+      // Continue without document
+    }
+
+    if (!mounted) return;
+
+    // Prepare DID data for dialog
+    final didDataForDialog = {
+      'orgID': _currentOrgID!,
+      'owner': _didData!['owner'],
+      'hashData': _didData!['hashData'],
+      'uri': _didData!['uri'],
+      'active': _didData!['active'],
+    };
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => DIDDetailsDialog(
+        didData: didDataForDialog,
+        didDocument: didDocument,
+        pinataService: _pinataService,
+      ),
+    );
+  }
+
   bool _isValidAddress(String address) {
     return address.startsWith('0x') && address.length == 42;
   }
@@ -828,6 +868,13 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
             active: active,
           ),
           const SizedBox(height: 24),
+          ActionButton(
+            icon: Icons.info_outline,
+            label: 'Xem chi tiết',
+            color: const Color(0xFF6366F1),
+            onPressed: _showDIDDetails,
+          ),
+          const SizedBox(height: 12),
           if (_isOwner && active) ...[
             ActionButton(
               icon: Icons.edit,

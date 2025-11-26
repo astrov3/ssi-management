@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:reown_appkit/reown_appkit.dart';
@@ -18,7 +17,6 @@ class WalletConnectService {
   SessionData? _activeSession;
   bool _isPendingTransaction = false; // Track if we're waiting for transaction/signature
   bool _isPendingSignature = false; // Track if we're waiting for signature
-  String? _lastWalletLink;
   String? _lastWalletConnectUri;
   
   /// Kiểm tra xem có pending request (transaction hoặc signature) không
@@ -164,7 +162,6 @@ class WalletConnectService {
 
     // Clear session references and cached links
     _activeSession = null;
-    _lastWalletLink = null;
     _lastWalletConnectUri = null;
     
     if (clearStoredData) {
@@ -271,13 +268,6 @@ class WalletConnectService {
     // Validate address format
     if (address.isEmpty || !_isValidEthereumAddress(address)) {
       throw StateError('Invalid wallet address extracted: $address');
-    }
-
-    if (walletUniversalLink != null && walletUniversalLink.isNotEmpty) {
-      _lastWalletLink = walletUniversalLink;
-      debugPrint('[WalletConnect] Cached wallet link for this session: $walletUniversalLink');
-    } else {
-      _lastWalletLink = null;
     }
 
     // Check if we're already on Sepolia, if not, attempt to switch
@@ -538,19 +528,13 @@ class WalletConnectService {
       // Set flag to indicate we're waiting for transaction
       _isPendingTransaction = true;
       
+      // Open wallet app once if requested (no retries - WalletConnect notification will handle it)
       if (autoOpenWallet) {
-        debugPrint('[WalletConnect] Auto-opening wallet for transaction request...');
+        debugPrint('[WalletConnect] Opening wallet app for transaction request...');
         unawaited(_tryOpenWalletApp());
+      } else {
+        debugPrint('[WalletConnect] Relying on WalletConnect notification system.');
       }
-      
-      // Always schedule a follow-up reminder in case user misses the notification
-      Future.delayed(const Duration(seconds: 2), () async {
-        if (_isPendingTransaction) {
-          debugPrint('[WalletConnect] Transaction still pending after delay, attempting to open wallet app again...');
-          await _tryOpenWalletApp();
-          debugPrint('[WalletConnect] Wallet app reopen attempt completed.');
-        }
-      });
       
       // Add timeout to prevent indefinite hanging
       // User should approve/reject within 5 minutes
@@ -652,133 +636,41 @@ class WalletConnectService {
     }
   }
 
-  /// Get stored wallet universal link from session or preferences
-  Future<String?> _getStoredWalletLink() async {
-    return _lastWalletLink;
-  }
-
   Future<String?> _getStoredWalletConnectUri() async {
     return _lastWalletConnectUri;
   }
 
   /// Attempt to open wallet app (MetaMask) via deep link
+  /// Simplified approach: Only use WalletConnect URI if available, otherwise rely on notifications
   /// This method opens MetaMask app and keeps our app in background
   /// The app should NOT automatically navigate when it resumes
   /// User will manually return to app after confirming transaction in MetaMask
   Future<void> _tryOpenWalletApp() async {
     try {
-      // Try to get stored wallet link
-      final walletLink = await _getStoredWalletLink();
       final walletConnectUri = await _getStoredWalletConnectUri();
       
-      // Default to MetaMask if no stored link
-      final universalLink = (walletLink != null && walletLink.isNotEmpty)
-          ? walletLink
-          : 'https://metamask.app.link';
-      final metamaskWcUri = (walletConnectUri != null && walletConnectUri.isNotEmpty)
-          ? Uri.parse('metamask://wc?uri=${Uri.encodeComponent(walletConnectUri)}')
-          : null;
-      
-      debugPrint('[WalletConnect] Preparing to open wallet app...');
-      debugPrint('[WalletConnect] Stored wallet link: $walletLink');
-      debugPrint('[WalletConnect] Using universal link: $universalLink');
+      // Only try to open wallet if we have WalletConnect URI
+      // Otherwise, rely on WalletConnect notification system
       if (walletConnectUri != null && walletConnectUri.isNotEmpty) {
-        debugPrint('[WalletConnect] WalletConnect URI cached - will try direct MetaMask hand-off instead of browser');
+        final metamaskWcUri = Uri.parse('metamask://wc?uri=${Uri.encodeComponent(walletConnectUri)}');
+        
+        try {
+          debugPrint('[WalletConnect] Opening MetaMask via wc URI (metamask://wc?...).');
+          await launchUrl(metamaskWcUri, mode: LaunchMode.externalApplication);
+          debugPrint('[WalletConnect] Wallet app opened. User should confirm transaction there.');
+          return;
+        } catch (e) {
+          debugPrint('[WalletConnect] Failed to open wallet via wc URI: $e');
+          debugPrint('[WalletConnect] Relying on WalletConnect notification system.');
+        }
       } else {
-        debugPrint('[WalletConnect] No stored WalletConnect URI - will rely on MetaMask app without browser fallback');
+        debugPrint('[WalletConnect] No WalletConnect URI available. Relying on WalletConnect notification system.');
+        debugPrint('[WalletConnect] User should check wallet app for pending transaction notification.');
       }
-      
-      // For Android, try multiple methods
-      if (Platform.isAndroid) {
-        // Method 1: Try MetaMask Android package name (most reliable for opening app)
-        try {
-          // Android intent to open MetaMask app directly
-          // This will open MetaMask and keep our app in background
-          final intentUri = Uri.parse('intent://wc#Intent;scheme=metamask;package=io.metamask;end');
-          final canLaunch = await canLaunchUrl(intentUri);
-          if (canLaunch) {
-            debugPrint('[WalletConnect] Opening MetaMask via Android intent (io.metamask)...');
-            await launchUrl(intentUri, mode: LaunchMode.externalApplication);
-            // Don't return immediately - let the system handle the app switch
-            await Future.delayed(const Duration(milliseconds: 500));
-            debugPrint('[WalletConnect] MetaMask should be opened. App is now in background.');
-            return;
-          }
-        } catch (e) {
-          debugPrint('[WalletConnect] Android intent method failed: $e');
-        }
-        
-        // Method 2: Try MetaMask deep link
-        try {
-          final metamaskUri = Uri.parse('metamask://');
-          final canLaunch = await canLaunchUrl(metamaskUri);
-          if (canLaunch) {
-            debugPrint('[WalletConnect] Opening MetaMask via deep link (metamask://)...');
-            await launchUrl(metamaskUri, mode: LaunchMode.externalApplication);
-            // Don't return immediately - let the system handle the app switch
-            await Future.delayed(const Duration(milliseconds: 500));
-            debugPrint('[WalletConnect] MetaMask should be opened. App is now in background.');
-            return;
-          }
-        } catch (e) {
-          debugPrint('[WalletConnect] MetaMask deep link failed: $e');
-        }
-        
-        // Method 3: If we have the WalletConnect URI, hand it off directly without opening browser
-        if (metamaskWcUri != null) {
-          try {
-            debugPrint('[WalletConnect] Attempting MetaMask direct hand-off with wc URI (metamask://wc?...).');
-            await launchUrl(
-              metamaskWcUri,
-              mode: LaunchMode.externalApplication,
-            );
-            await Future.delayed(const Duration(milliseconds: 500));
-            debugPrint('[WalletConnect] Direct hand-off attempted. App should remain in background.');
-            return;
-          } catch (e) {
-            debugPrint('[WalletConnect] MetaMask wc URI hand-off failed: $e');
-            debugPrint('[WalletConnect] Not falling back to browser since wallet is already open.');
-            return;
-          }
-        }
-        
-        // If no wc URI, rely on MetaMask notifications (no browser fallback)
-        debugPrint('[WalletConnect] No direct wc URI available. Waiting for MetaMask notification without browser fallback.');
-      } else if (Platform.isIOS) {
-        if (metamaskWcUri != null) {
-          try {
-            debugPrint('[WalletConnect] Opening MetaMask via wc URI on iOS (metamask://wc?...).');
-            await launchUrl(metamaskWcUri, mode: LaunchMode.externalApplication);
-            await Future.delayed(const Duration(milliseconds: 500));
-            debugPrint('[WalletConnect] wc URI opened (iOS). App is now in background.');
-            return;
-          } catch (e) {
-            debugPrint('[WalletConnect] wc URI failed on iOS: $e');
-            debugPrint('[WalletConnect] Not falling back to browser since wallet is already open.');
-            return;
-          }
-        } else {
-          debugPrint('[WalletConnect] No wc URI available on iOS. Relying on MetaMask notification (no browser fallback).');
-        }
-      }
-      
-      // Final fallback: use the universal link (opens MetaMask if installed, otherwise prompts install)
-      try {
-        final universalUri = Uri.parse(universalLink);
-        debugPrint('[WalletConnect] Attempting universal link fallback: $universalUri');
-        await launchUrl(universalUri, mode: LaunchMode.externalApplication);
-        await Future.delayed(const Duration(milliseconds: 500));
-        debugPrint('[WalletConnect] Universal link opened. Awaiting user confirmation.');
-        return;
-      } catch (e) {
-        debugPrint('[WalletConnect] Universal link fallback failed: $e');
-      }
-      
-      debugPrint('[WalletConnect] Wallet app opening attempted. App will remain in background.');
-      debugPrint('[WalletConnect] User should confirm transaction in MetaMask, then manually return to app.');
     } catch (e) {
       debugPrint('[WalletConnect] Error attempting to open wallet app: $e');
-      // Don't throw - this is best effort, WalletConnect notification might still work
+      // Don't throw - this is best effort, WalletConnect notification will work
+      debugPrint('[WalletConnect] WalletConnect notification system will handle the request.');
     }
   }
 
@@ -849,21 +741,9 @@ class WalletConnectService {
       // Set flag to indicate we're waiting for signature
       _isPendingSignature = true;
       
-      // Immediately open wallet to surface the signature prompt, then keep a reminder
+      // Open wallet app once (no retries - WalletConnect notification will handle it)
+      debugPrint('[WalletConnect] Opening wallet app for signature request...');
       unawaited(_tryOpenWalletApp());
-
-      Future.delayed(const Duration(seconds: 3), () async {
-        // Check if signature is still pending (user hasn't approved/rejected yet)
-        if (_isPendingSignature) {
-          debugPrint('[WalletConnect] Signature still pending after 3 seconds');
-          debugPrint('[WalletConnect] User may not have seen the notification. Attempting to open MetaMask app...');
-          await _tryOpenWalletApp();
-          debugPrint('[WalletConnect] MetaMask app opened. User should confirm signature there.');
-          debugPrint('[WalletConnect] App will remain in background until user returns manually.');
-        } else {
-          debugPrint('[WalletConnect] Signature already completed, no need to open wallet app');
-        }
-      });
       
       // Add timeout to prevent indefinite hanging
       // User should approve/reject within 5 minutes

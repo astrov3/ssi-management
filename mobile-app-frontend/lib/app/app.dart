@@ -81,14 +81,17 @@ class SSIAppState extends State<SSIApp> with WidgetsBindingObserver {
           // Clear pending flags to allow app to function normally
           _walletConnectService.clearPendingFlags();
           // Dismiss any blocking dialogs that might be showing
+          // Only dismiss if there's actually a blocking dialog (like spinner)
           NavigationUtils.safePopDialog(null);
         }
       } else {
         // Không có pending request - có thể session đã được approve hoặc user đã quay lại
         debugPrint('[SSIApp] App resumed - no pending requests');
         
-        // Dismiss any dialogs that might be stuck (fallback)
-        NavigationUtils.safePopDialog(null);
+        // KHÔNG dismiss dialog tự động khi không có pending request
+        // Vì user có thể đang ở trong một dialog quan trọng (như UpdateDIDDialog)
+        // Chỉ dismiss nếu thực sự cần thiết (blocking dialogs từ WalletConnect)
+        // NavigationUtils.safePopDialog(null); // REMOVED - don't auto-dismiss
       }
       
       // Kiểm tra xem có active session không (có thể đã được approve trong background)
@@ -98,10 +101,12 @@ class SSIAppState extends State<SSIApp> with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('[SSIApp] Error handling app resume: $e');
-      // Fallback: clear flags and dismiss dialogs on error
+      // Fallback: clear flags but don't dismiss dialogs on error
+      // User might be in an important dialog
       try {
         _walletConnectService.clearPendingFlags();
-        NavigationUtils.safePopDialog(null);
+        // Only dismiss if there's a real error that requires cleanup
+        // NavigationUtils.safePopDialog(null); // REMOVED - don't auto-dismiss
       } catch (fallbackError) {
         debugPrint('[SSIApp] Error in fallback cleanup: $fallbackError');
       }
