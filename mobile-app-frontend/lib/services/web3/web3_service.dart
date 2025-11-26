@@ -6,8 +6,6 @@ import 'dart:typed_data';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:eth_sig_util/eth_sig_util.dart';
 import 'package:eth_sig_util/model/typed_data.dart';
-import 'package:eth_sig_util/util/signature.dart';
-import 'package:eth_sig_util/util/typed_data.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' show Client;

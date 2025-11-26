@@ -13,6 +13,7 @@ import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
+import 'package:ssi_app/services/wallet/wallet_state_manager.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_form_dialog.dart';
 import 'package:ssi_app/features/credentials/models/credential_models.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_list_widgets.dart';
@@ -53,6 +54,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   final _roleService = RoleService();
   final _pinataService = PinataService();
   final _walletConnectService = WalletConnectService();
+  final _walletStateManager = WalletStateManager();
   static const List<IconData> _fallbackIcons = [
     Icons.school,
     Icons.workspace_premium,
@@ -84,9 +86,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
   @override
   void dispose() {
-    // KHÔNG dispose Web3Service ở đây vì nó có thể được dùng ở nhiều nơi
-    // Web3Service sẽ tự dispose khi app close hoặc khi không còn cần thiết
-    // _web3Service.dispose(); // Commented out to prevent "Client is already closed" errors
+
     _roleService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _walletActionStateNotifier?.dispose();
@@ -128,11 +128,11 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           _isLoading = true;
         });
       }
-      String? address = await _web3Service.loadWallet();
-      address ??= await _walletConnectService.getStoredAddress();
+      final walletState = await _walletStateManager.loadWalletState();
 
-      if (address != null && address.isNotEmpty) {
-        final vcs = await _web3Service.getVCs(address);
+      if (walletState != null && walletState.address.isNotEmpty) {
+        final address = walletState.address;
+        final vcs = walletState.vcs;
         final enrichedVcs = await _enrichCredentialsWithMetadata(vcs);
 
         // Check permissions for each VC's orgID
@@ -146,7 +146,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
         if (!mounted) return;
         setState(() {
-          _address = address!;
+          _address = address;
           _credentials = enrichedVcs;
           _canIssueVC = canIssueVC;
           _canRevokeVC = canRevokeVC;
@@ -677,6 +677,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       builder: (sheetContext) {
         _walletActionSheetContext = sheetContext;
@@ -1082,7 +1083,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
                   child: Text(
-                    'Vui lòng mở MetaMask và xác nhận',
+                    'Vui lòng mở ví của bạn và xác nhận',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
@@ -1386,7 +1387,7 @@ const List<_WalletStepDescriptor> _walletStepDescriptors = [
   _WalletStepDescriptor(
     step: WalletActionStep.signature,
     title: 'Ký credential',
-    subtitle: 'Xác nhận chữ ký EIP-712 trong MetaMask.',
+    subtitle: 'Xác nhận chữ ký EIP-712 trong ví của bạn.',
   ),
   _WalletStepDescriptor(
     step: WalletActionStep.uploading,
@@ -1396,7 +1397,7 @@ const List<_WalletStepDescriptor> _walletStepDescriptors = [
   _WalletStepDescriptor(
     step: WalletActionStep.transaction,
     title: 'Ký giao dịch',
-    subtitle: 'Chấp nhận transaction issue VC trong MetaMask.',
+    subtitle: 'Chấp nhận transaction issue VC trong ví của bạn.',
   ),
   _WalletStepDescriptor(
     step: WalletActionStep.confirming,
@@ -1419,95 +1420,109 @@ class _WalletActionSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: ValueListenableBuilder<WalletActionState>(
-          valueListenable: stateListenable,
-          builder: (context, state, _) {
-            final int activeIndex = _walletStepDescriptors.indexWhere(
-              (descriptor) => descriptor.step == state.step,
-            );
-            final bool showWalletButton = !state.isCompleted &&
-                !state.isError &&
-                (state.step == WalletActionStep.signature ||
-                    state.step == WalletActionStep.transaction);
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                  // Cho phép nội dung cao hơn viewport và scroll được
+                  maxHeight: constraints.maxHeight,
+                ),
+                child: ValueListenableBuilder<WalletActionState>(
+                  valueListenable: stateListenable,
+                  builder: (context, state, _) {
+                    final int activeIndex = _walletStepDescriptors.indexWhere(
+                      (descriptor) => descriptor.step == state.step,
+                    );
+                    final bool showWalletButton = !state.isCompleted &&
+                        !state.isError &&
+                        (state.step == WalletActionStep.signature ||
+                            state.step == WalletActionStep.transaction);
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                Text(
-                  'Xác nhận trong MetaMask',
-                  style: TextStyle(
-                    color: Colors.grey[900],
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Giữ ứng dụng này mở và chuyển sang MetaMask khi được yêu cầu.',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 16),
-                ..._walletStepDescriptors.asMap().entries.map(
-                  (entry) {
-                    final descriptor = entry.value;
-                    final descriptorIndex = entry.key;
-                    final bool isCurrent = descriptorIndex == activeIndex &&
-                        !state.isCompleted &&
-                        !state.isError;
-                    final bool isCompleted = descriptorIndex < activeIndex ||
-                        (state.isCompleted && descriptor.step == state.step);
-                    final bool showError = state.isError && descriptor.step == state.step;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _WalletActionStepRow(
-                        descriptor: descriptor,
-                        isActive: isCurrent,
-                        isCompleted: isCompleted,
-                        showError: showError,
-                      ),
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Xác nhận trong ví',
+                          style: TextStyle(
+                            color: Colors.grey[900],
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Giữ ứng dụng này mở và chuyển sang ví khi được yêu cầu.',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ..._walletStepDescriptors.asMap().entries.map(
+                          (entry) {
+                            final descriptor = entry.value;
+                            final descriptorIndex = entry.key;
+                            final bool isCurrent = descriptorIndex == activeIndex &&
+                                !state.isCompleted &&
+                                !state.isError;
+                            final bool isCompleted = descriptorIndex < activeIndex ||
+                                (state.isCompleted && descriptor.step == state.step);
+                            final bool showError =
+                                state.isError && descriptor.step == state.step;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _WalletActionStepRow(
+                                descriptor: descriptor,
+                                isActive: isCurrent,
+                                isCompleted: isCompleted,
+                                showError: showError,
+                              ),
+                            );
+                          },
+                        ),
+                        if (showWalletButton) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: onOpenWallet,
+                              icon: const Icon(Icons.open_in_new),
+                              label: const Text('Mở ví'),
+                            ),
+                          ),
+                        ],
+                        if (state.isCompleted) ...[
+                          const SizedBox(height: 12),
+                          const _WalletActionInfoBanner(
+                            icon: Icons.check_circle,
+                            color: AppColors.success,
+                            message: 'Đã hoàn tất. Bạn có thể quay lại ứng dụng.',
+                          ),
+                        ],
+                        if (state.isError && state.errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          _WalletActionInfoBanner(
+                            icon: Icons.error_outline,
+                            color: AppColors.danger,
+                            message: state.errorMessage!,
+                          ),
+                        ],
+                      ],
                     );
                   },
                 ),
-                if (showWalletButton) ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: onOpenWallet,
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Mở MetaMask'),
-                    ),
-                  ),
-                ],
-                if (state.isCompleted) ...[
-                  const SizedBox(height: 12),
-                  const _WalletActionInfoBanner(
-                    icon: Icons.check_circle,
-                    color: AppColors.success,
-                    message: 'Đã hoàn tất. Bạn có thể quay lại ứng dụng.',
-                  ),
-                ],
-                if (state.isError && state.errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  _WalletActionInfoBanner(
-                    icon: Icons.error_outline,
-                    color: AppColors.danger,
-                    message: state.errorMessage!,
-                  ),
-                ],
-              ],
+              ),
             );
           },
         ),

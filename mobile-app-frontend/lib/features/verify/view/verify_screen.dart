@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -1101,8 +1100,7 @@ class _CredentialPickerSheet extends StatelessWidget {
 
   static String _formatDate(int seconds) {
     final date = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-    final two = (int value) => value.toString().padLeft(2, '0');
-    return '${date.year}-${two(date.month)}-${two(date.day)}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}}';
   }
 }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/features/did/widgets/info_row.dart';
 

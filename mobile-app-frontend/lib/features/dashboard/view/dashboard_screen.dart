@@ -18,7 +18,7 @@ import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
-import 'package:ssi_app/services/wallet/wallet_name_service.dart';
+import 'package:ssi_app/services/wallet/wallet_state_manager.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,8 +31,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _web3Service = Web3Service();
   final _walletConnectService = WalletConnectService();
   final _roleService = RoleService();
-  final _walletNameService = WalletNameService();
   final _pinataService = PinataService();
+  final _walletStateManager = WalletStateManager();
   String _address = 'Loading...';
   int _vcCount = 0;
   int _verifiedCount = 0;
@@ -55,20 +55,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _loadWalletData() async {
+  Future<void> _loadWalletData({bool forceRefresh = false}) async {
     try {
-      // Try to load from Web3Service first (private key wallet)
-      String? address = await _web3Service.loadWallet();
-      
-      // If not found, try WalletConnect service
-      if (address == null) {
-        debugPrint('[Dashboard] No private key wallet, checking WalletConnect...');
-        address = await _walletConnectService.getStoredAddress();
-        debugPrint('[Dashboard] WalletConnect address: $address');
-      }
-      
-      if (address == null || address.isEmpty) {
-        debugPrint('[Dashboard] No wallet address found');
+      final state = await _walletStateManager.loadWalletState(forceRefresh: forceRefresh);
+
+      if (state == null) {
+        debugPrint('[Dashboard] No wallet state available (no wallet connected)');
         if (!mounted) return;
         setState(() {
           _address = 'No wallet connected';
@@ -77,6 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       }
 
+      final address = state.address;
       final vcs = await _safeFetchVCs(address);
       
       // Count verified credentials (only those verified by trusted verifier)
@@ -86,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Map<String, dynamic>? didData;
       bool isOwner = false;
       try {
-        didData = await _web3Service.getDID(address);
+        didData = state.didData ?? await _web3Service.getDID(address);
         if (didData != null) {
           isOwner = didData['owner'].toString().toLowerCase() == address.toLowerCase() && didData['active'] == true;
         }
@@ -94,17 +87,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // DID doesn't exist yet
       }
 
-      // Get wallet name
-      final walletName = await _walletNameService.getWalletName(address);
-
       // Check admin and verifier status
       bool isAdmin = false;
-      bool isVerifier = false;
+      bool isVerifier = state.isTrustedVerifier;
       try {
         final admin = await _web3Service.getAdmin();
         isAdmin = admin != null && admin.toLowerCase() == address.toLowerCase();
-        
-        isVerifier = await _web3Service.isTrustedVerifier(address);
       } catch (e) {
         debugPrint('[Dashboard] Error checking admin/verifier status: $e');
       }
@@ -115,14 +103,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (!mounted) return;
       setState(() {
-        _address = address!;
+        _address = address;
         _vcCount = vcs.length;
         _verifiedCount = verifiedCount;
         _didData = didData;
         _isOwner = isOwner;
         _isAdmin = isAdmin;
         _isVerifier = isVerifier;
-        _walletName = walletName ?? 'SSI Account';
+        _walletName = state.displayName.isNotEmpty ? state.displayName : 'SSI Account';
         _isLoading = false;
       });
     } catch (e) {
@@ -160,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: _isLoading
             ? const LoadingState()
             : RefreshIndicator(
-                onRefresh: _loadWalletData,
+                onRefresh: () => _loadWalletData(forceRefresh: true),
                 color: AppColors.secondary,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),

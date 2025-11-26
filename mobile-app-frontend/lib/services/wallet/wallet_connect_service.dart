@@ -19,6 +19,8 @@ class WalletConnectService {
   bool _isPendingSignature = false; // Track if we're waiting for signature
   String? _lastWalletConnectUri;
   String? _cachedAddress;
+  String? _lastWalletUniversalLink; // Ghi nhớ loại ví (MetaMask / TrustWallet) để mở lại đúng app
+  static const String _prefsLastWalletUniversalLinkKey = 'walletconnect_last_wallet_universal_link';
   
   /// Kiểm tra xem có pending request (transaction hoặc signature) không
   bool hasPendingRequest() {
@@ -69,6 +71,17 @@ class WalletConnectService {
     }
     
     try {
+      // Restore last used wallet universal link (MetaMask / TrustWallet / others)
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _lastWalletUniversalLink = prefs.getString(_prefsLastWalletUniversalLinkKey);
+        if (_lastWalletUniversalLink != null) {
+          debugPrint('[WalletConnect] Restored last wallet universal link: $_lastWalletUniversalLink');
+        }
+      } catch (e) {
+        debugPrint('[WalletConnect] Error restoring last wallet universal link: $e');
+      }
+
       final activeSessions = _appKit!.getActiveSessions();
       if (activeSessions.isNotEmpty) {
         // Lấy session đầu tiên
@@ -225,12 +238,32 @@ class WalletConnectService {
       final wcUri = uri.toString();
       _lastWalletConnectUri = wcUri;
       debugPrint('[WalletConnect] Cached WalletConnect URI for in-app hand-offs');
-      if (walletUniversalLink != null) {
-        final deepLink = Uri.parse('$walletUniversalLink/wc?uri=${Uri.encodeComponent(wcUri)}');
+      // Ghi nhớ loại ví (universal link) mà user đã chọn, để về sau mở đúng app (MetaMask / TrustWallet, ...)
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (walletUniversalLink != null && walletUniversalLink.isNotEmpty) {
+          _lastWalletUniversalLink = walletUniversalLink;
+          await prefs.setString(_prefsLastWalletUniversalLinkKey, walletUniversalLink);
+          debugPrint('[WalletConnect] Saved last wallet universal link: $walletUniversalLink');
+        } else {
+          // Nếu không truyền vào, default dùng MetaMask universal link để nhất quán với flow hiện tại
+          const defaultLink = 'https://metamask.app.link';
+          _lastWalletUniversalLink = defaultLink;
+          await prefs.setString(_prefsLastWalletUniversalLinkKey, defaultLink);
+          debugPrint('[WalletConnect] No walletUniversalLink provided, defaulting to $defaultLink');
+        }
+      } catch (e) {
+        debugPrint('[WalletConnect] Error saving last wallet universal link: $e');
+      }
+
+      final effectiveLink = _lastWalletUniversalLink;
+      if (effectiveLink != null && effectiveLink.isNotEmpty) {
+        final deepLink = Uri.parse('$effectiveLink/wc?uri=${Uri.encodeComponent(wcUri)}');
         debugPrint('[WalletConnect] Launching deep link: $deepLink');
         await launchUrl(deepLink, mode: LaunchMode.externalApplication);
       } else {
-        debugPrint('[WalletConnect] Launching URI: $wcUri');
+        // Fallback cũ: dùng trực tiếp wcUri (để WalletConnect tự handle)
+        debugPrint('[WalletConnect] No universal link available, launching raw WalletConnect URI: $wcUri');
         await launchUrl(Uri.parse(wcUri), mode: LaunchMode.externalApplication);
       }
     }
@@ -657,6 +690,21 @@ class WalletConnectService {
     return _lastWalletConnectUri;
   }
 
+  /// Lấy lại universal link của ví đã dùng lần gần nhất
+  Future<String?> _getStoredWalletUniversalLink() async {
+    if (_lastWalletUniversalLink != null && _lastWalletUniversalLink!.isNotEmpty) {
+      return _lastWalletUniversalLink;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _lastWalletUniversalLink = prefs.getString(_prefsLastWalletUniversalLinkKey);
+      return _lastWalletUniversalLink;
+    } catch (e) {
+      debugPrint('[WalletConnect] Error getting stored wallet universal link: $e');
+      return null;
+    }
+  }
+
   /// Attempt to open wallet app (MetaMask) via deep link
   /// Simplified approach: Only use WalletConnect URI if available, otherwise rely on notifications
   /// This method opens MetaMask app and keeps our app in background
@@ -665,19 +713,33 @@ class WalletConnectService {
   Future<void> _tryOpenWalletApp() async {
     try {
       final walletConnectUri = await _getStoredWalletConnectUri();
-      
+      final walletUniversalLink = await _getStoredWalletUniversalLink();
+
       // Only try to open wallet if we have WalletConnect URI
       // Otherwise, rely on WalletConnect notification system
       if (walletConnectUri != null && walletConnectUri.isNotEmpty) {
+        // Ưu tiên mở đúng app ví mà user đã chọn (MetaMask / TrustWallet / ...)
+        if (walletUniversalLink != null && walletUniversalLink.isNotEmpty) {
+          final deepLink = Uri.parse('$walletUniversalLink/wc?uri=${Uri.encodeComponent(walletConnectUri)}');
+          try {
+            debugPrint('[WalletConnect] Opening wallet via universal link: $deepLink');
+            await launchUrl(deepLink, mode: LaunchMode.externalApplication);
+            debugPrint('[WalletConnect] Wallet app opened. User should confirm transaction there.');
+            return;
+          } catch (e) {
+            debugPrint('[WalletConnect] Failed to open wallet via universal link: $e');
+          }
+        }
+
+        // Fallback: cố gắng dùng MetaMask scheme cũ (để không phá flow hiện tại nếu universal link không có)
         final metamaskWcUri = Uri.parse('metamask://wc?uri=${Uri.encodeComponent(walletConnectUri)}');
-        
         try {
-          debugPrint('[WalletConnect] Opening MetaMask via wc URI (metamask://wc?...).');
+          debugPrint('[WalletConnect] Opening MetaMask via wc URI (fallback): $metamaskWcUri');
           await launchUrl(metamaskWcUri, mode: LaunchMode.externalApplication);
-          debugPrint('[WalletConnect] Wallet app opened. User should confirm transaction there.');
+          debugPrint('[WalletConnect] Wallet app opened (fallback). User should confirm transaction there.');
           return;
         } catch (e) {
-          debugPrint('[WalletConnect] Failed to open wallet via wc URI: $e');
+          debugPrint('[WalletConnect] Failed to open wallet via fallback wc URI: $e');
           debugPrint('[WalletConnect] Relying on WalletConnect notification system.');
         }
       } else {
