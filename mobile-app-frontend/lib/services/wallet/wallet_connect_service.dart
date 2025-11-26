@@ -769,7 +769,7 @@ class WalletConnectService {
     final account = _firstAccountFromSession(session);
     final address = _extractAddressFromAccount(account);
 
-    // Parse typed data JSON and ensure V4 format compatibility
+    // Parse typed data JSON and ensure format compatibility
     final typedData = jsonDecode(typedDataJson) as Map<String, dynamic>;
     
     // Ensure typed data is in correct format for WalletConnect/MetaMask
@@ -796,13 +796,16 @@ class WalletConnectService {
     }
 
     try {
+      // Chọn RPC method theo loại ví (MetaMask / Trust Wallet / others)
+      final method = _getTypedDataMethodForCurrentWallet();
+      debugPrint('[WalletConnect] Using typed data method: $method');
+
       debugPrint('[WalletConnect] Sending EIP-712 signature request to wallet...');
       debugPrint('[WalletConnect] Waiting for user approval in wallet app...');
       
       // Create the request
-      // MetaMask mobile requires the explicit V4 RPC method whenever arrays appear
       final requestParams = SessionRequestParams(
-        method: 'eth_signTypedData_v4',
+        method: method,
         params: [
           address,
           jsonEncode(formattedTypedData),
@@ -905,6 +908,21 @@ class WalletConnectService {
         rethrow;
       }
     }
+  }
+
+  /// Chọn RPC method cho EIP-712 tuỳ theo loại ví
+  /// - MetaMask (hoặc mặc định): eth_signTypedData_v4
+  /// - Trust Wallet: eth_signTypedData (không _v4 vì không hỗ trợ RPC v4)
+  String _getTypedDataMethodForCurrentWallet() {
+    final link = _lastWalletUniversalLink?.toLowerCase() ?? '';
+
+    // Trust Wallet universal link thường chứa 'trustwallet' hoặc 'trust'
+    if (link.contains('trustwallet') || link.contains('trust')) {
+      return 'eth_signTypedData';
+    }
+
+    // Các ví khác (MetaMask, v.v.) dùng V4
+    return 'eth_signTypedData_v4';
   }
 
   /// Check if WalletConnect is available and connected

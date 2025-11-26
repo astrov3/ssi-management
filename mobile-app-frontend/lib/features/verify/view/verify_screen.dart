@@ -333,9 +333,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   Widget _buildManualVerifyCard(AppLocalizations l10n) {
     return Card(
-      color: Colors.grey[50],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: AppColors.secondary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -379,7 +384,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape:
+                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),
@@ -649,9 +655,19 @@ class _AddressChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(16),
       child: Text(
@@ -738,8 +754,18 @@ class _QuickActionButton extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: Colors.grey[50],
-          border: Border.all(color: Colors.grey[200]!),
+          color: Colors.white,
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -794,10 +820,14 @@ class _PendingRequestTile extends StatelessWidget {
 
     return Card(
       color: Colors.white,
-      elevation: 0,
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(
+          color: AppColors.primary.withValues(alpha: 0.18),
+          width: 1,
+        ),
       ),
       child: ListTile(
         onTap: onTap,
@@ -947,9 +977,19 @@ class _InfoBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

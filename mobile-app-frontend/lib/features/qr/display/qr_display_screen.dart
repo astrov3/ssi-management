@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
-import 'package:ssi_app/core/widgets/glass_container.dart';
+import 'package:ssi_app/features/credentials/models/credential_models.dart';
+import 'package:ssi_app/features/credentials/widgets/credential_detail_widgets.dart';
+import 'package:ssi_app/features/credentials/widgets/fullscreen_image_viewer.dart';
+import 'package:ssi_app/features/credentials/widgets/fullscreen_pdf_viewer.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class QRDisplayScreen extends StatefulWidget {
   const QRDisplayScreen({
@@ -27,6 +31,8 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
   bool? _signatureValid;
   bool? _onChainValid;
   String? _error;
+  CredentialAttachment? _previewingAttachment;
+  GatewayLink? _selectedGatewayLink;
 
   @override
   void initState() {
@@ -84,10 +90,13 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
       bool? sigValid;
       if (vcDoc['proof'] != null) {
         try {
-          final issuer = vcDoc['issuer'] as String? ?? widget.qrData['issuer'] as String?;
-          if (issuer != null) {
-            sigValid = await _web3Service.verifyVCSignature(vcDoc, expectedIssuer: issuer);
-          }
+          // Use issuer from QR payload (on-chain issuer) when available,
+          // otherwise let Web3Service infer from VC issuer (handles did:ethr:...)
+          final qrIssuer = widget.qrData['issuer'] as String?;
+          sigValid = await _web3Service.verifyVCSignature(
+            vcDoc,
+            expectedIssuer: qrIssuer,
+          );
         } catch (_) {
           sigValid = null;
         }
@@ -294,12 +303,35 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
       return const SizedBox.shrink();
     }
 
-    final credentialSubject = vcDoc['credentialSubject'] as Map<String, dynamic>? ?? {};
+    final credentialSubject =
+        vcDoc['credentialSubject'] as Map<String, dynamic>? ?? {};
     final type = (vcDoc['type'] as List?)?.join(', ') ?? 'VerifiableCredential';
     final issuer = vcDoc['issuer'] as String? ?? '';
     final issuanceDate = vcDoc['issuanceDate'] as String?;
     final expirationDate = vcDoc['expirationDate'] as String?;
     final id = vcDoc['id'] as String?;
+
+    // Extract attachments and filter them out from subject fields
+    final attachments = _extractFileAttachments(vcDoc);
+    final attachmentKeys = attachments.map((a) => a.rawKey).toSet();
+    final attachmentFileNameKeys = attachments
+        .map(
+          (a) => [
+            '${a.rawKey}FileName',
+            '${a.rawKey}Filename',
+            '${a.rawKey}fileName',
+            '${a.rawKey}filename',
+          ],
+        )
+        .expand((x) => x)
+        .toSet();
+
+    final subjectEntries = credentialSubject.entries.where(
+      (e) =>
+          e.key != 'id' &&
+          !attachmentKeys.contains(e.key) &&
+          !attachmentFileNameKeys.contains(e.key),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -344,11 +376,19 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        // Credential details
-        GlassContainer(
-          backgroundColor: Colors.white,
-          borderColor: Colors.grey[200],
-          blurSigma: 0,
+        // Credential details - elevated card style
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,23 +403,374 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
               const SizedBox(height: 16),
               Text(
                 'Credential Subject',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Colors.grey[900],
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
               const SizedBox(height: 12),
-              ...credentialSubject.entries.map(
+              ...subjectEntries.map(
                 (entry) => _DetailRow(
                   label: entry.key,
                   value: entry.value.toString(),
                 ),
               ),
+              if (attachments.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Files',
+                  style: TextStyle(
+                    color: Colors.grey[900],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...attachments.map(
+                  (attachment) => AttachmentRow(
+                    attachment: attachment,
+                    onView: () => _handleViewAttachment(attachment),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+        if (_previewingAttachment != null) ...[
+          const SizedBox(height: 24),
+          _buildAttachmentPreviewCard(),
+        ],
       ],
+    );
+  }
+
+  // --- Attachment helpers (reused from verification preview) ---
+
+  List<CredentialAttachment> _extractFileAttachments(
+    Map<String, dynamic>? doc,
+  ) {
+    if (doc == null) return const [];
+    final subject = doc['credentialSubject'];
+    if (subject is! Map<String, dynamic>) return const [];
+
+    final attachments = <CredentialAttachment>[];
+    subject.forEach((key, value) {
+      if (value is! String || value.isEmpty) return;
+      final lowerKey = key.toString().toLowerCase();
+      if (!lowerKey.contains('file') && !lowerKey.contains('document')) return;
+      if (lowerKey.contains('filename') || lowerKey.contains('file_name')) {
+        return;
+      }
+
+      final fileNameKeyCandidates = [
+        '${key}FileName',
+        '${key}Filename',
+        '${key}fileName',
+        '${key}filename',
+      ];
+      String? fileName;
+      for (final candidate in fileNameKeyCandidates) {
+        final candidateValue = subject[candidate];
+        if (candidateValue is String && candidateValue.isNotEmpty) {
+          fileName = candidateValue;
+          break;
+        }
+      }
+
+      attachments.add(
+        CredentialAttachment(
+          rawKey: key.toString(),
+          label: _formatFieldLabel(key.toString()),
+          uri: value,
+          fileName: fileName,
+        ),
+      );
+    });
+
+    return attachments;
+  }
+
+  String _formatFieldLabel(String key) {
+    if (key.isEmpty) return 'Document';
+    final buffer = StringBuffer();
+    for (var i = 0; i < key.length; i++) {
+      final char = key[i];
+      if (i == 0) {
+        buffer.write(char.toUpperCase());
+        continue;
+      }
+      final isUpper = char.toUpperCase() == char && char.toLowerCase() != char;
+      if (isUpper) buffer.write(' ');
+      buffer.write(char);
+    }
+    return buffer.toString().replaceAll('_', ' ');
+  }
+
+  List<GatewayLink> _buildGatewayLinks(String uri) {
+    final links = <GatewayLink>[];
+
+    final hash = _extractIpfsHash(uri);
+    if (hash != null && hash.isNotEmpty) {
+      // Prefer fast public gateways first
+      final ipfsIo = 'https://ipfs.io/ipfs/$hash';
+      if (!links.any((link) => link.url == ipfsIo)) {
+        links.add(GatewayLink(label: 'ipfs.io', url: ipfsIo));
+      }
+
+      final dwebLink = 'https://dweb.link/ipfs/$hash';
+      if (!links.any((link) => link.url == dwebLink)) {
+        links.add(GatewayLink(label: 'dweb.link', url: dwebLink));
+      }
+
+      final cloudflare = 'https://cloudflare-ipfs.com/ipfs/$hash';
+      if (!links.any((link) => link.url == cloudflare)) {
+        links.add(GatewayLink(label: 'Cloudflare', url: cloudflare));
+      }
+    }
+
+    // Pinata gateway as explicit option, but not default
+    final defaultUrl = _pinataService.resolveToHttp(uri);
+    if (defaultUrl.isNotEmpty &&
+        !links.any((link) => link.url == defaultUrl)) {
+      links.add(GatewayLink(label: 'Pinata', url: defaultUrl));
+    }
+
+    return links;
+  }
+
+  String? _extractIpfsHash(String uri) {
+    if (uri.isEmpty) return null;
+    if (uri.startsWith('ipfs://')) {
+      return uri.replaceFirst('ipfs://', '');
+    }
+    final ipfsIndex = uri.indexOf('/ipfs/');
+    if (ipfsIndex != -1) {
+      final hash = uri.substring(ipfsIndex + 6);
+      return hash.split('?').first;
+    }
+    final segments = uri.split('/');
+    if (segments.isNotEmpty) {
+      return segments.last.split('?').first;
+    }
+    return null;
+  }
+
+  bool _isImageFile(CredentialAttachment attachment) {
+    final uri = attachment.uri.toLowerCase();
+    final fileName = attachment.fileName?.toLowerCase() ?? '';
+    return uri.contains('.jpg') ||
+        uri.contains('.jpeg') ||
+        uri.contains('.png') ||
+        uri.contains('.gif') ||
+        uri.contains('.webp') ||
+        fileName.contains('.jpg') ||
+        fileName.contains('.jpeg') ||
+        fileName.contains('.png') ||
+        fileName.contains('.gif') ||
+        fileName.contains('.webp');
+  }
+
+  bool _isPdfFile(CredentialAttachment attachment) {
+    final uri = attachment.uri.toLowerCase();
+    final fileName = attachment.fileName?.toLowerCase() ?? '';
+    return uri.contains('.pdf') || fileName.contains('.pdf');
+  }
+
+  Future<void> _openExternalLink(String url) async {
+    // Use default browser through AttachmentPreviewFallback button
+    // (kept simple here; VerificationRequestDetailDialog has full error handling)
+    // ignore: deprecated_member_use
+    await launchUrl(Uri.parse(url));
+  }
+
+  void _openFullscreenImage(String imageUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => FullscreenImageViewer(
+          imageUrl: imageUrl,
+          title: title,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  void _openFullscreenPdf(String pdfUrl, String? title) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => FullscreenPdfViewer(
+          pdfUrl: pdfUrl,
+          title: title,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  void _handleViewAttachment(CredentialAttachment attachment) {
+    setState(() {
+      _previewingAttachment = attachment;
+      final gateways = _buildGatewayLinks(attachment.uri);
+      if (gateways.isNotEmpty) {
+        _selectedGatewayLink = gateways.first;
+      } else {
+        final defaultUrl = _pinataService.resolveToHttp(attachment.uri);
+        if (defaultUrl.isNotEmpty) {
+          _selectedGatewayLink = GatewayLink(label: 'Default', url: defaultUrl);
+        } else {
+          _selectedGatewayLink =
+              GatewayLink(label: 'Original', url: attachment.uri);
+        }
+      }
+    });
+  }
+
+  Widget _buildAttachmentPreviewCard() {
+    if (_previewingAttachment == null || _selectedGatewayLink == null) {
+      return const SizedBox.shrink();
+    }
+
+    final attachment = _previewingAttachment!;
+    final selectedLink = _selectedGatewayLink!;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insert_drive_file, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  attachment.fileName ?? attachment.label,
+                  style: TextStyle(
+                    color: Colors.grey[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              PopupMenuButton<GatewayLink>(
+                initialValue: selectedLink,
+                icon: const Icon(Icons.link),
+                onSelected: (link) {
+                  setState(() => _selectedGatewayLink = link);
+                },
+                itemBuilder: (context) {
+                  final gateways = _buildGatewayLinks(attachment.uri);
+                  if (gateways.isEmpty) {
+                    final defaultUrl =
+                        _pinataService.resolveToHttp(attachment.uri);
+                    if (defaultUrl.isNotEmpty) {
+                      return [
+                        PopupMenuItem<GatewayLink>(
+                          value: GatewayLink(label: 'Default', url: defaultUrl),
+                          child: const Text('Default'),
+                        ),
+                      ];
+                    }
+                    return [
+                      PopupMenuItem<GatewayLink>(
+                        value: GatewayLink(
+                          label: 'Original',
+                          url: attachment.uri,
+                        ),
+                        child: const Text('Original'),
+                      ),
+                    ];
+                  }
+                  return gateways
+                      .map(
+                        (link) => PopupMenuItem<GatewayLink>(
+                          value: link,
+                          child: Text(link.label),
+                        ),
+                      )
+                      .toList();
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _previewingAttachment = null;
+                    _selectedGatewayLink = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 260,
+            child: Center(
+              child: _isImageFile(attachment)
+                  ? GestureDetector(
+                      onTap: () => _openFullscreenImage(
+                        selectedLink.url,
+                        attachment.fileName ?? attachment.label,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          selectedLink.url,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return AttachmentPreviewFallback(
+                              url: selectedLink.url,
+                              onOpenExternal: () =>
+                                  _openExternalLink(selectedLink.url),
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  : _isPdfFile(attachment)
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.picture_as_pdf,
+                              size: 48,
+                              color: AppColors.secondary,
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () => _openFullscreenPdf(
+                                selectedLink.url,
+                                attachment.fileName ?? attachment.label,
+                              ),
+                              icon: const Icon(Icons.open_in_new),
+                              label: const Text('Mở PDF'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        )
+                      : AttachmentPreviewFallback(
+                          url: selectedLink.url,
+                          onOpenExternal: () =>
+                              _openExternalLink(selectedLink.url),
+                        ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -395,10 +786,18 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
     final service = didDoc['service'] as List?;
     final verificationMethod = didDoc['verificationMethod'] as List?;
 
-    return GlassContainer(
-      backgroundColor: Colors.white,
-      borderColor: Colors.grey[200],
-      blurSigma: 0,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -465,10 +864,18 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Verification result
-        GlassContainer(
-          backgroundColor: Colors.white,
-          borderColor: Colors.grey[200],
-          blurSigma: 0,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
@@ -498,10 +905,18 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
         const SizedBox(height: 24),
         // VC details
         if (document != null) ...[
-          GlassContainer(
-            backgroundColor: Colors.white,
-            borderColor: Colors.grey[200],
-            blurSigma: 0,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

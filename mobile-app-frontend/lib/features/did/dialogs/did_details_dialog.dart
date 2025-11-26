@@ -34,13 +34,9 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
 
   List<GatewayLink> _buildGatewayLinks(String uri) {
     final links = <GatewayLink>[];
-    final defaultUrl = widget.pinataService.resolveToHttp(uri);
-    if (defaultUrl.isNotEmpty) {
-      links.add(GatewayLink(label: 'Pinata', url: defaultUrl));
-    }
-
     final hash = _extractIpfsHash(uri);
     if (hash != null && hash.isNotEmpty) {
+      // Prefer fast public gateways first
       final ipfsIo = 'https://ipfs.io/ipfs/$hash';
       if (!links.any((link) => link.url == ipfsIo)) {
         links.add(GatewayLink(label: 'ipfs.io', url: ipfsIo));
@@ -50,6 +46,18 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
       if (!links.any((link) => link.url == dwebLink)) {
         links.add(GatewayLink(label: 'dweb.link', url: dwebLink));
       }
+
+      final cloudflare = 'https://cloudflare-ipfs.com/ipfs/$hash';
+      if (!links.any((link) => link.url == cloudflare)) {
+        links.add(GatewayLink(label: 'Cloudflare', url: cloudflare));
+      }
+    }
+
+    // Pinata gateway as explicit option, but not default
+    final defaultUrl = widget.pinataService.resolveToHttp(uri);
+    if (defaultUrl.isNotEmpty &&
+        !links.any((link) => link.url == defaultUrl)) {
+      links.add(GatewayLink(label: 'Pinata', url: defaultUrl));
     }
 
     return links;
@@ -614,9 +622,15 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
