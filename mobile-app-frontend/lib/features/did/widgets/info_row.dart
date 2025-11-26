@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class InfoRow extends StatelessWidget {
   const InfoRow({
@@ -39,8 +40,8 @@ class InfoRow extends StatelessWidget {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: value));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã sao chép'),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!.copied),
                         backgroundColor: AppColors.success,
                         duration: Duration(seconds: 1),
                       ),

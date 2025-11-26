@@ -100,7 +100,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
 
       final cloudflare = 'https://cloudflare-ipfs.com/ipfs/$hash';
       if (!links.any((link) => link.url == cloudflare)) {
-        links.add(GatewayLink(label: 'Cloudflare', url: cloudflare));
+        links.add(GatewayLink(label: AppLocalizations.of(context)!.cloudflare, url: cloudflare));
       }
     }
 
@@ -108,7 +108,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
     final defaultUrl = widget.pinataService.resolveToHttp(uri);
     if (defaultUrl.isNotEmpty &&
         !links.any((link) => link.url == defaultUrl)) {
-      links.add(GatewayLink(label: 'Pinata', url: defaultUrl));
+      links.add(GatewayLink(label: AppLocalizations.of(context)!.pinata, url: defaultUrl));
     }
 
     return links;
@@ -195,13 +195,13 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
         mode: LaunchMode.externalApplication,
       );
       if (!launched) {
-        throw 'Không thể mở liên kết';
+        throw AppLocalizations.of(context)!.cannotOpenLink;
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể mở file: $e'),
+          content: Text(AppLocalizations.of(context)!.cannotOpenFile(e.toString())),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -247,9 +247,9 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
         // Fallback to default URL if no gateways found
         final defaultUrl = widget.pinataService.resolveToHttp(attachment.uri);
         if (defaultUrl.isNotEmpty) {
-          _selectedGatewayLink = GatewayLink(label: 'Default', url: defaultUrl);
+          _selectedGatewayLink = GatewayLink(label: AppLocalizations.of(context)!.defaultGateway, url: defaultUrl);
         } else {
-          _selectedGatewayLink = GatewayLink(label: 'Original', url: attachment.uri);
+          _selectedGatewayLink = GatewayLink(label: AppLocalizations.of(context)!.original, url: attachment.uri);
         }
       }
     });
@@ -321,8 +321,8 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       color: isValid ? AppColors.success : AppColors.danger,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      isValid ? l10n.valid : l10n.revoked,
+                  child: Text(
+                    isValid ? l10n.valid : l10n.revoked,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -338,7 +338,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      isVerified ? 'Verified' : 'Unverified',
+                      isVerified ? l10n.verifiedStatus : l10n.unverified,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -367,7 +367,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               icon: const Icon(Icons.open_in_new),
-              label: const Text('Xem chi tiết'),
+              label: Text(l10n.viewDetails),
             ),
           ],
         );
@@ -377,6 +377,8 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     bool isAttachmentKey(String key) {
       for (final attachment in widget.attachments) {
         if (attachment.rawKey == key) {
@@ -515,17 +517,17 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                 label: AppLocalizations.of(context)!.credentialHash,
                 value: widget.credential['hashCredential'],
               ),
-              CredentialDetailRow(label: 'URI', value: widget.credential['uri']),
+              CredentialDetailRow(label: l10n.uriLabel, value: widget.credential['uri']),
               if (issuedAtSeconds != null)
                 CredentialDetailRow(
-                  label: 'Issued At',
+                  label: l10n.issuedAt,
                   value: DateTime.fromMillisecondsSinceEpoch(
                     issuedAtSeconds * 1000,
                   ).toIso8601String(),
                 ),
               if (expirationSeconds != null && expirationSeconds > 0)
                 CredentialDetailRow(
-                  label: 'Expiration',
+                  label: l10n.expiration,
                   value: DateTime.fromMillisecondsSinceEpoch(
                     expirationSeconds * 1000,
                   ).toIso8601String(),

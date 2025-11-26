@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class AuthorizeIssuerDialog extends StatelessWidget {
   const AuthorizeIssuerDialog({
@@ -11,14 +12,15 @@ class AuthorizeIssuerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Ủy quyền Issuer', style: TextStyle(color: Colors.white)),
+      title: Text(l10n.authorizeIssuer, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: issuerController,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          labelText: 'Địa chỉ Issuer',
+          labelText: l10n.issuerAddress,
           hintText: '0x...',
           labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -30,12 +32,12 @@ class AuthorizeIssuerDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+          child: Text(l10n.cancel, style: const TextStyle(color: Colors.white54)),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, true),
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-          child: const Text('Ủy quyền'),
+          child: Text(l10n.authorize),
         ),
       ],
     );

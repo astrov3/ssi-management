@@ -218,7 +218,7 @@ class CredentialCard extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Verified',
+                                          AppLocalizations.of(context)!.verifiedStatus,
                                           style: TextStyle(
                                             color: AppColors.success,
                                             fontSize: 10,

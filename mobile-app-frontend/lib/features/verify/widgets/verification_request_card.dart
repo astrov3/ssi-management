@@ -33,13 +33,13 @@ class VerificationRequestCard extends StatelessWidget {
     final difference = now.difference(date);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays} ngày trước';
+      return '${difference.inDays} day(s) ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} giờ trước';
+      return '${difference.inHours} hour(s) ago';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} phút trước';
+      return '${difference.inMinutes} minute(s) ago';
     } else {
-      return 'Vừa xong';
+      return 'Just now';
     }
   }
 
@@ -118,7 +118,7 @@ class VerificationRequestCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        'Có thể xác thực',
+                        'Verifiable',
                         style: TextStyle(
                           color: AppColors.success,
                           fontSize: 10,
@@ -137,21 +137,21 @@ class VerificationRequestCard extends StatelessWidget {
               const SizedBox(height: 8),
               _InfoRow(
                 icon: Icons.person,
-                label: 'Người yêu cầu',
+                label: 'Requester',
                 value: _formatAddress(requester),
               ),
               const SizedBox(height: 8),
               _InfoRow(
                 icon: isAnyVerifier ? Icons.public : Icons.verified_user,
-                label: isAnyVerifier ? 'Verifier' : 'Verifier chỉ định',
+                label: isAnyVerifier ? 'Verifier' : 'Target Verifier',
                 value: isAnyVerifier 
-                    ? 'Bất kỳ verifier nào'
+                    ? 'Any verifier'
                     : _formatAddress(targetVerifier),
               ),
               const SizedBox(height: 8),
               _InfoRow(
                 icon: Icons.access_time,
-                label: 'Thời gian yêu cầu',
+                label: 'Requested At',
                 value: _formatTimestamp(requestedAt),
               ),
               if (canCancel || canVerify) ...[
@@ -171,7 +171,7 @@ class VerificationRequestCard extends StatelessWidget {
                             onCancel?.call();
                           },
                           icon: const Icon(Icons.cancel_outlined, size: 16),
-                          label: const Text('Hủy'),
+                          label: const Text('Cancel'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.danger,
                           ),
@@ -188,7 +188,7 @@ class VerificationRequestCard extends StatelessWidget {
                             onVerify?.call();
                           },
                           icon: const Icon(Icons.verified, size: 16),
-                          label: const Text('Xác thực'),
+                          label: const Text('Verify'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             foregroundColor: Colors.white,

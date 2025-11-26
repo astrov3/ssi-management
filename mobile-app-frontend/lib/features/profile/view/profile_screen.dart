@@ -28,26 +28,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _mnemonic = '';
   String _walletName = '';
   bool _isLoading = true;
-  bool _isBiometricEnabled = false;
-  bool _isBiometricAvailable = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfileData();
-    _checkBiometricStatus();
   }
 
-  Future<void> _checkBiometricStatus() async {
-    final isAvailable = await _authService.isBiometricAvailable();
-    final isEnabled = await _authService.isBiometricEnabled();
-    if (mounted) {
-      setState(() {
-        _isBiometricAvailable = isAvailable;
-        _isBiometricEnabled = isEnabled;
-      });
-    }
-  }
 
   @override
   void dispose() {

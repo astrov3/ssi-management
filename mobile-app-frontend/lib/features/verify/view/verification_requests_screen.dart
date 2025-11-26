@@ -6,6 +6,7 @@ import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/features/verify/widgets/verification_request_card.dart';
 import 'package:ssi_app/features/verify/widgets/verification_request_detail_dialog.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class VerificationRequestsScreen extends StatefulWidget {
   const VerificationRequestsScreen({super.key});
@@ -126,7 +127,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
 
   Future<void> _verifyCredential(Map<String, dynamic> request) async {
     try {
-      _showBlockingSpinner('Đang xác thực credential...');
+      _showBlockingSpinner(AppLocalizations.of(context)!.processing);
       
       final orgID = request['orgID'] as String;
       final vcIndex = request['vcIndex'] as int? ?? 0;
@@ -139,7 +140,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Credential đã được xác thực thành công!\nHash: ${_formatHash(txHash)}',
+            AppLocalizations.of(context)!.credentialVerifiedSuccessfully(_formatHash(txHash)),
           ),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 3),
@@ -160,12 +161,13 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       if (!mounted) return;
       
       // Provide user-friendly error message
-      String errorMessage = 'Lỗi khi xác thực: ${e.toString()}';
+      final l10n = AppLocalizations.of(context)!;
+      String errorMessage = l10n.verificationErrorMessage(e.toString());
       if (e.toString().toLowerCase().contains('rejected') ||
           e.toString().toLowerCase().contains('denied')) {
-        errorMessage = 'Xác thực đã bị hủy trong ví. Vui lòng thử lại.';
+        errorMessage = l10n.verificationCancelledInWallet;
       } else if (e.toString().toLowerCase().contains('timeout')) {
-        errorMessage = 'Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.';
+        errorMessage = l10n.verificationTimedOut;
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -184,25 +186,25 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text(
-            'Hủy yêu cầu xác thực',
-            style: TextStyle(color: Colors.white),
+          title: Text(
+            AppLocalizations.of(context)!.cancel,
+            style: const TextStyle(color: Colors.white),
           ),
-          content: const Text(
-            'Bạn có chắc chắn muốn hủy yêu cầu xác thực này?',
-            style: TextStyle(color: Colors.white70),
+          content: Text(
+            AppLocalizations.of(context)!.confirmCancelVerificationRequest,
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Không'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.danger,
               ),
-              child: const Text('Hủy yêu cầu'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
           ],
         ),
@@ -210,7 +212,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
 
       if (result != true) return;
 
-      _showBlockingSpinner('Đang hủy yêu cầu xác thực...');
+      _showBlockingSpinner(AppLocalizations.of(context)!.processing);
       
       final requestId = request['requestId'] as int? ?? 0;
       final txHash = await _web3Service.cancelVerificationRequest(requestId);
@@ -221,7 +223,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Yêu cầu đã được hủy thành công!\nHash: ${_formatHash(txHash)}',
+            AppLocalizations.of(context)!.requestCancelledSuccessfully(_formatHash(txHash)),
           ),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 3),
@@ -242,12 +244,13 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       if (!mounted) return;
       
       // Provide user-friendly error message
-      String errorMessage = 'Lỗi khi hủy yêu cầu: ${e.toString()}';
+      final l10n = AppLocalizations.of(context)!;
+      String errorMessage = l10n.errorCancellingRequest(e.toString());
       if (e.toString().toLowerCase().contains('rejected') ||
           e.toString().toLowerCase().contains('denied')) {
-        errorMessage = 'Hủy yêu cầu đã bị hủy trong ví. Vui lòng thử lại.';
+        errorMessage = l10n.cancellationRejectedInWallet;
       } else if (e.toString().toLowerCase().contains('timeout')) {
-        errorMessage = 'Yêu cầu hủy đã hết thời gian. Vui lòng thử lại.';
+        errorMessage = l10n.cancellationTimedOut;
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -291,7 +294,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
-          'Danh sách chờ xác thực',
+          AppLocalizations.of(context)!.verificationQueue,
           style: TextStyle(color: Colors.grey[900]),
         ),
         iconTheme: IconThemeData(color: Colors.grey[900]),
@@ -299,7 +302,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Làm mới',
+            tooltip: AppLocalizations.of(context)!.refresh,
           ),
         ],
       ),
@@ -320,7 +323,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Không có yêu cầu xác thực nào',
+                          AppLocalizations.of(context)!.noVerificationRequests,
                           style: TextStyle(
                             color: Colors.grey[700],
                             fontSize: 16,
@@ -329,7 +332,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
                         if (!_isTrustedVerifier) ...[
                           const SizedBox(height: 8),
                           Text(
-                            'Bạn cần là trusted verifier để xem các yêu cầu',
+                            AppLocalizations.of(context)!.onlyTrustedVerifiersCanSee,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.4),
                               fontSize: 12,

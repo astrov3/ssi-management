@@ -597,4 +597,545 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifiableCredential => 'Verifiable Credential';
+
+  @override
+  String get defaultWalletName => 'SSI Account';
+
+  @override
+  String get creatingDidAndUploadingToIpfs =>
+      'Creating DID document and uploading to IPFS...';
+
+  @override
+  String get uploadingLogoToIpfs => 'Uploading logo to IPFS...';
+
+  @override
+  String get uploadingDocumentToIpfs => 'Uploading document to IPFS...';
+
+  @override
+  String get creatingDidDocument => 'Creating DID document...';
+
+  @override
+  String get cannotGetCurrentWalletAddress =>
+      'Cannot get current wallet address';
+
+  @override
+  String get sendingTransactionToMetamask =>
+      'Sending transaction to MetaMask...\n\nPlease open MetaMask wallet and confirm the transaction.';
+
+  @override
+  String get registeringDidOnBlockchain => 'Registering DID on blockchain...';
+
+  @override
+  String trustedVerifierAdded(String txHash) {
+    return 'Trusted verifier added: $txHash';
+  }
+
+  @override
+  String trustedVerifierRemoved(String txHash) {
+    return 'Trusted verifier removed: $txHash';
+  }
+
+  @override
+  String get connectYourWalletToContinue => 'Connect your wallet to continue';
+
+  @override
+  String get adminPanel => 'Admin Panel - Manage Trusted Verifiers';
+
+  @override
+  String get verifierAddress => 'Verifier Address *';
+
+  @override
+  String get addEnable => 'Add/Enable';
+
+  @override
+  String get removeDisable => 'Remove/Disable';
+
+  @override
+  String get pleaseEnterVerifierAddress => 'Please enter verifier address';
+
+  @override
+  String get addVerifier => 'Add Verifier';
+
+  @override
+  String get removeVerifier => 'Remove Verifier';
+
+  @override
+  String get createYourDecentralizedIdentity =>
+      'Create your decentralized identity (DID)';
+
+  @override
+  String get fillForm => 'Fill form';
+
+  @override
+  String get uploadDocument => 'Upload document';
+
+  @override
+  String get walletAddressLabel => 'Wallet Address';
+
+  @override
+  String get displayName => 'Display name *';
+
+  @override
+  String get enterYourOrOrgName => 'Enter your or your organization name';
+
+  @override
+  String get describeYourselfOrOrg =>
+      'Describe yourself or your organization (optional)';
+
+  @override
+  String get website => 'Website';
+
+  @override
+  String get contactAddressOptional => 'Contact address (optional)';
+
+  @override
+  String get phoneNumber => 'Phone number';
+
+  @override
+  String get logoOptional => 'Logo (optional)';
+
+  @override
+  String get chooseLogo => 'Choose logo';
+
+  @override
+  String get takePhoto => 'Take photo';
+
+  @override
+  String get chooseFromGallery => 'Choose from gallery';
+
+  @override
+  String selectedLogo(String filename) {
+    return 'Selected logo: $filename';
+  }
+
+  @override
+  String get chooseLogoJpgPng => 'Choose logo (JPG, PNG)';
+
+  @override
+  String get uploadDocumentToRegisterDid => 'Upload document to register DID';
+
+  @override
+  String get uploadDocumentDescription =>
+      'You can upload a PDF, JSON file, or image containing credential information. If it is a JSON file, metadata will be extracted automatically.';
+
+  @override
+  String get documentRequired => 'Document *';
+
+  @override
+  String get documentSelected => 'Document selected';
+
+  @override
+  String get chooseDocument => 'Choose document (PDF, JSON, JPG, PNG)';
+
+  @override
+  String get noteJsonWillBeParsed =>
+      'Note: JSON files will be parsed automatically to extract metadata. PDF and image files will be stored on IPFS.';
+
+  @override
+  String get pleaseEnterName => 'Please enter a name';
+
+  @override
+  String get pleaseChooseDocument => 'Please choose document';
+
+  @override
+  String get adminPanelAction => 'Admin Panel';
+
+  @override
+  String get manageVerifiers => 'Manage trusted verifiers';
+
+  @override
+  String get updateDid => 'Update DID';
+
+  @override
+  String get uploadDocumentToUpdateDid => 'Upload document to update DID';
+
+  @override
+  String get update => 'Update';
+
+  @override
+  String get updateYourDidInformation =>
+      'Update your decentralized identity (DID) information';
+
+  @override
+  String errorPickingImage(String error) {
+    return 'Error picking image: $error';
+  }
+
+  @override
+  String errorPickingFile(String error) {
+    return 'Error picking file: $error';
+  }
+
+  @override
+  String get cloudflare => 'Cloudflare';
+
+  @override
+  String get pinata => 'Pinata';
+
+  @override
+  String get defaultGateway => 'Default';
+
+  @override
+  String get original => 'Original';
+
+  @override
+  String get cannotOpenLink => 'Cannot open link';
+
+  @override
+  String cannotOpenFile(String error) {
+    return 'Cannot open file: $error';
+  }
+
+  @override
+  String get verifiedStatus => 'Verified';
+
+  @override
+  String get unverified => 'Unverified';
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String get verificationQueue => 'Verification Queue';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get noVerificationRequests => 'No verification requests';
+
+  @override
+  String get onlyTrustedVerifiersCanSee =>
+      'Only trusted verifiers can see and process verification requests.';
+
+  @override
+  String credentialVerifiedSuccessfully(String hash) {
+    return 'Credential verified successfully!\nHash: $hash';
+  }
+
+  @override
+  String verificationErrorMessage(String error) {
+    return 'Verification error: $error';
+  }
+
+  @override
+  String get verificationCancelledInWallet =>
+      'Verification was cancelled in wallet. Please try again.';
+
+  @override
+  String get verificationTimedOut =>
+      'Verification request timed out. Please try again.';
+
+  @override
+  String get confirmCancelVerificationRequest =>
+      'Are you sure you want to cancel this verification request?';
+
+  @override
+  String requestCancelledSuccessfully(String hash) {
+    return 'Request cancelled successfully!\nHash: $hash';
+  }
+
+  @override
+  String errorCancellingRequest(String error) {
+    return 'Error cancelling request: $error';
+  }
+
+  @override
+  String get cancellationRejectedInWallet =>
+      'Cancellation was rejected in wallet. Please try again.';
+
+  @override
+  String get cancellationTimedOut =>
+      'Cancellation request timed out. Please try again.';
+
+  @override
+  String get ownerRegisterOrManageDid =>
+      'You are an owner. Register or manage your DID.';
+
+  @override
+  String get didInformation => 'DID Information';
+
+  @override
+  String get uriLabel => 'URI';
+
+  @override
+  String get issuedAt => 'Issued At';
+
+  @override
+  String get expiration => 'Expiration';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get notTrustedVerifierTitle => 'You are not a trusted verifier';
+
+  @override
+  String get notTrustedVerifierMessage =>
+      'Only trusted verifiers can see and process verification requests.';
+
+  @override
+  String get noVerificationRequestsTitle => 'No verification requests';
+
+  @override
+  String get noVerificationRequestsMessage =>
+      'New verification requests will appear here for quick processing.';
+
+  @override
+  String moreRequests(int count) {
+    return '+$count more request(s)';
+  }
+
+  @override
+  String get manualVerifyDescription =>
+      'Enter orgID, VC index and hash to verify manually when QR scanning is not possible.';
+
+  @override
+  String get walletAddressNotFound =>
+      'Wallet address not found. Please open your wallet first.';
+
+  @override
+  String get connectWalletToDisplayQr =>
+      'Connect wallet or WalletConnect to display QR code.';
+
+  @override
+  String get selectCredentialToShare => 'Select credential to share';
+
+  @override
+  String vcNumber(int index) {
+    return 'VC #$index';
+  }
+
+  @override
+  String expiryShort(String date) {
+    return 'Exp: $date';
+  }
+
+  @override
+  String get statusRevoked => 'Revoked';
+
+  @override
+  String get statusVerified => 'Verified';
+
+  @override
+  String get statusNotVerified => 'Not verified';
+
+  @override
+  String get queueOrgId => 'OrgID';
+
+  @override
+  String get queueSent => 'Sent';
+
+  @override
+  String get queueVerifier => 'Verifier';
+
+  @override
+  String get queueAny => 'Any';
+
+  @override
+  String get notAvailable => 'N/A';
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count day(s) ago';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count hour(s) ago';
+  }
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count minute(s) ago';
+  }
+
+  @override
+  String get timeJustNow => 'Just now';
+
+  @override
+  String get authorizeIssuer => 'Authorize Issuer';
+
+  @override
+  String get issuerAddress => 'Issuer Address';
+
+  @override
+  String get authorize => 'Authorize';
+
+  @override
+  String get createAndIssueVerifiableCredential =>
+      'Create and issue Verifiable Credential';
+
+  @override
+  String get credentialTypeLabel => 'Credential Type *';
+
+  @override
+  String get credentialTypeHint =>
+      'Example: EducationalCredential, IdentityCredential';
+
+  @override
+  String get subjectNameLabel => 'Subject Name *';
+
+  @override
+  String get subjectNameHint => 'Name of credential recipient';
+
+  @override
+  String get subjectEmailLabel => 'Subject Email';
+
+  @override
+  String get expirationDateOptional => 'Expiration Date (optional)';
+
+  @override
+  String get selectExpirationDate => 'Select expiration date';
+
+  @override
+  String get uploadDocumentToIssueVC => 'Upload document to issue VC';
+
+  @override
+  String get pleaseEnterSubjectName => 'Please enter subject name';
+
+  @override
+  String get governmentId => 'Government ID';
+
+  @override
+  String get passport => 'Passport';
+
+  @override
+  String get driverLicense => 'Driver License';
+
+  @override
+  String get trainingCertificate => 'Training Certificate';
+
+  @override
+  String get employmentCredential => 'Employment Credential';
+
+  @override
+  String get workPermit => 'Work Permit';
+
+  @override
+  String get vaccinationCertificate => 'Vaccination Certificate';
+
+  @override
+  String get credential => 'Credential';
+
+  @override
+  String get noDid => 'No DID';
+
+  @override
+  String get registerDidToStartUsingServices =>
+      'Register a DID to start using services';
+
+  @override
+  String get didDeactivated => 'DID has been deactivated';
+
+  @override
+  String get noDidInformationAvailable => 'No DID information available';
+
+  @override
+  String get noPermissionUpdateDid =>
+      'You do not have permission to update this DID';
+
+  @override
+  String get noPermissionDeactivateDid =>
+      'You do not have permission to deactivate this DID';
+
+  @override
+  String get noPermissionAuthorizeIssuer =>
+      'You do not have permission to authorize an issuer';
+
+  @override
+  String get issuerAddressNotValid => 'Issuer address is not valid';
+
+  @override
+  String get authorizingIssuer => 'Authorizing issuer...';
+
+  @override
+  String get issuerAuthorizedSuccessfully =>
+      'Issuer has been authorized successfully!';
+
+  @override
+  String errorAuthorizingIssuer(String error) {
+    return 'Error authorizing issuer: $error';
+  }
+
+  @override
+  String get confirmDeactivateDid => 'Confirm DID deactivation';
+
+  @override
+  String get deactivateDidWarning =>
+      'Are you sure you want to deactivate this DID? After deactivation, you will not be able to issue new VCs.';
+
+  @override
+  String get deactivatingDid => 'Deactivating DID...';
+
+  @override
+  String get deactivateDid => 'Deactivate DID';
+
+  @override
+  String errorDeactivatingDid(String error) {
+    return 'Error deactivating DID: $error';
+  }
+
+  @override
+  String get pleaseSelectCredentialType => 'Please select credential type';
+
+  @override
+  String get pleaseSelectCredentialTypeFirst =>
+      'Please select credential type first';
+
+  @override
+  String get informationFilledFromQR => 'Information filled from QR code';
+
+  @override
+  String get cannotReadQRCode => 'Cannot read information from QR code';
+
+  @override
+  String errorScanningQR(String error) {
+    return 'Error scanning QR code: $error';
+  }
+
+  @override
+  String get selectImageSource => 'Select Image Source';
+
+  @override
+  String get imageSavedOCRLater =>
+      'Image saved. OCR will be supported in the next version.';
+
+  @override
+  String get informationFilledFromImage => 'Information filled from image';
+
+  @override
+  String get cannotReadFromImage =>
+      'Cannot read information from image. Image saved.';
+
+  @override
+  String errorOCR(String error) {
+    return 'OCR error: $error. Image saved.';
+  }
+
+  @override
+  String get createNewCredential => 'Create New Credential';
+
+  @override
+  String get selectCredentialType => 'Select Credential Type';
+
+  @override
+  String get scanQR => 'Scan QR';
+
+  @override
+  String get ocrFromImage => 'OCR from Image';
+
+  @override
+  String get createCredential => 'Create Credential';
+
+  @override
+  String get pleaseFillRequiredFields => 'Please fill in all required fields';
+
+  @override
+  String fieldRequired(String field) {
+    return '$field is required';
+  }
+
+  @override
+  String get invalidValue => 'Invalid value';
 }

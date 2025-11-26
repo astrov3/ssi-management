@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({
@@ -12,6 +13,7 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -19,7 +21,7 @@ class DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              walletName.isEmpty ? 'SSI Account' : walletName,
+              walletName.isEmpty ? l10n.defaultWalletName : walletName,
               style: TextStyle(
                 color: Colors.grey[900],
                 fontSize: 24,

@@ -861,7 +861,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         // Nếu chưa có vcDocument, thử load từ URI
         final uri = credential['uri'] as String?;
         if (uri != null && uri.isNotEmpty) {
-          _showBlockingSpinner('Đang tải thông tin credential...');
+          _showBlockingSpinner('Loading credential information...');
           try {
             vcDocument = await _pinataService.getJSON(uri);
           } catch (e) {
@@ -871,7 +871,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Không thể tải thông tin credential: ${e.toString()}'),
+                content: Text('Unable to load credential information: ${e.toString()}'),
                 backgroundColor: AppColors.danger,
               ),
             );
@@ -883,7 +883,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Credential không có thông tin để gửi. Vui lòng kiểm tra lại.'),
+              content: Text('Credential has no information to send. Please check again.'),
               backgroundColor: AppColors.danger,
             ),
           );
@@ -891,12 +891,12 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         }
       }
       
-      // Upload toàn bộ nội dung credential lên IPFS
-      _updateSpinnerMessage('Đang tải toàn bộ nội dung credential lên IPFS...');
+      // Upload the full credential content to IPFS
+      _updateSpinnerMessage('Uploading full credential content to IPFS...');
       final metadataUri = await _pinataService.uploadJSON(vcDocument);
       
-      // Gửi yêu cầu xác thực với metadataUri chứa toàn bộ credential
-      _updateSpinnerMessage('Đang gửi yêu cầu xác thực đến blockchain...');
+      // Send verification request with metadataUri containing the full credential
+      _updateSpinnerMessage('Sending verification request to blockchain...');
       final txHash = await _web3Service.requestVerification(
         _address,
         index,
@@ -1262,7 +1262,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     int index,
     BuildContext context,
   ) {
-    final typeTitle = _displayNameForType(credential['vcType'] as String?);
+    final l10n = AppLocalizations.of(context)!;
+    final typeTitle = _displayNameForType(credential['vcType'] as String?, l10n);
     if (typeTitle != null) {
       return typeTitle;
     }
@@ -1284,16 +1285,12 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       }
     }
 
-    final l10n = AppLocalizations.of(context)!;
     // Final fallback: generic credential name with index to avoid confusion
     return '${l10n.credentials} #${index + 1}';
   }
 
-  String? _displayNameForType(String? vcType) {
-    if (vcType == null) {
-      return null;
-    }
-    return credentialTypeMetadata[vcType]?.title;
+  String? _displayNameForType(String? vcType, AppLocalizations l10n) {
+    return CredentialTypeMetadata.getLocalizedTitle(vcType, l10n);
   }
 
   @override

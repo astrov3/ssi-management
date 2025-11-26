@@ -755,7 +755,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
                                 attachment.fileName ?? attachment.label,
                               ),
                               icon: const Icon(Icons.open_in_new),
-                              label: const Text('Mở PDF'),
+                              label: const Text('Open PDF'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.secondary,
                               ),

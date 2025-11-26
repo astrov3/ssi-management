@@ -54,18 +54,18 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Chọn logo', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.of(context)!.chooseLogo, style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.secondary),
-                title: const Text('Chụp ảnh', style: TextStyle(color: Colors.white)),
+                title: Text(AppLocalizations.of(context)!.takePhoto, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.secondary),
-                title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                title: Text(AppLocalizations.of(context)!.chooseFromGallery, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
             ],
@@ -144,7 +144,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tạo danh tính phi tập trung (DID) của bạn',
+                    l10n.createYourDecentralizedIdentity,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.6),
@@ -158,9 +158,9 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
               labelColor: AppColors.secondary,
               unselectedLabelColor: Colors.white54,
               indicatorColor: AppColors.secondary,
-              tabs: const [
-                Tab(text: 'Điền form', icon: Icon(Icons.edit)),
-                Tab(text: 'Upload tài liệu', icon: Icon(Icons.upload_file)),
+              tabs: [
+                Tab(text: l10n.fillForm, icon: const Icon(Icons.edit)),
+                Tab(text: l10n.uploadDocument, icon: const Icon(Icons.upload_file)),
               ],
             ),
             Expanded(
@@ -196,8 +196,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                       onPressed: () {
                         if (_tabController.index == 0 && _nameController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Vui lòng nhập tên'),
+                            SnackBar(
+                              content: Text(l10n.pleaseEnterName),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -205,8 +205,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                         }
                         if (_tabController.index == 1 && _documentPath == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Vui lòng chọn tài liệu'),
+                            SnackBar(
+                              content: Text(l10n.pleaseChooseDocument),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -306,8 +306,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             controller: _nameController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Tên hiển thị *',
-              hintText: 'Nhập tên của bạn hoặc tổ chức',
+              labelText: l10n.displayName,
+              hintText: l10n.enterYourOrOrgName,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.badge, color: Colors.white.withValues(alpha: 0.6)),
@@ -329,8 +329,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             maxLines: 3,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Mô tả',
-              hintText: 'Mô tả về bạn hoặc tổ chức (tùy chọn)',
+              labelText: l10n.description,
+              hintText: l10n.describeYourselfOrOrg,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Padding(
@@ -355,7 +355,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: l10n.email,
               hintText: 'email@example.com',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -378,7 +378,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             keyboardType: TextInputType.url,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Website',
+              labelText: l10n.website,
               hintText: 'https://example.com',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -401,8 +401,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             maxLines: 2,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Địa chỉ',
-              hintText: 'Địa chỉ liên hệ (tùy chọn)',
+              labelText: l10n.address,
+              hintText: l10n.contactAddressOptional,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.location_on, color: Colors.white.withValues(alpha: 0.6)),
@@ -424,7 +424,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
             keyboardType: TextInputType.phone,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Số điện thoại',
+              labelText: l10n.phoneNumber,
               hintText: '+84...',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -443,7 +443,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
           ),
           const SizedBox(height: 20),
           Text(
-            'Logo (tùy chọn)',
+            l10n.logoOptional,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -470,8 +470,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                   Expanded(
                     child: Text(
                       _logoPath != null 
-                          ? 'Logo đã chọn: ${_logoPath!.split('/').last}'
-                          : 'Chọn logo (JPG, PNG)',
+                          ? l10n.selectedLogo(_logoPath!.split('/').last)
+                          : l10n.chooseLogoJpgPng,
                       style: TextStyle(
                         color: _logoPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                       ),
@@ -502,7 +502,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload tài liệu để đăng ký DID',
+            l10n.uploadDocumentToRegisterDid,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -511,7 +511,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
           ),
           const SizedBox(height: 8),
           Text(
-            'Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin DID của bạn. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.',
+            l10n.uploadDocumentDescription,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withValues(alpha: 0.6),
@@ -542,7 +542,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
           ),
           const SizedBox(height: 20),
           Text(
-            'Tài liệu *',
+            l10n.documentRequired,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -573,8 +573,8 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                       children: [
                         Text(
                           _documentPath != null 
-                              ? 'Tài liệu đã chọn'
-                              : 'Chọn tài liệu (PDF, JSON, JPG, PNG)',
+                              ? l10n.documentSelected
+                              : l10n.chooseDocument,
                           style: TextStyle(
                             color: _documentPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                             fontSize: 16,
@@ -622,7 +622,7 @@ class _RegisterDidDialogState extends State<RegisterDidDialog> with SingleTicker
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Lưu ý: File JSON sẽ được tự động parse và trích xuất metadata. File PDF và hình ảnh sẽ được lưu trữ trên IPFS.',
+                    l10n.noteJsonWillBeParsed,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,

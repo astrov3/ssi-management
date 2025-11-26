@@ -51,18 +51,18 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Chọn logo', style: TextStyle(color: Colors.white)),
+          title: const Text('Choose logo', style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.secondary),
-                title: const Text('Chụp ảnh', style: TextStyle(color: Colors.white)),
+                title: const Text('Take photo', style: TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.secondary),
-                title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                title: const Text('Choose from gallery', style: TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
             ],
@@ -83,7 +83,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi chọn ảnh: $e'),
+            content: Text('Error picking image: $e'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -107,7 +107,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi chọn file: $e'),
+            content: Text('Error picking file: $e'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -131,7 +131,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Đăng ký DID',
+                    'Register DID',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -140,7 +140,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tạo danh tính phi tập trung (DID) của bạn',
+                    'Create your decentralized identity (DID)',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.6),
@@ -155,8 +155,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
               unselectedLabelColor: Colors.white54,
               indicatorColor: AppColors.secondary,
               tabs: const [
-                Tab(text: 'Điền form', icon: Icon(Icons.edit)),
-                Tab(text: 'Upload tài liệu', icon: Icon(Icons.upload_file)),
+                Tab(text: 'Fill form', icon: Icon(Icons.edit)),
+                Tab(text: 'Upload document', icon: Icon(Icons.upload_file)),
               ],
             ),
             Expanded(
@@ -182,7 +182,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                           side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                         ),
                       ),
-                      child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -193,7 +193,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                         if (_tabController.index == 0 && widget.nameController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Vui lòng nhập tên'),
+                              content: Text('Please enter a name'),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -202,7 +202,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                         if (_tabController.index == 1 && _documentPath == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Vui lòng chọn tài liệu'),
+                              content: Text('Please choose a document'),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -222,7 +222,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                         ),
                       ),
                       child: const Text(
-                        'Đăng ký DID',
+                        'Register DID',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -247,7 +247,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             enabled: false,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
             decoration: InputDecoration(
-              labelText: 'Địa chỉ ví (Wallet Address)',
+              labelText: 'Wallet Address',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintText: '0x...',
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -269,8 +269,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             controller: widget.nameController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Tên hiển thị *',
-              hintText: 'Nhập tên của bạn hoặc tổ chức',
+              labelText: 'Display name *',
+              hintText: 'Enter your or your organization name',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.badge, color: Colors.white.withValues(alpha: 0.6)),
@@ -292,8 +292,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             maxLines: 3,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Mô tả',
-              hintText: 'Mô tả về bạn hoặc tổ chức (tùy chọn)',
+              labelText: 'Description',
+              hintText: 'Describe yourself or your organization (optional)',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Padding(
@@ -364,8 +364,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             maxLines: 2,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Địa chỉ',
-              hintText: 'Địa chỉ liên hệ (tùy chọn)',
+              labelText: 'Address',
+              hintText: 'Contact address (optional)',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.location_on, color: Colors.white.withValues(alpha: 0.6)),
@@ -387,7 +387,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             keyboardType: TextInputType.phone,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Số điện thoại',
+              labelText: 'Phone number',
               hintText: '+84...',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -406,7 +406,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
           ),
           const SizedBox(height: 20),
           Text(
-            'Logo (tùy chọn)',
+            'Logo (optional)',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -433,8 +433,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                   Expanded(
                     child: Text(
                       _logoPath != null 
-                          ? 'Logo đã chọn: ${_logoPath!.split('/').last}'
-                          : 'Chọn logo (JPG, PNG)',
+                          ? 'Selected logo: ${_logoPath!.split('/').last}'
+                          : 'Choose logo (JPG, PNG)',
                       style: TextStyle(
                         color: _logoPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                       ),
@@ -465,7 +465,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload tài liệu để đăng ký DID',
+            'Upload document to register DID',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -474,7 +474,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
           ),
           const SizedBox(height: 8),
           Text(
-            'Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin DID của bạn. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.',
+            'You can upload a PDF, JSON file, or image containing your DID information. '
+            'If it is a JSON file, metadata will be extracted automatically.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withValues(alpha: 0.6),
@@ -486,7 +487,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
             enabled: false,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
             decoration: InputDecoration(
-              labelText: 'Địa chỉ ví (Wallet Address)',
+              labelText: 'Wallet Address',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintText: '0x...',
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -505,7 +506,7 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
           ),
           const SizedBox(height: 20),
           Text(
-            'Tài liệu *',
+            'Document *',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -536,8 +537,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                       children: [
                         Text(
                           _documentPath != null 
-                              ? 'Tài liệu đã chọn'
-                              : 'Chọn tài liệu (PDF, JSON, JPG, PNG)',
+                              ? 'Document selected'
+                              : 'Choose document (PDF, JSON, JPG, PNG)',
                           style: TextStyle(
                             color: _documentPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                             fontSize: 16,
@@ -585,7 +586,8 @@ class _RegisterDIDDialogState extends State<RegisterDIDDialog> with SingleTicker
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Lưu ý: File JSON sẽ được tự động parse và trích xuất metadata. File PDF và hình ảnh sẽ được lưu trữ trên IPFS.',
+                    'Note: JSON files will be parsed automatically to extract metadata. '
+                    'PDF and image files will be stored on IPFS.',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,

@@ -50,7 +50,7 @@ class QuickActions extends StatelessWidget {
           QuickActionTile(
             title: l10n.registerDid,
             subtitle: isOwnerOnChain 
-                ? 'You are an owner. Register or manage your DID.'
+                ? l10n.ownerRegisterOrManageDid
                 : l10n.registerDidOnBlockchain,
             icon: Icons.person_add,
             iconColor: AppColors.secondary,
@@ -58,8 +58,8 @@ class QuickActions extends StatelessWidget {
           ),
         if (onAdminPanel != null)
           QuickActionTile(
-            title: 'Admin Panel',
-            subtitle: 'Manage trusted verifiers',
+            title: l10n.adminPanelAction,
+            subtitle: l10n.manageVerifiers,
             icon: Icons.admin_panel_settings,
             iconColor: Colors.orange,
             onTap: onAdminPanel!,

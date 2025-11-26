@@ -632,13 +632,13 @@ abstract class AppLocalizations {
   /// **'Hash copied'**
   String get hashCopied;
 
-  /// Credential type
+  /// Title for university degree credential type
   ///
   /// In en, this message translates to:
   /// **'University Degree'**
   String get universityDegree;
 
-  /// Credential type
+  /// Title for professional certificate credential type
   ///
   /// In en, this message translates to:
   /// **'Professional Certificate'**
@@ -656,13 +656,13 @@ abstract class AppLocalizations {
   /// **'Driver\'s License'**
   String get driversLicense;
 
-  /// Credential type
+  /// Title for health insurance credential type
   ///
   /// In en, this message translates to:
   /// **'Health Insurance'**
   String get healthInsurance;
 
-  /// Credential type
+  /// Title for membership card credential type
   ///
   /// In en, this message translates to:
   /// **'Membership Card'**
@@ -1201,6 +1201,942 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verifiable Credential'**
   String get verifiableCredential;
+
+  /// Default wallet account name when no custom name is set
+  ///
+  /// In en, this message translates to:
+  /// **'SSI Account'**
+  String get defaultWalletName;
+
+  /// Message shown when creating DID document and uploading it to IPFS
+  ///
+  /// In en, this message translates to:
+  /// **'Creating DID document and uploading to IPFS...'**
+  String get creatingDidAndUploadingToIpfs;
+
+  /// Message shown when uploading a logo file to IPFS
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading logo to IPFS...'**
+  String get uploadingLogoToIpfs;
+
+  /// Message shown when uploading a document file to IPFS
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading document to IPFS...'**
+  String get uploadingDocumentToIpfs;
+
+  /// Message shown when creating DID document
+  ///
+  /// In en, this message translates to:
+  /// **'Creating DID document...'**
+  String get creatingDidDocument;
+
+  /// Error message when the current wallet address cannot be retrieved
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot get current wallet address'**
+  String get cannotGetCurrentWalletAddress;
+
+  /// Message shown when sending a transaction to MetaMask and waiting for user confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Sending transaction to MetaMask...\n\nPlease open MetaMask wallet and confirm the transaction.'**
+  String get sendingTransactionToMetamask;
+
+  /// Message shown when registering DID on the blockchain
+  ///
+  /// In en, this message translates to:
+  /// **'Registering DID on blockchain...'**
+  String get registeringDidOnBlockchain;
+
+  /// Message shown when a trusted verifier is added
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted verifier added: {txHash}'**
+  String trustedVerifierAdded(String txHash);
+
+  /// Message shown when a trusted verifier is removed
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted verifier removed: {txHash}'**
+  String trustedVerifierRemoved(String txHash);
+
+  /// Subtitle message on authentication screen
+  ///
+  /// In en, this message translates to:
+  /// **'Connect your wallet to continue'**
+  String get connectYourWalletToContinue;
+
+  /// Admin panel dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Panel - Manage Trusted Verifiers'**
+  String get adminPanel;
+
+  /// Label for verifier address input
+  ///
+  /// In en, this message translates to:
+  /// **'Verifier Address *'**
+  String get verifierAddress;
+
+  /// Radio option to add/enable verifier
+  ///
+  /// In en, this message translates to:
+  /// **'Add/Enable'**
+  String get addEnable;
+
+  /// Radio option to remove/disable verifier
+  ///
+  /// In en, this message translates to:
+  /// **'Remove/Disable'**
+  String get removeDisable;
+
+  /// Validation message for empty verifier address
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter verifier address'**
+  String get pleaseEnterVerifierAddress;
+
+  /// Button to add verifier
+  ///
+  /// In en, this message translates to:
+  /// **'Add Verifier'**
+  String get addVerifier;
+
+  /// Button to remove verifier
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Verifier'**
+  String get removeVerifier;
+
+  /// Subtitle for register DID dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Create your decentralized identity (DID)'**
+  String get createYourDecentralizedIdentity;
+
+  /// Tab label for form input
+  ///
+  /// In en, this message translates to:
+  /// **'Fill form'**
+  String get fillForm;
+
+  /// Tab label for document upload
+  ///
+  /// In en, this message translates to:
+  /// **'Upload document'**
+  String get uploadDocument;
+
+  /// Label for wallet address field
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet Address'**
+  String get walletAddressLabel;
+
+  /// Label for display name field
+  ///
+  /// In en, this message translates to:
+  /// **'Display name *'**
+  String get displayName;
+
+  /// Hint for display name field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your or your organization name'**
+  String get enterYourOrOrgName;
+
+  /// Hint for description field
+  ///
+  /// In en, this message translates to:
+  /// **'Describe yourself or your organization (optional)'**
+  String get describeYourselfOrOrg;
+
+  /// Label for website field
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get website;
+
+  /// Hint for address field
+  ///
+  /// In en, this message translates to:
+  /// **'Contact address (optional)'**
+  String get contactAddressOptional;
+
+  /// Label for phone number field
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get phoneNumber;
+
+  /// Label for logo upload section
+  ///
+  /// In en, this message translates to:
+  /// **'Logo (optional)'**
+  String get logoOptional;
+
+  /// Dialog title for choosing logo
+  ///
+  /// In en, this message translates to:
+  /// **'Choose logo'**
+  String get chooseLogo;
+
+  /// Option to take photo with camera
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get takePhoto;
+
+  /// Option to choose from gallery
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chooseFromGallery;
+
+  /// Message showing selected logo filename
+  ///
+  /// In en, this message translates to:
+  /// **'Selected logo: {filename}'**
+  String selectedLogo(String filename);
+
+  /// Hint for logo upload
+  ///
+  /// In en, this message translates to:
+  /// **'Choose logo (JPG, PNG)'**
+  String get chooseLogoJpgPng;
+
+  /// Title for document upload section
+  ///
+  /// In en, this message translates to:
+  /// **'Upload document to register DID'**
+  String get uploadDocumentToRegisterDid;
+
+  /// Description for upload tab
+  ///
+  /// In en, this message translates to:
+  /// **'You can upload a PDF, JSON file, or image containing credential information. If it is a JSON file, metadata will be extracted automatically.'**
+  String get uploadDocumentDescription;
+
+  /// Label for document upload
+  ///
+  /// In en, this message translates to:
+  /// **'Document *'**
+  String get documentRequired;
+
+  /// Text when document is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Document selected'**
+  String get documentSelected;
+
+  /// Hint for document upload
+  ///
+  /// In en, this message translates to:
+  /// **'Choose document (PDF, JSON, JPG, PNG)'**
+  String get chooseDocument;
+
+  /// Note about JSON parsing
+  ///
+  /// In en, this message translates to:
+  /// **'Note: JSON files will be parsed automatically to extract metadata. PDF and image files will be stored on IPFS.'**
+  String get noteJsonWillBeParsed;
+
+  /// Validation error for empty name
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get pleaseEnterName;
+
+  /// Error message when document is not selected
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose document'**
+  String get pleaseChooseDocument;
+
+  /// Admin panel quick action
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Panel'**
+  String get adminPanelAction;
+
+  /// Admin panel subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Manage trusted verifiers'**
+  String get manageVerifiers;
+
+  /// Update DID dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Update DID'**
+  String get updateDid;
+
+  /// Title for document upload section in update DID
+  ///
+  /// In en, this message translates to:
+  /// **'Upload document to update DID'**
+  String get uploadDocumentToUpdateDid;
+
+  /// Update button
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
+
+  /// Subtitle for update DID dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Update your decentralized identity (DID) information'**
+  String get updateYourDidInformation;
+
+  /// Error message when picking image fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error picking image: {error}'**
+  String errorPickingImage(String error);
+
+  /// Error message when picking file fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error picking file: {error}'**
+  String errorPickingFile(String error);
+
+  /// Cloudflare gateway label
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare'**
+  String get cloudflare;
+
+  /// Pinata gateway label
+  ///
+  /// In en, this message translates to:
+  /// **'Pinata'**
+  String get pinata;
+
+  /// Default gateway label
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultGateway;
+
+  /// Original URL label
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get original;
+
+  /// Error when link cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot open link'**
+  String get cannotOpenLink;
+
+  /// Error when file cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot open file: {error}'**
+  String cannotOpenFile(String error);
+
+  /// Verified status label
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get verifiedStatus;
+
+  /// Unverified status label
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified'**
+  String get unverified;
+
+  /// View details button label
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// Verification queue screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Queue'**
+  String get verificationQueue;
+
+  /// Refresh button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// Empty state message for verification requests
+  ///
+  /// In en, this message translates to:
+  /// **'No verification requests'**
+  String get noVerificationRequests;
+
+  /// Information message about trusted verifiers
+  ///
+  /// In en, this message translates to:
+  /// **'Only trusted verifiers can see and process verification requests.'**
+  String get onlyTrustedVerifiersCanSee;
+
+  /// Success message when credential is verified
+  ///
+  /// In en, this message translates to:
+  /// **'Credential verified successfully!\nHash: {hash}'**
+  String credentialVerifiedSuccessfully(String hash);
+
+  /// Error message during verification
+  ///
+  /// In en, this message translates to:
+  /// **'Verification error: {error}'**
+  String verificationErrorMessage(String error);
+
+  /// Error when verification is cancelled in wallet
+  ///
+  /// In en, this message translates to:
+  /// **'Verification was cancelled in wallet. Please try again.'**
+  String get verificationCancelledInWallet;
+
+  /// Error when verification times out
+  ///
+  /// In en, this message translates to:
+  /// **'Verification request timed out. Please try again.'**
+  String get verificationTimedOut;
+
+  /// Confirmation dialog for cancelling verification
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel this verification request?'**
+  String get confirmCancelVerificationRequest;
+
+  /// Success message when request is cancelled
+  ///
+  /// In en, this message translates to:
+  /// **'Request cancelled successfully!\nHash: {hash}'**
+  String requestCancelledSuccessfully(String hash);
+
+  /// Error message when cancelling request fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error cancelling request: {error}'**
+  String errorCancellingRequest(String error);
+
+  /// Error when cancellation is rejected in wallet
+  ///
+  /// In en, this message translates to:
+  /// **'Cancellation was rejected in wallet. Please try again.'**
+  String get cancellationRejectedInWallet;
+
+  /// Error when cancellation times out
+  ///
+  /// In en, this message translates to:
+  /// **'Cancellation request timed out. Please try again.'**
+  String get cancellationTimedOut;
+
+  /// Helper text when owner can register or manage DID
+  ///
+  /// In en, this message translates to:
+  /// **'You are an owner. Register or manage your DID.'**
+  String get ownerRegisterOrManageDid;
+
+  /// Title for DID information card
+  ///
+  /// In en, this message translates to:
+  /// **'DID Information'**
+  String get didInformation;
+
+  /// Label for URI field
+  ///
+  /// In en, this message translates to:
+  /// **'URI'**
+  String get uriLabel;
+
+  /// Label for issued at field
+  ///
+  /// In en, this message translates to:
+  /// **'Issued At'**
+  String get issuedAt;
+
+  /// Label for expiration field
+  ///
+  /// In en, this message translates to:
+  /// **'Expiration'**
+  String get expiration;
+
+  /// Generic copied message
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// Title when user is not a trusted verifier
+  ///
+  /// In en, this message translates to:
+  /// **'You are not a trusted verifier'**
+  String get notTrustedVerifierTitle;
+
+  /// Message when user is not a trusted verifier
+  ///
+  /// In en, this message translates to:
+  /// **'Only trusted verifiers can see and process verification requests.'**
+  String get notTrustedVerifierMessage;
+
+  /// Title when there are no verification requests
+  ///
+  /// In en, this message translates to:
+  /// **'No verification requests'**
+  String get noVerificationRequestsTitle;
+
+  /// Message when there are no verification requests
+  ///
+  /// In en, this message translates to:
+  /// **'New verification requests will appear here for quick processing.'**
+  String get noVerificationRequestsMessage;
+
+  /// Label for additional requests count
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more request(s)'**
+  String moreRequests(int count);
+
+  /// Description text for manual verify card
+  ///
+  /// In en, this message translates to:
+  /// **'Enter orgID, VC index and hash to verify manually when QR scanning is not possible.'**
+  String get manualVerifyDescription;
+
+  /// Message when wallet address is not available
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet address not found. Please open your wallet first.'**
+  String get walletAddressNotFound;
+
+  /// Message prompting user to connect wallet to display QR
+  ///
+  /// In en, this message translates to:
+  /// **'Connect wallet or WalletConnect to display QR code.'**
+  String get connectWalletToDisplayQr;
+
+  /// Subtitle in credential picker sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Select credential to share'**
+  String get selectCredentialToShare;
+
+  /// VC number label
+  ///
+  /// In en, this message translates to:
+  /// **'VC #{index}'**
+  String vcNumber(int index);
+
+  /// Short expiration label
+  ///
+  /// In en, this message translates to:
+  /// **'Exp: {date}'**
+  String expiryShort(String date);
+
+  /// Status text for revoked
+  ///
+  /// In en, this message translates to:
+  /// **'Revoked'**
+  String get statusRevoked;
+
+  /// Status text for verified
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get statusVerified;
+
+  /// Status text for not verified
+  ///
+  /// In en, this message translates to:
+  /// **'Not verified'**
+  String get statusNotVerified;
+
+  /// Label for OrgID in queue tile
+  ///
+  /// In en, this message translates to:
+  /// **'OrgID'**
+  String get queueOrgId;
+
+  /// Label for sent time in queue tile
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get queueSent;
+
+  /// Label for verifier in queue tile
+  ///
+  /// In en, this message translates to:
+  /// **'Verifier'**
+  String get queueVerifier;
+
+  /// Label when any verifier is allowed
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get queueAny;
+
+  /// Generic not-available label
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get notAvailable;
+
+  /// Relative time in days
+  ///
+  /// In en, this message translates to:
+  /// **'{count} day(s) ago'**
+  String timeDaysAgo(int count);
+
+  /// Relative time in hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count} hour(s) ago'**
+  String timeHoursAgo(int count);
+
+  /// Relative time in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} minute(s) ago'**
+  String timeMinutesAgo(int count);
+
+  /// Relative time for just now
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// Title for authorize issuer dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize Issuer'**
+  String get authorizeIssuer;
+
+  /// Label for issuer address field
+  ///
+  /// In en, this message translates to:
+  /// **'Issuer Address'**
+  String get issuerAddress;
+
+  /// Button label for authorize action
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize'**
+  String get authorize;
+
+  /// Subtitle for issue VC dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Create and issue Verifiable Credential'**
+  String get createAndIssueVerifiableCredential;
+
+  /// Label for credential type field
+  ///
+  /// In en, this message translates to:
+  /// **'Credential Type *'**
+  String get credentialTypeLabel;
+
+  /// Hint for credential type field
+  ///
+  /// In en, this message translates to:
+  /// **'Example: EducationalCredential, IdentityCredential'**
+  String get credentialTypeHint;
+
+  /// Label for subject name field
+  ///
+  /// In en, this message translates to:
+  /// **'Subject Name *'**
+  String get subjectNameLabel;
+
+  /// Hint for subject name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name of credential recipient'**
+  String get subjectNameHint;
+
+  /// Label for subject email field
+  ///
+  /// In en, this message translates to:
+  /// **'Subject Email'**
+  String get subjectEmailLabel;
+
+  /// Label for expiration date field
+  ///
+  /// In en, this message translates to:
+  /// **'Expiration Date (optional)'**
+  String get expirationDateOptional;
+
+  /// Hint for expiration date field
+  ///
+  /// In en, this message translates to:
+  /// **'Select expiration date'**
+  String get selectExpirationDate;
+
+  /// Title for upload tab
+  ///
+  /// In en, this message translates to:
+  /// **'Upload document to issue VC'**
+  String get uploadDocumentToIssueVC;
+
+  /// Error message when subject name is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter subject name'**
+  String get pleaseEnterSubjectName;
+
+  /// Title for identity credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Government ID'**
+  String get governmentId;
+
+  /// Title for passport credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Passport'**
+  String get passport;
+
+  /// Title for driver license credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Driver License'**
+  String get driverLicense;
+
+  /// Title for training certificate credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Training Certificate'**
+  String get trainingCertificate;
+
+  /// Title for employment credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Employment Credential'**
+  String get employmentCredential;
+
+  /// Title for work permit credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Work Permit'**
+  String get workPermit;
+
+  /// Title for vaccination certificate credential type
+  ///
+  /// In en, this message translates to:
+  /// **'Vaccination Certificate'**
+  String get vaccinationCertificate;
+
+  /// Generic credential title
+  ///
+  /// In en, this message translates to:
+  /// **'Credential'**
+  String get credential;
+
+  /// Title when no DID exists
+  ///
+  /// In en, this message translates to:
+  /// **'No DID'**
+  String get noDid;
+
+  /// Description when user has no DID yet
+  ///
+  /// In en, this message translates to:
+  /// **'Register a DID to start using services'**
+  String get registerDidToStartUsingServices;
+
+  /// Message when DID has been deactivated
+  ///
+  /// In en, this message translates to:
+  /// **'DID has been deactivated'**
+  String get didDeactivated;
+
+  /// Error when there is no DID information to show
+  ///
+  /// In en, this message translates to:
+  /// **'No DID information available'**
+  String get noDidInformationAvailable;
+
+  /// Error when user tries to update DID without permission
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to update this DID'**
+  String get noPermissionUpdateDid;
+
+  /// Error when user tries to deactivate DID without permission
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to deactivate this DID'**
+  String get noPermissionDeactivateDid;
+
+  /// Error when user tries to authorize issuer without permission
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to authorize an issuer'**
+  String get noPermissionAuthorizeIssuer;
+
+  /// Error when issuer address is invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Issuer address is not valid'**
+  String get issuerAddressNotValid;
+
+  /// Spinner message when authorizing issuer
+  ///
+  /// In en, this message translates to:
+  /// **'Authorizing issuer...'**
+  String get authorizingIssuer;
+
+  /// Success message when issuer is authorized
+  ///
+  /// In en, this message translates to:
+  /// **'Issuer has been authorized successfully!'**
+  String get issuerAuthorizedSuccessfully;
+
+  /// Error message when authorizing issuer fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error authorizing issuer: {error}'**
+  String errorAuthorizingIssuer(String error);
+
+  /// Title for confirm deactivate DID dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm DID deactivation'**
+  String get confirmDeactivateDid;
+
+  /// Warning message before deactivating DID
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to deactivate this DID? After deactivation, you will not be able to issue new VCs.'**
+  String get deactivateDidWarning;
+
+  /// Spinner message when deactivating DID
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivating DID...'**
+  String get deactivatingDid;
+
+  /// Button label for deactivating DID
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate DID'**
+  String get deactivateDid;
+
+  /// Error message when deactivating DID fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error deactivating DID: {error}'**
+  String errorDeactivatingDid(String error);
+
+  /// Error when credential type is not selected
+  ///
+  /// In en, this message translates to:
+  /// **'Please select credential type'**
+  String get pleaseSelectCredentialType;
+
+  /// Error when trying to scan QR before selecting type
+  ///
+  /// In en, this message translates to:
+  /// **'Please select credential type first'**
+  String get pleaseSelectCredentialTypeFirst;
+
+  /// Success message when QR code data is parsed
+  ///
+  /// In en, this message translates to:
+  /// **'Information filled from QR code'**
+  String get informationFilledFromQR;
+
+  /// Error when QR code cannot be parsed
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read information from QR code'**
+  String get cannotReadQRCode;
+
+  /// Error message when QR scanning fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error scanning QR code: {error}'**
+  String errorScanningQR(String error);
+
+  /// Dialog title for image source selection
+  ///
+  /// In en, this message translates to:
+  /// **'Select Image Source'**
+  String get selectImageSource;
+
+  /// Message when image is saved but OCR not available
+  ///
+  /// In en, this message translates to:
+  /// **'Image saved. OCR will be supported in the next version.'**
+  String get imageSavedOCRLater;
+
+  /// Success message when OCR data is parsed
+  ///
+  /// In en, this message translates to:
+  /// **'Information filled from image'**
+  String get informationFilledFromImage;
+
+  /// Error when OCR fails but image is saved
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read information from image. Image saved.'**
+  String get cannotReadFromImage;
+
+  /// Error message when OCR fails
+  ///
+  /// In en, this message translates to:
+  /// **'OCR error: {error}. Image saved.'**
+  String errorOCR(String error);
+
+  /// Dialog title for creating credential
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Credential'**
+  String get createNewCredential;
+
+  /// Title for credential type selection
+  ///
+  /// In en, this message translates to:
+  /// **'Select Credential Type'**
+  String get selectCredentialType;
+
+  /// Button label for QR scanning
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get scanQR;
+
+  /// Button label for OCR from image
+  ///
+  /// In en, this message translates to:
+  /// **'OCR from Image'**
+  String get ocrFromImage;
+
+  /// Button label for creating credential
+  ///
+  /// In en, this message translates to:
+  /// **'Create Credential'**
+  String get createCredential;
+
+  /// Validation error when required fields are missing
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in all required fields'**
+  String get pleaseFillRequiredFields;
+
+  /// Validation error for required field
+  ///
+  /// In en, this message translates to:
+  /// **'{field} is required'**
+  String fieldRequired(String field);
+
+  /// Generic validation error message
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid value'**
+  String get invalidValue;
 }
 
 class _AppLocalizationsDelegate

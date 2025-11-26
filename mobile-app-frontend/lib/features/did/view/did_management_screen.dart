@@ -9,6 +9,7 @@ import 'package:ssi_app/features/did/dialogs/register_did_dialog.dart';
 import 'package:ssi_app/features/did/dialogs/update_did_dialog.dart';
 import 'package:ssi_app/features/did/widgets/action_button.dart';
 import 'package:ssi_app/features/did/widgets/did_info_card.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
@@ -102,7 +103,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
   Future<void> _registerDID() async {
     if (_currentAddress == null) {
-      _showError('Không tìm thấy địa chỉ ví');
+      _showError(AppLocalizations.of(context)!.walletAddressNotFound);
       return;
     }
 
@@ -134,7 +135,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
     final documentPath = result['documentPath'] as String?;
 
     try {
-      _showBlockingSpinner('Đang tạo DID document và upload lên IPFS...');
+      _showBlockingSpinner('Creating DID document and uploading to IPFS...');
 
       // Handle file uploads if any
       String? logoIpfsUri;
@@ -146,7 +147,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         try {
           final logoFile = File(logoPath);
           if (await logoFile.exists()) {
-            _updateSpinnerMessage('Đang upload logo lên IPFS...');
+            _updateSpinnerMessage('Uploading logo to IPFS...');
             final logoBytes = await logoFile.readAsBytes();
             logoFileName = logoFile.path.split('/').last;
             logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
@@ -160,7 +161,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         try {
           final docFile = File(documentPath);
           if (await docFile.exists()) {
-            _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
+            _updateSpinnerMessage('Uploading document to IPFS...');
             final docBytes = await docFile.readAsBytes();
             documentFileName = docFile.path.split('/').last;
             documentIpfsUri = await _pinataService.uploadFile(docBytes, documentFileName);
@@ -216,7 +217,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await docFile.exists()) {
             final extension = docFile.path.split('.').last.toLowerCase();
             if (extension == 'json') {
-              _updateSpinnerMessage('Đang phân tích file JSON...');
+              _updateSpinnerMessage('Parsing JSON file...');
               final jsonContent = await docFile.readAsString();
               final docData = jsonDecode(jsonContent) as Map<String, dynamic>?;
               if (docData != null) {
@@ -257,7 +258,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         metadata['name'] = 'DID ${address.isNotEmpty ? address.substring(0, address.length > 8 ? 8 : address.length) : 'unknown'}...';
       }
 
-      _updateSpinnerMessage('Đang tạo DID document...');
+      _updateSpinnerMessage('Building DID document...');
 
       final didDocument = _pinataService.createDIDDocument(
         id: 'did:ethr:${orgIDController.text}',
@@ -278,9 +279,12 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
       
       if (isWC) {
         // Update spinner message for WalletConnect transaction
-        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.\n\nNếu không thấy notification, vui lòng mở MetaMask app thủ công.');
+        _updateSpinnerMessage(
+          'Sending transaction to MetaMask...\n\nPlease open your MetaMask wallet and confirm the transaction.\n\n'
+          'If you do not see a notification, please open the MetaMask app manually.',
+        );
       } else {
-        _updateSpinnerMessage('Đang đăng ký DID trên blockchain...');
+        _updateSpinnerMessage('Registering DID on blockchain...');
       }
 
       // Register DID on blockchain
@@ -288,20 +292,21 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showSuccess('DID đã được đăng ký thành công!\nTransaction: ${txHash.substring(0, 10)}...');
+      _showSuccess('DID has been registered successfully!\nTransaction: ${txHash.substring(0, 10)}...');
       await _loadData();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
       
       // Provide more helpful error messages
-      String errorMessage = 'Lỗi đăng ký DID: $e';
+      String errorMessage = 'Error registering DID: $e';
       if (e.toString().contains('timeout')) {
-        errorMessage = 'Transaction timeout. Vui lòng kiểm tra MetaMask wallet và xác nhận transaction, sau đó thử lại.';
+        errorMessage =
+            'Transaction timeout. Please check your MetaMask wallet, confirm the transaction, then try again.';
       } else if (e.toString().contains('rejected') || e.toString().contains('denied')) {
-        errorMessage = 'Transaction đã bị từ chối trong MetaMask wallet.';
+        errorMessage = 'Transaction was rejected in MetaMask wallet.';
       } else if (e.toString().contains('session') && e.toString().contains('disconnected')) {
-        errorMessage = 'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
+        errorMessage = 'WalletConnect session was disconnected. Please reconnect your wallet.';
       }
       
       _showError(errorMessage);
@@ -310,7 +315,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
   Future<void> _updateDID() async {
     if (_currentOrgID == null || !_isOwner) {
-      _showError('Bạn không có quyền cập nhật DID này');
+      _showError('You do not have permission to update this DID');
       return;
     }
 
@@ -375,7 +380,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
     final documentPath = result['documentPath'] as String?;
 
     try {
-      _showBlockingSpinner('Đang cập nhật DID document và upload lên IPFS...');
+      _showBlockingSpinner('Updating DID document and uploading to IPFS...');
 
       // Handle file uploads if any
       String? logoIpfsUri;
@@ -387,7 +392,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         try {
           final logoFile = File(logoPath);
           if (await logoFile.exists()) {
-            _updateSpinnerMessage('Đang upload logo lên IPFS...');
+            _updateSpinnerMessage('Uploading logo to IPFS...');
             final logoBytes = await logoFile.readAsBytes();
             logoFileName = logoFile.path.split('/').last;
             logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
@@ -401,7 +406,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         try {
           final docFile = File(documentPath);
           if (await docFile.exists()) {
-            _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
+            _updateSpinnerMessage('Uploading document to IPFS...');
             final docBytes = await docFile.readAsBytes();
             documentFileName = docFile.path.split('/').last;
             documentIpfsUri = await _pinataService.uploadFile(docBytes, documentFileName);
@@ -472,7 +477,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await docFile.exists()) {
             final extension = docFile.path.split('.').last.toLowerCase();
             if (extension == 'json') {
-              _updateSpinnerMessage('Đang phân tích file JSON...');
+              _updateSpinnerMessage('Parsing JSON file...');
               final jsonContent = await docFile.readAsString();
               final docData = jsonDecode(jsonContent) as Map<String, dynamic>?;
               if (docData != null) {
@@ -513,7 +518,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         serviceEndpoint = metadata['website'].toString();
       }
 
-      _updateSpinnerMessage('Đang tạo DID document...');
+      _updateSpinnerMessage('Building DID document...');
 
       // Create updated DID document - merge with existing document structure if available
       Map<String, dynamic> didDocument;
@@ -562,9 +567,12 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
       
       if (isWC) {
         // Update spinner message for WalletConnect transaction
-        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.\n\nNếu không thấy notification, vui lòng mở MetaMask app thủ công.');
+        _updateSpinnerMessage(
+          'Sending transaction to MetaMask...\n\nPlease open your MetaMask wallet and confirm the transaction.\n\n'
+          'If you do not see a notification, please open the MetaMask app manually.',
+        );
       } else {
-        _updateSpinnerMessage('Đang cập nhật DID trên blockchain...');
+        _updateSpinnerMessage('Updating DID on blockchain...');
       }
 
       // Update DID on blockchain
@@ -572,20 +580,21 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showSuccess('DID đã được cập nhật thành công!\nTransaction: ${txHash.substring(0, 10)}...');
+      _showSuccess('DID has been updated successfully!\nTransaction: ${txHash.substring(0, 10)}...');
       await _loadData();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
       
       // Provide more helpful error messages
-      String errorMessage = 'Lỗi cập nhật DID: $e';
+      String errorMessage = 'Error updating DID: $e';
       if (e.toString().contains('timeout')) {
-        errorMessage = 'Transaction timeout. Vui lòng kiểm tra MetaMask wallet và xác nhận transaction, sau đó thử lại.';
+        errorMessage =
+            'Transaction timeout. Please check your MetaMask wallet, confirm the transaction, then try again.';
       } else if (e.toString().contains('rejected') || e.toString().contains('denied')) {
-        errorMessage = 'Transaction đã bị từ chối trong MetaMask wallet.';
+        errorMessage = 'Transaction was rejected in MetaMask wallet.';
       } else if (e.toString().contains('session') && e.toString().contains('disconnected')) {
-        errorMessage = 'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
+        errorMessage = 'WalletConnect session was disconnected. Please reconnect your wallet.';
       }
       
       _showError(errorMessage);
@@ -594,28 +603,32 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
   Future<void> _deactivateDID() async {
     if (_currentOrgID == null || !_isOwner) {
-      _showError('Bạn không có quyền vô hiệu hóa DID này');
+      _showError(AppLocalizations.of(context)!.noPermissionDeactivateDid);
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Xác nhận vô hiệu hóa DID', style: TextStyle(color: Colors.white)),
+        title: Text(
+          l10n.confirmDeactivateDid,
+          style: const TextStyle(color: Colors.white),
+        ),
         content: Text(
-          'Bạn có chắc chắn muốn vô hiệu hóa DID này? Sau khi vô hiệu hóa, bạn sẽ không thể phát hành VC mới.',
+          l10n.deactivateDidWarning,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+            child: Text(l10n.cancel, style: const TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Vô hiệu hóa'),
+            child: Text(l10n.deactivateDid),
           ),
         ],
       ),
@@ -624,23 +637,23 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
     if (confirmed != true) return;
 
     try {
-      _showBlockingSpinner('Đang vô hiệu hóa DID...');
+      _showBlockingSpinner(l10n.deactivatingDid);
       await _web3Service.deactivateDID(_currentOrgID!);
 
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showSuccess('DID đã được vô hiệu hóa');
+      _showSuccess(l10n.didDeactivated);
       await _loadData();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showError('Lỗi vô hiệu hóa DID: $e');
+      _showError(AppLocalizations.of(context)!.errorDeactivatingDid(e.toString()));
     }
   }
 
   Future<void> _authorizeIssuer() async {
     if (_currentOrgID == null || !_isOwner) {
-      _showError('Bạn không có quyền ủy quyền issuer');
+      _showError(AppLocalizations.of(context)!.noPermissionAuthorizeIssuer);
       return;
     }
 
@@ -657,27 +670,28 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
     final issuerAddress = issuerController.text.trim();
     if (!_isValidAddress(issuerAddress)) {
-      _showError('Địa chỉ issuer không hợp lệ');
+      _showError(AppLocalizations.of(context)!.issuerAddressNotValid);
       return;
     }
 
     try {
-      _showBlockingSpinner('Đang ủy quyền issuer...');
+      final l10n = AppLocalizations.of(context)!;
+      _showBlockingSpinner(l10n.authorizingIssuer);
       await _web3Service.authorizeIssuer(_currentOrgID!, issuerAddress);
 
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showSuccess('Issuer đã được ủy quyền thành công!');
+      _showSuccess(l10n.issuerAuthorizedSuccessfully);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
-      _showError('Lỗi ủy quyền issuer: $e');
+      _showError(AppLocalizations.of(context)!.errorAuthorizingIssuer(e.toString()));
     }
   }
 
   Future<void> _showDIDDetails() async {
     if (_currentOrgID == null || _didData == null) {
-      _showError('Không có thông tin DID');
+      _showError(AppLocalizations.of(context)!.noDidInformationAvailable);
       return;
     }
 
@@ -773,6 +787,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -783,7 +798,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         ),
         elevation: 0,
         title: Text(
-          'Quản lý DID',
+          l10n.manageDid,
           style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -806,6 +821,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
   }
 
   Widget _buildNoWalletView() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -813,7 +829,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           Icon(Icons.wallet_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'Chưa kết nối ví',
+            l10n.noWalletConnected,
             style: TextStyle(color: Colors.grey[700], fontSize: 16),
           ),
         ],
@@ -846,12 +862,12 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
                 Icon(Icons.person_add_outlined, size: 64, color: AppColors.secondary),
                 const SizedBox(height: 16),
                 Text(
-                  'Chưa có DID',
+                  AppLocalizations.of(context)!.noDid,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey[900]),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Đăng ký DID để bắt đầu sử dụng dịch vụ',
+                  AppLocalizations.of(context)!.registerDidToStartUsingServices,
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -866,7 +882,10 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Đăng ký DID', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text(
+              AppLocalizations.of(context)!.registerDid,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -892,7 +911,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           const SizedBox(height: 24),
           ActionButton(
             icon: Icons.info_outline,
-            label: 'Xem chi tiết',
+            label: AppLocalizations.of(context)!.viewDetails,
             color: const Color(0xFF6366F1),
             onPressed: _showDIDDetails,
           ),
@@ -900,21 +919,21 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (_isOwner && active) ...[
             ActionButton(
               icon: Icons.edit,
-              label: 'Cập nhật DID',
+              label: AppLocalizations.of(context)!.updateDid,
               color: AppColors.secondary,
               onPressed: _updateDID,
             ),
             const SizedBox(height: 12),
             ActionButton(
               icon: Icons.person_add,
-              label: 'Ủy quyền Issuer',
+              label: AppLocalizations.of(context)!.authorizeIssuer,
               color: const Color(0xFF3B82F6),
               onPressed: _authorizeIssuer,
             ),
             const SizedBox(height: 12),
             ActionButton(
               icon: Icons.block,
-              label: 'Vô hiệu hóa DID',
+              label: AppLocalizations.of(context)!.deactivateDid,
               color: AppColors.danger,
               onPressed: _deactivateDID,
             ),
@@ -939,7 +958,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'DID đã bị vô hiệu hóa',
+                      AppLocalizations.of(context)!.didDeactivated,
                       style: TextStyle(color: Colors.grey[900]),
                     ),
                   ),

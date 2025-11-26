@@ -327,7 +327,7 @@ class _InstructionText extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Connect your wallet to continue',
+          l10n.connectYourWalletToContinue,
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],

@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class UpdateDIDDialog extends StatefulWidget {
   const UpdateDIDDialog({
@@ -51,18 +52,18 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
         useRootNavigator: true,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Chọn logo', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.of(context)!.chooseLogo, style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.secondary),
-                title: const Text('Chụp ảnh', style: TextStyle(color: Colors.white)),
+                title: Text(AppLocalizations.of(context)!.takePhoto, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.of(context, rootNavigator: true).pop(ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.secondary),
-                title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                title: Text(AppLocalizations.of(context)!.chooseFromGallery, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.of(context, rootNavigator: true).pop(ImageSource.gallery),
               ),
             ],
@@ -83,7 +84,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi chọn ảnh: $e'),
+            content: Text(AppLocalizations.of(context)!.errorPickingImage(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -108,7 +109,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi chọn file: $e'),
+            content: Text(AppLocalizations.of(context)!.errorPickingFile(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -118,6 +119,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -131,9 +133,9 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Cập nhật DID',
-                    style: TextStyle(
+                  Text(
+                    l10n.updateDid,
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -141,7 +143,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Cập nhật thông tin danh tính phi tập trung (DID) của bạn',
+                    l10n.updateYourDidInformation,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.6),
@@ -155,9 +157,9 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
               labelColor: AppColors.secondary,
               unselectedLabelColor: Colors.white54,
               indicatorColor: AppColors.secondary,
-              tabs: const [
-                Tab(text: 'Điền form', icon: Icon(Icons.edit)),
-                Tab(text: 'Upload tài liệu', icon: Icon(Icons.upload_file)),
+              tabs: [
+                Tab(text: l10n.fillForm, icon: const Icon(Icons.edit)),
+                Tab(text: l10n.uploadDocument, icon: const Icon(Icons.upload_file)),
               ],
             ),
             Expanded(
@@ -183,7 +185,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                           side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                         ),
                       ),
-                      child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+                      child: Text(l10n.cancel, style: const TextStyle(color: Colors.white54)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -204,9 +206,9 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Cập nhật',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Text(
+                        l10n.update,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -229,8 +231,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
             controller: widget.nameController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Tên hiển thị',
-              hintText: 'Nhập tên của bạn hoặc tổ chức',
+              labelText: 'Display name',
+              hintText: 'Enter your or your organization name',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.badge, color: Colors.white.withValues(alpha: 0.6)),
@@ -252,8 +254,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
             maxLines: 3,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Mô tả',
-              hintText: 'Mô tả về bạn hoặc tổ chức (tùy chọn)',
+              labelText: 'Description',
+              hintText: 'Describe yourself or your organization (optional)',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Padding(
@@ -324,8 +326,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
             maxLines: 2,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Địa chỉ',
-              hintText: 'Địa chỉ liên hệ (tùy chọn)',
+              labelText: 'Address',
+              hintText: 'Contact address (optional)',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.location_on, color: Colors.white.withValues(alpha: 0.6)),
@@ -347,7 +349,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
             keyboardType: TextInputType.phone,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Số điện thoại',
+              labelText: 'Phone number',
               hintText: '+84...',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -366,7 +368,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
           ),
           const SizedBox(height: 20),
           Text(
-            'Logo (tùy chọn)',
+            'Logo (optional)',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -393,8 +395,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                   Expanded(
                     child: Text(
                       _logoPath != null 
-                          ? 'Logo đã chọn: ${_logoPath!.split('/').last}'
-                          : 'Chọn logo (JPG, PNG)',
+                          ? 'Selected logo: ${_logoPath!.split('/').last}'
+                          : 'Choose logo (JPG, PNG)',
                       style: TextStyle(
                         color: _logoPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                       ),
@@ -425,7 +427,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload tài liệu để cập nhật DID',
+            'Upload document to update DID',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -434,7 +436,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
           ),
           const SizedBox(height: 8),
           Text(
-            'Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin DID của bạn. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.',
+            'You can upload a PDF, JSON file, or image containing your DID information. '
+            'If it is a JSON file, metadata will be extracted automatically.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withValues(alpha: 0.6),
@@ -442,7 +445,7 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
           ),
           const SizedBox(height: 24),
           Text(
-            'Tài liệu',
+            'Document',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -473,8 +476,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                       children: [
                         Text(
                           _documentPath != null 
-                              ? 'Tài liệu đã chọn'
-                              : 'Chọn tài liệu (PDF, JSON, JPG, PNG)',
+                              ? 'Document selected'
+                              : 'Choose document (PDF, JSON, JPG, PNG)',
                           style: TextStyle(
                             color: _documentPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                             fontSize: 16,
@@ -522,7 +525,8 @@ class _UpdateDIDDialogState extends State<UpdateDIDDialog> with SingleTickerProv
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Lưu ý: File JSON sẽ được tự động parse và trích xuất metadata. File PDF và hình ảnh sẽ được lưu trữ trên IPFS.',
+                    'Note: JSON files will be parsed automatically to extract metadata. '
+                    'PDF and image files will be stored on IPFS.',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,

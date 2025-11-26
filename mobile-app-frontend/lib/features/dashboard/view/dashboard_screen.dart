@@ -33,7 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _roleService = RoleService();
   final _pinataService = PinataService();
   final _walletStateManager = WalletStateManager();
-  String _address = 'Loading...';
+  String _address = '';
   int _vcCount = 0;
   int _verifiedCount = 0;
   bool _isLoading = true;
@@ -41,7 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isOwner = false;
   bool _isAdmin = false;
   bool _isVerifier = false;
-  String _walletName = 'SSI Account';
+  String _walletName = '';
 
   @override
   void initState() {
@@ -142,6 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -163,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 24),
                       WalletCard(
                         address: _address,
-                        walletName: _walletName,
+                        walletName: _walletName.isNotEmpty ? _walletName : l10n.defaultWalletName,
                         formattedAddress: _shortenAddress(_address),
                         onCopy: () => _copyToClipboard(_address, AppLocalizations.of(context)!.addressCopied),
                       ),
@@ -234,6 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _setTrustedVerifier(String verifierAddress, bool allowed) async {
     final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       _showBlockingSpinner();
       final txHash = await _web3Service.setTrustedVerifier(verifierAddress, allowed);
@@ -241,7 +243,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Trusted verifier ${allowed ? 'added' : 'removed'}: ${txHash.substring(0, 10)}...'),
+          content: Text(
+            allowed
+                ? l10n.trustedVerifierAdded('${txHash.substring(0, 10)}...')
+                : l10n.trustedVerifierRemoved('${txHash.substring(0, 10)}...'),
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -249,16 +255,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       navigator.pop();
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: AppColors.danger),
+        SnackBar(
+          content: Text(l10n.errorOccurred(e.toString())),
+          backgroundColor: AppColors.danger,
+        ),
       );
     }
   }
 
   Future<void> _registerDID(String orgID, Map<String, dynamic>? metadata) async {
     final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
-      _showBlockingSpinner('Đang tạo DID document và upload lên IPFS...');
+      _showBlockingSpinner(l10n.creatingDidAndUploadingToIpfs);
 
       // Handle file uploads if any
       String? logoIpfsUri;
@@ -271,7 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           try {
             final logoFile = File(metadata['logoPath'] as String);
             if (await logoFile.exists()) {
-              _updateSpinnerMessage('Đang upload logo lên IPFS...');
+              _updateSpinnerMessage(l10n.uploadingLogoToIpfs);
               final logoBytes = await logoFile.readAsBytes();
               final logoFileName = logoFile.path.split('/').last;
               logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
@@ -287,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           try {
             final docFile = File(metadata['documentPath'] as String);
             if (await docFile.exists()) {
-              _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
+              _updateSpinnerMessage(l10n.uploadingDocumentToIpfs);
               final docBytes = await docFile.readAsBytes();
               final docFileName = docFile.path.split('/').last;
               documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
@@ -329,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         finalMetadata['name'] = 'DID ${orgID.substring(0, orgID.length > 8 ? 8 : orgID.length)}...';
       }
 
-      _updateSpinnerMessage('Đang tạo DID document...');
+      _updateSpinnerMessage(l10n.creatingDidDocument);
 
       // Get current address for controller
       String? currentAddress;
@@ -343,7 +354,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       if (currentAddress == null) {
-        throw StateError('Không thể lấy địa chỉ ví hiện tại');
+        throw StateError(l10n.cannotGetCurrentWalletAddress);
       }
 
       // Create DID document
@@ -361,9 +372,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Check if using WalletConnect
       final isWC = await _walletConnectService.isConnected();
       if (isWC) {
-        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.');
+        _updateSpinnerMessage(l10n.sendingTransactionToMetamask);
       } else {
-        _updateSpinnerMessage('Đang đăng ký DID trên blockchain...');
+        _updateSpinnerMessage(l10n.registeringDidOnBlockchain);
       }
 
       // Register DID on blockchain
@@ -371,7 +382,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       
       navigator.pop();
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.didRegistered('${txHash.substring(0, 10)}...')),
@@ -382,9 +392,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       navigator.pop();
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorOccurred(e.toString())), backgroundColor: AppColors.danger),
+        SnackBar(
+          content: Text(l10n.errorOccurred(e.toString())),
+          backgroundColor: AppColors.danger,
+        ),
       );
     }
   }

@@ -173,13 +173,13 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
         mode: LaunchMode.externalApplication,
       );
       if (!launched) {
-        throw 'Không thể mở liên kết';
+        throw 'Cannot open link';
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể mở file: $e'),
+          content: Text('Cannot open file: $e'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -263,7 +263,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
         padding: EdgeInsets.all(16),
         child: Center(
           child: Text(
-            'Không thể tải thông tin credential',
+            'Unable to load credential information',
             style: TextStyle(color: Colors.white70),
           ),
         ),
@@ -276,7 +276,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
         padding: EdgeInsets.all(16),
         child: Center(
           child: Text(
-            'Credential không có dữ liệu',
+            'Credential has no data',
             style: TextStyle(color: Colors.white70),
           ),
         ),
@@ -524,6 +524,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                                       ),
                                       icon: const Icon(Icons.open_in_new),
                                       label: const Text('Mở PDF'),
+                                      // Button uses English label for consistency with other dialogs
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.secondary,
                                       ),
@@ -560,13 +561,10 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
         targetVerifier.toLowerCase() == '0x0000000000000000000000000000000000000000';
     
     // Get verifier display value
-    String verifierDisplay;
-    if (isAnyVerifier) {
-      verifierDisplay = 'Bất kỳ verifier nào';
-    } else {
-      // At this point, targetVerifier is guaranteed to be non-null and non-empty
-      verifierDisplay = _formatAddress(targetVerifier);
-    }
+    // Compute verifier display text (any or specific address)
+    final String verifierDisplay = isAnyVerifier
+        ? 'Any verifier'
+        : _formatAddress(targetVerifier);
 
     return Dialog(
       backgroundColor: AppColors.surface,
@@ -594,7 +592,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Chi tiết yêu cầu xác thực',
+                      'Verification Request Details',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -623,7 +621,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Thông tin yêu cầu',
+                            'Request Information',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -642,17 +640,17 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                           ),
                           const SizedBox(height: 8),
                           _InfoRow(
-                            label: 'Người yêu cầu',
+                            label: 'Requester',
                             value: _formatAddress(requester),
                           ),
                           const SizedBox(height: 8),
                           _InfoRow(
-                            label: isAnyVerifier ? 'Verifier' : 'Verifier chỉ định',
+                            label: isAnyVerifier ? 'Verifier' : 'Target Verifier',
                             value: verifierDisplay,
                           ),
                           const SizedBox(height: 8),
                           _InfoRow(
-                            label: 'Thời gian yêu cầu',
+                            label: 'Requested At',
                             value: _formatTimestamp(requestedAt),
                           ),
                           const SizedBox(height: 8),
@@ -675,7 +673,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Nội dung Credential',
+                            'Credential Details',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -712,7 +710,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                         widget.onCancel?.call();
                       },
                       child: const Text(
-                        'Hủy yêu cầu',
+                        'Cancel Request',
                         style: TextStyle(color: AppColors.danger),
                       ),
                     ),
@@ -724,7 +722,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                         widget.onVerify();
                       },
                       icon: const Icon(Icons.verified, size: 18),
-                      label: const Text('Xác thực Credential'),
+                      label: const Text('Verify Credential'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         foregroundColor: Colors.white,
@@ -734,7 +732,7 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                     const Padding(
                       padding: EdgeInsets.all(8),
                       child: Text(
-                        'Bạn không có quyền xác thực hoặc hủy yêu cầu này',
+                        'You are not allowed to verify or cancel this request',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 12,

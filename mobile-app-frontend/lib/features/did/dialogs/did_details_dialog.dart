@@ -174,13 +174,13 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
         mode: LaunchMode.externalApplication,
       );
       if (!launched) {
-        throw 'Không thể mở liên kết';
+        throw 'Cannot open link';
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể mở file: $e'),
+          content: Text('Cannot open file: $e'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -392,7 +392,7 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$label đã được sao chép'),
+          content: Text('$label copied'),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 2),
         ),

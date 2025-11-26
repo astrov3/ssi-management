@@ -88,9 +88,10 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi chọn file: $e'),
+            content: Text(l10n.errorPickingFile(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -124,7 +125,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tạo và phát hành Verifiable Credential',
+                    l10n.createAndIssueVerifiableCredential,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.6),
@@ -138,9 +139,9 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
               labelColor: AppColors.secondary,
               unselectedLabelColor: Colors.white54,
               indicatorColor: AppColors.secondary,
-              tabs: const [
-                Tab(text: 'Điền form', icon: Icon(Icons.edit)),
-                Tab(text: 'Upload tài liệu', icon: Icon(Icons.upload_file)),
+              tabs: [
+                Tab(text: l10n.fillForm, icon: const Icon(Icons.edit)),
+                Tab(text: l10n.uploadDocument, icon: const Icon(Icons.upload_file)),
               ],
             ),
             Expanded(
@@ -176,8 +177,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
                       onPressed: () {
                         if (_tabController.index == 0 && _subjectNameController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Vui lòng nhập tên chủ thể'),
+                            SnackBar(
+                              content: Text(l10n.pleaseEnterSubjectName),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -185,8 +186,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
                         }
                         if (_tabController.index == 1 && _documentPath == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Vui lòng chọn tài liệu'),
+                            SnackBar(
+                              content: Text(l10n.pleaseChooseDocument),
                               backgroundColor: AppColors.danger,
                             ),
                           );
@@ -286,8 +287,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
             controller: _typeController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Loại Credential *',
-              hintText: 'Ví dụ: EducationalCredential, IdentityCredential',
+              labelText: l10n.credentialTypeLabel,
+              hintText: l10n.credentialTypeHint,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.category, color: Colors.white.withValues(alpha: 0.6)),
@@ -308,8 +309,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
             controller: _subjectNameController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Tên chủ thể *',
-              hintText: 'Tên người nhận credential',
+              labelText: l10n.subjectNameLabel,
+              hintText: l10n.subjectNameHint,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.person, color: Colors.white.withValues(alpha: 0.6)),
@@ -331,7 +332,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Email chủ thể',
+              labelText: l10n.subjectEmailLabel,
               hintText: 'email@example.com',
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -381,8 +382,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
             onTap: _pickExpirationDate,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Ngày hết hạn (tùy chọn)',
-              hintText: 'Chọn ngày hết hạn',
+              labelText: l10n.expirationDateOptional,
+              hintText: l10n.selectExpirationDate,
               labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               prefixIcon: Icon(Icons.calendar_today, color: Colors.white.withValues(alpha: 0.6)),
@@ -411,7 +412,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload tài liệu để phát hành VC',
+            l10n.uploadDocumentToIssueVC,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -420,7 +421,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
           ),
           const SizedBox(height: 8),
           Text(
-            'Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin credential. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.',
+            l10n.uploadDocumentDescription,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withValues(alpha: 0.6),
@@ -451,7 +452,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
           ),
           const SizedBox(height: 20),
           Text(
-            'Tài liệu *',
+            l10n.documentRequired,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -482,8 +483,8 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
                       children: [
                         Text(
                           _documentPath != null 
-                              ? 'Tài liệu đã chọn'
-                              : 'Chọn tài liệu (PDF, JSON, JPG, PNG)',
+                              ? l10n.documentSelected
+                              : l10n.chooseDocument,
                           style: TextStyle(
                             color: _documentPath != null ? Colors.white : Colors.white.withValues(alpha: 0.5),
                             fontSize: 16,
@@ -531,7 +532,7 @@ class _IssueVcDialogState extends State<IssueVcDialog> with SingleTickerProvider
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Lưu ý: File JSON sẽ được tự động parse và trích xuất metadata. File PDF và hình ảnh sẽ được lưu trữ trên IPFS.',
+                    l10n.noteJsonWillBeParsed,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,

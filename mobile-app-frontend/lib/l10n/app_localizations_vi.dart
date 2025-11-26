@@ -381,13 +381,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get index => 'Index';
 
   @override
-  String get copyHash => 'Copy Hash';
+  String get copyHash => 'Sao chép';
 
   @override
-  String get revoke => 'Revoke';
+  String get revoke => 'Thu hồi';
 
   @override
-  String get revoked => 'Revoked';
+  String get revoked => 'Đã thu hồi';
 
   @override
   String get issueNewVC => 'Phát hành VC mới';
@@ -412,7 +412,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get credentialDescription => 'Mô tả chi tiết về chứng chỉ';
 
   @override
-  String get unknown => 'Unknown';
+  String get unknown => 'Không xác định';
 
   @override
   String get overview => 'Tổng quan';
@@ -596,4 +596,544 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get verifiableCredential => 'Chứng chỉ có thể xác minh';
+
+  @override
+  String get defaultWalletName => 'Tài khoản SSI';
+
+  @override
+  String get creatingDidAndUploadingToIpfs =>
+      'Đang tạo DID document và upload lên IPFS...';
+
+  @override
+  String get uploadingLogoToIpfs => 'Đang upload logo lên IPFS...';
+
+  @override
+  String get uploadingDocumentToIpfs => 'Đang upload tài liệu lên IPFS...';
+
+  @override
+  String get creatingDidDocument => 'Đang tạo DID document...';
+
+  @override
+  String get cannotGetCurrentWalletAddress =>
+      'Không thể lấy địa chỉ ví hiện tại';
+
+  @override
+  String get sendingTransactionToMetamask =>
+      'Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask và xác nhận transaction.';
+
+  @override
+  String get registeringDidOnBlockchain =>
+      'Đang đăng ký DID trên blockchain...';
+
+  @override
+  String trustedVerifierAdded(String txHash) {
+    return 'Đã thêm trusted verifier: $txHash';
+  }
+
+  @override
+  String trustedVerifierRemoved(String txHash) {
+    return 'Đã xoá trusted verifier: $txHash';
+  }
+
+  @override
+  String get connectYourWalletToContinue => 'Kết nối ví của bạn để tiếp tục';
+
+  @override
+  String get adminPanel => 'Quản trị - Quản lý Trusted Verifiers';
+
+  @override
+  String get verifierAddress => 'Địa chỉ Verifier *';
+
+  @override
+  String get addEnable => 'Thêm/Kích hoạt';
+
+  @override
+  String get removeDisable => 'Xóa/Vô hiệu hóa';
+
+  @override
+  String get pleaseEnterVerifierAddress => 'Vui lòng nhập địa chỉ verifier';
+
+  @override
+  String get addVerifier => 'Thêm Verifier';
+
+  @override
+  String get removeVerifier => 'Xóa Verifier';
+
+  @override
+  String get createYourDecentralizedIdentity =>
+      'Tạo danh tính phi tập trung (DID) của bạn';
+
+  @override
+  String get fillForm => 'Điền form';
+
+  @override
+  String get uploadDocument => 'Tải lên tài liệu';
+
+  @override
+  String get walletAddressLabel => 'Địa chỉ ví';
+
+  @override
+  String get displayName => 'Tên hiển thị *';
+
+  @override
+  String get enterYourOrOrgName => 'Nhập tên của bạn hoặc tổ chức';
+
+  @override
+  String get describeYourselfOrOrg => 'Mô tả về bạn hoặc tổ chức (tùy chọn)';
+
+  @override
+  String get website => 'Website';
+
+  @override
+  String get contactAddressOptional => 'Địa chỉ liên hệ (tùy chọn)';
+
+  @override
+  String get phoneNumber => 'Số điện thoại';
+
+  @override
+  String get logoOptional => 'Logo (tùy chọn)';
+
+  @override
+  String get chooseLogo => 'Chọn logo';
+
+  @override
+  String get takePhoto => 'Chụp ảnh';
+
+  @override
+  String get chooseFromGallery => 'Chọn từ thư viện';
+
+  @override
+  String selectedLogo(String filename) {
+    return 'Logo đã chọn: $filename';
+  }
+
+  @override
+  String get chooseLogoJpgPng => 'Chọn logo (JPG, PNG)';
+
+  @override
+  String get uploadDocumentToRegisterDid => 'Tải lên tài liệu để đăng ký DID';
+
+  @override
+  String get uploadDocumentDescription =>
+      'Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin credential. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.';
+
+  @override
+  String get documentRequired => 'Tài liệu *';
+
+  @override
+  String get documentSelected => 'Tài liệu đã chọn';
+
+  @override
+  String get chooseDocument => 'Chọn tài liệu (PDF, JSON, JPG, PNG)';
+
+  @override
+  String get noteJsonWillBeParsed =>
+      'Lưu ý: File JSON sẽ được phân tích tự động để trích xuất metadata. File PDF và hình ảnh sẽ được lưu trên IPFS.';
+
+  @override
+  String get pleaseEnterName => 'Vui lòng nhập tên';
+
+  @override
+  String get pleaseChooseDocument => 'Vui lòng chọn tài liệu';
+
+  @override
+  String get adminPanelAction => 'Quản trị';
+
+  @override
+  String get manageVerifiers => 'Quản lý trusted verifiers';
+
+  @override
+  String get updateDid => 'Cập nhật DID';
+
+  @override
+  String get uploadDocumentToUpdateDid => 'Tải lên tài liệu để cập nhật DID';
+
+  @override
+  String get update => 'Cập nhật';
+
+  @override
+  String get updateYourDidInformation =>
+      'Cập nhật thông tin danh tính phi tập trung (DID) của bạn';
+
+  @override
+  String errorPickingImage(String error) {
+    return 'Lỗi chọn ảnh: $error';
+  }
+
+  @override
+  String errorPickingFile(String error) {
+    return 'Lỗi chọn file: $error';
+  }
+
+  @override
+  String get cloudflare => 'Cloudflare';
+
+  @override
+  String get pinata => 'Pinata';
+
+  @override
+  String get defaultGateway => 'Mặc định';
+
+  @override
+  String get original => 'Gốc';
+
+  @override
+  String get cannotOpenLink => 'Không thể mở liên kết';
+
+  @override
+  String cannotOpenFile(String error) {
+    return 'Không thể mở file: $error';
+  }
+
+  @override
+  String get verifiedStatus => 'Đã xác minh';
+
+  @override
+  String get unverified => 'Chưa xác minh';
+
+  @override
+  String get viewDetails => 'Xem chi tiết';
+
+  @override
+  String get verificationQueue => 'Hàng đợi xác minh';
+
+  @override
+  String get refresh => 'Làm mới';
+
+  @override
+  String get noVerificationRequests => 'Không có yêu cầu xác minh';
+
+  @override
+  String get onlyTrustedVerifiersCanSee =>
+      'Chỉ trusted verifiers mới có thể xem và xử lý yêu cầu xác minh.';
+
+  @override
+  String credentialVerifiedSuccessfully(String hash) {
+    return 'Xác minh chứng chỉ thành công!\nHash: $hash';
+  }
+
+  @override
+  String verificationErrorMessage(String error) {
+    return 'Lỗi xác minh: $error';
+  }
+
+  @override
+  String get verificationCancelledInWallet =>
+      'Xác minh đã bị hủy trong ví. Vui lòng thử lại.';
+
+  @override
+  String get verificationTimedOut =>
+      'Yêu cầu xác minh đã hết thời gian chờ. Vui lòng thử lại.';
+
+  @override
+  String get confirmCancelVerificationRequest =>
+      'Bạn có chắc chắn muốn hủy yêu cầu xác minh này?';
+
+  @override
+  String requestCancelledSuccessfully(String hash) {
+    return 'Đã hủy yêu cầu thành công!\nHash: $hash';
+  }
+
+  @override
+  String errorCancellingRequest(String error) {
+    return 'Lỗi hủy yêu cầu: $error';
+  }
+
+  @override
+  String get cancellationRejectedInWallet =>
+      'Hủy bỏ đã bị từ chối trong ví. Vui lòng thử lại.';
+
+  @override
+  String get cancellationTimedOut =>
+      'Yêu cầu hủy đã hết thời gian chờ. Vui lòng thử lại.';
+
+  @override
+  String get ownerRegisterOrManageDid =>
+      'Bạn là owner. Hãy đăng ký hoặc quản lý DID của bạn.';
+
+  @override
+  String get didInformation => 'Thông tin DID';
+
+  @override
+  String get uriLabel => 'URI';
+
+  @override
+  String get issuedAt => 'Thời gian phát hành';
+
+  @override
+  String get expiration => 'Thời gian hết hạn';
+
+  @override
+  String get copied => 'Đã sao chép';
+
+  @override
+  String get notTrustedVerifierTitle => 'Bạn không phải trusted verifier';
+
+  @override
+  String get notTrustedVerifierMessage =>
+      'Chỉ trusted verifiers mới có thể xem và xử lý yêu cầu xác minh.';
+
+  @override
+  String get noVerificationRequestsTitle => 'Không có yêu cầu xác minh';
+
+  @override
+  String get noVerificationRequestsMessage =>
+      'Các yêu cầu xác minh mới sẽ xuất hiện tại đây để xử lý nhanh.';
+
+  @override
+  String moreRequests(int count) {
+    return '+$count yêu cầu khác';
+  }
+
+  @override
+  String get manualVerifyDescription =>
+      'Nhập orgID, VC index và hash để xác minh thủ công khi không thể quét QR.';
+
+  @override
+  String get walletAddressNotFound =>
+      'Không tìm thấy địa chỉ ví. Vui lòng mở ví trước.';
+
+  @override
+  String get connectWalletToDisplayQr =>
+      'Kết nối ví hoặc WalletConnect để hiển thị mã QR.';
+
+  @override
+  String get selectCredentialToShare => 'Chọn credential để chia sẻ';
+
+  @override
+  String vcNumber(int index) {
+    return 'VC #$index';
+  }
+
+  @override
+  String expiryShort(String date) {
+    return 'HSD: $date';
+  }
+
+  @override
+  String get statusRevoked => 'Đã thu hồi';
+
+  @override
+  String get statusVerified => 'Đã xác minh';
+
+  @override
+  String get statusNotVerified => 'Chưa xác minh';
+
+  @override
+  String get queueOrgId => 'OrgID';
+
+  @override
+  String get queueSent => 'Gửi';
+
+  @override
+  String get queueVerifier => 'Verifier';
+
+  @override
+  String get queueAny => 'Bất kỳ';
+
+  @override
+  String get notAvailable => 'N/A';
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count ngày trước';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count giờ trước';
+  }
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count phút trước';
+  }
+
+  @override
+  String get timeJustNow => 'Vừa xong';
+
+  @override
+  String get authorizeIssuer => 'Ủy quyền Issuer';
+
+  @override
+  String get issuerAddress => 'Địa chỉ Issuer';
+
+  @override
+  String get authorize => 'Ủy quyền';
+
+  @override
+  String get createAndIssueVerifiableCredential =>
+      'Tạo và phát hành Verifiable Credential';
+
+  @override
+  String get credentialTypeLabel => 'Loại Credential *';
+
+  @override
+  String get credentialTypeHint =>
+      'Ví dụ: EducationalCredential, IdentityCredential';
+
+  @override
+  String get subjectNameLabel => 'Tên chủ thể *';
+
+  @override
+  String get subjectNameHint => 'Tên người nhận credential';
+
+  @override
+  String get subjectEmailLabel => 'Email chủ thể';
+
+  @override
+  String get expirationDateOptional => 'Ngày hết hạn (tùy chọn)';
+
+  @override
+  String get selectExpirationDate => 'Chọn ngày hết hạn';
+
+  @override
+  String get uploadDocumentToIssueVC => 'Upload tài liệu để phát hành VC';
+
+  @override
+  String get pleaseEnterSubjectName => 'Vui lòng nhập tên chủ thể';
+
+  @override
+  String get governmentId => 'Căn Cước Công Dân';
+
+  @override
+  String get passport => 'Hộ Chiếu';
+
+  @override
+  String get driverLicense => 'Bằng Lái Xe';
+
+  @override
+  String get trainingCertificate => 'Chứng Chỉ Đào Tạo';
+
+  @override
+  String get employmentCredential => 'Giấy Chứng Nhận Công Tác';
+
+  @override
+  String get workPermit => 'Giấy Phép Lao Động';
+
+  @override
+  String get vaccinationCertificate => 'Giấy Chứng Nhận Tiêm Chủng';
+
+  @override
+  String get credential => 'Chứng Nhận';
+
+  @override
+  String get noDid => 'Chưa có DID';
+
+  @override
+  String get registerDidToStartUsingServices =>
+      'Đăng ký DID để bắt đầu sử dụng dịch vụ';
+
+  @override
+  String get didDeactivated => 'DID đã bị vô hiệu hóa';
+
+  @override
+  String get noDidInformationAvailable => 'Không có thông tin DID';
+
+  @override
+  String get noPermissionUpdateDid => 'Bạn không có quyền cập nhật DID này';
+
+  @override
+  String get noPermissionDeactivateDid =>
+      'Bạn không có quyền vô hiệu hóa DID này';
+
+  @override
+  String get noPermissionAuthorizeIssuer =>
+      'Bạn không có quyền ủy quyền issuer';
+
+  @override
+  String get issuerAddressNotValid => 'Địa chỉ issuer không hợp lệ';
+
+  @override
+  String get authorizingIssuer => 'Đang ủy quyền issuer...';
+
+  @override
+  String get issuerAuthorizedSuccessfully => 'Đã ủy quyền issuer thành công!';
+
+  @override
+  String errorAuthorizingIssuer(String error) {
+    return 'Lỗi ủy quyền issuer: $error';
+  }
+
+  @override
+  String get confirmDeactivateDid => 'Xác nhận vô hiệu hóa DID';
+
+  @override
+  String get deactivateDidWarning =>
+      'Bạn có chắc chắn muốn vô hiệu hóa DID này? Sau khi vô hiệu hóa, bạn sẽ không thể phát hành VC mới.';
+
+  @override
+  String get deactivatingDid => 'Đang vô hiệu hóa DID...';
+
+  @override
+  String get deactivateDid => 'Vô hiệu hóa DID';
+
+  @override
+  String errorDeactivatingDid(String error) {
+    return 'Lỗi vô hiệu hóa DID: $error';
+  }
+
+  @override
+  String get pleaseSelectCredentialType => 'Vui lòng chọn loại chứng nhận';
+
+  @override
+  String get pleaseSelectCredentialTypeFirst =>
+      'Vui lòng chọn loại chứng nhận trước';
+
+  @override
+  String get informationFilledFromQR => 'Đã điền thông tin từ QR code';
+
+  @override
+  String get cannotReadQRCode => 'Không thể đọc thông tin từ QR code';
+
+  @override
+  String errorScanningQR(String error) {
+    return 'Lỗi quét QR code: $error';
+  }
+
+  @override
+  String get selectImageSource => 'Chọn nguồn ảnh';
+
+  @override
+  String get imageSavedOCRLater =>
+      'Đã lưu ảnh. OCR sẽ được hỗ trợ trong phiên bản tiếp theo.';
+
+  @override
+  String get informationFilledFromImage => 'Đã điền thông tin từ ảnh';
+
+  @override
+  String get cannotReadFromImage =>
+      'Không thể đọc thông tin từ ảnh. Đã lưu ảnh.';
+
+  @override
+  String errorOCR(String error) {
+    return 'Lỗi OCR: $error. Đã lưu ảnh.';
+  }
+
+  @override
+  String get createNewCredential => 'Tạo Chứng Nhận Mới';
+
+  @override
+  String get selectCredentialType => 'Chọn loại chứng nhận';
+
+  @override
+  String get scanQR => 'Quét QR';
+
+  @override
+  String get ocrFromImage => 'OCR từ ảnh';
+
+  @override
+  String get createCredential => 'Tạo Chứng Nhận';
+
+  @override
+  String get pleaseFillRequiredFields =>
+      'Vui lòng điền đầy đủ thông tin bắt buộc';
+
+  @override
+  String fieldRequired(String field) {
+    return '$field là bắt buộc';
+  }
+
+  @override
+  String get invalidValue => 'Giá trị không hợp lệ';
 }

@@ -155,9 +155,9 @@
   },
   "issuer": "Issuer",
   "index": "Index",
-  "copyHash": "Copy Hash",
-  "revoke": "Revoke",
-  "revoked": "Revoked",
+  "copyHash": "Sao chép",
+  "revoke": "Thu hồi",
+  "revoked": "Đã thu hồi",
   "issueNewVC": "Phát hành VC mới",
   "credentialType": "Loại chứng chỉ",
   "credentialName": "Tên chứng chỉ",
@@ -165,7 +165,7 @@
   "exampleEducationalCredential": "Ví dụ: EducationalCredential, ProfessionalCredential",
   "exampleUniversityDegree": "Ví dụ: Bằng Đại Học",
   "credentialDescription": "Mô tả chi tiết về chứng chỉ",
-  "unknown": "Unknown",
+  "unknown": "Không xác định",
   "overview": "Tổng quan",
   "fullName": "Tên đầy đủ",
   "email": "Email",
@@ -180,6 +180,316 @@
   "positionQRCodeInFrame": "Đặt mã QR trong khung để quét",
   "tryAgain": "Thử lại",
   "details": "Chi tiết",
-  "verifiableCredential": "Chứng chỉ có thể xác minh"
+  "verifiableCredential": "Chứng chỉ có thể xác minh",
+  "defaultWalletName": "Tài khoản SSI",
+  "creatingDidAndUploadingToIpfs": "Đang tạo DID document và upload lên IPFS...",
+  "uploadingLogoToIpfs": "Đang upload logo lên IPFS...",
+  "uploadingDocumentToIpfs": "Đang upload tài liệu lên IPFS...",
+  "creatingDidDocument": "Đang tạo DID document...",
+  "cannotGetCurrentWalletAddress": "Không thể lấy địa chỉ ví hiện tại",
+  "sendingTransactionToMetamask": "Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask và xác nhận transaction.",
+  "registeringDidOnBlockchain": "Đang đăng ký DID trên blockchain...",
+  "trustedVerifierAdded": "Đã thêm trusted verifier: {txHash}",
+  "@trustedVerifierAdded": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "trustedVerifierRemoved": "Đã xoá trusted verifier: {txHash}",
+  "@trustedVerifierRemoved": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "connectYourWalletToContinue": "Kết nối ví của bạn để tiếp tục",
+  "adminPanel": "Quản trị - Quản lý Trusted Verifiers",
+  "verifierAddress": "Địa chỉ Verifier *",
+  "addEnable": "Thêm/Kích hoạt",
+  "removeDisable": "Xóa/Vô hiệu hóa",
+  "pleaseEnterVerifierAddress": "Vui lòng nhập địa chỉ verifier",
+  "addVerifier": "Thêm Verifier",
+  "removeVerifier": "Xóa Verifier",
+  "createYourDecentralizedIdentity": "Tạo danh tính phi tập trung (DID) của bạn",
+  "fillForm": "Điền form",
+  "uploadDocument": "Tải lên tài liệu",
+  "walletAddressLabel": "Địa chỉ ví",
+  "displayName": "Tên hiển thị *",
+  "enterYourOrOrgName": "Nhập tên của bạn hoặc tổ chức",
+  "describeYourselfOrOrg": "Mô tả về bạn hoặc tổ chức (tùy chọn)",
+  "website": "Website",
+  "contactAddressOptional": "Địa chỉ liên hệ (tùy chọn)",
+  "phoneNumber": "Số điện thoại",
+  "logoOptional": "Logo (tùy chọn)",
+  "chooseLogo": "Chọn logo",
+  "takePhoto": "Chụp ảnh",
+  "chooseFromGallery": "Chọn từ thư viện",
+  "selectedLogo": "Logo đã chọn: {filename}",
+  "@selectedLogo": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseLogoJpgPng": "Chọn logo (JPG, PNG)",
+  "uploadDocumentToRegisterDid": "Tải lên tài liệu để đăng ký DID",
+  "uploadDocumentDescription": "Bạn có thể tải lên file PDF, JSON, hoặc hình ảnh chứa thông tin DID của bạn. Nếu là file JSON, metadata sẽ được trích xuất tự động.",
+  "documentRequired": "Tài liệu *",
+  "documentSelected": "Đã chọn tài liệu",
+  "chooseDocument": "Chọn tài liệu (PDF, JSON, JPG, PNG)",
+  "noteJsonWillBeParsed": "Lưu ý: File JSON sẽ được phân tích tự động để trích xuất metadata. File PDF và hình ảnh sẽ được lưu trên IPFS.",
+  "pleaseEnterName": "Vui lòng nhập tên",
+  "pleaseChooseDocument": "Vui lòng chọn tài liệu",
+  "adminPanelAction": "Quản trị",
+  "manageVerifiers": "Quản lý trusted verifiers",
+  "updateDid": "Cập nhật DID",
+  "uploadDocumentToUpdateDid": "Tải lên tài liệu để cập nhật DID",
+  "update": "Cập nhật",
+  "updateYourDidInformation": "Cập nhật thông tin danh tính phi tập trung (DID) của bạn",
+  "errorPickingImage": "Lỗi chọn ảnh: {error}",
+  "@errorPickingImage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPickingFile": "Lỗi chọn file: {error}",
+  "@errorPickingFile": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudflare": "Cloudflare",
+  "pinata": "Pinata",
+  "defaultGateway": "Mặc định",
+  "original": "Gốc",
+  "cannotOpenLink": "Không thể mở liên kết",
+  "cannotOpenFile": "Không thể mở file: {error}",
+  "@cannotOpenFile": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verifiedStatus": "Đã xác minh",
+  "unverified": "Chưa xác minh",
+  "viewDetails": "Xem chi tiết",
+  "verificationQueue": "Hàng đợi xác minh",
+  "refresh": "Làm mới",
+  "noVerificationRequests": "Không có yêu cầu xác minh",
+  "onlyTrustedVerifiersCanSee": "Chỉ trusted verifiers mới có thể xem và xử lý yêu cầu xác minh.",
+  "credentialVerifiedSuccessfully": "Xác minh chứng chỉ thành công!\nHash: {hash}",
+  "@credentialVerifiedSuccessfully": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationErrorMessage": "Lỗi xác minh: {error}",
+  "@verificationErrorMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationCancelledInWallet": "Xác minh đã bị hủy trong ví. Vui lòng thử lại.",
+  "verificationTimedOut": "Yêu cầu xác minh đã hết thời gian chờ. Vui lòng thử lại.",
+  "confirmCancelVerificationRequest": "Bạn có chắc chắn muốn hủy yêu cầu xác minh này?",
+  "requestCancelledSuccessfully": "Đã hủy yêu cầu thành công!\nHash: {hash}",
+  "@requestCancelledSuccessfully": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCancellingRequest": "Lỗi hủy yêu cầu: {error}",
+  "@errorCancellingRequest": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cancellationRejectedInWallet": "Hủy bỏ đã bị từ chối trong ví. Vui lòng thử lại.",
+  "cancellationTimedOut": "Yêu cầu hủy đã hết thời gian chờ. Vui lòng thử lại.",
+  "ownerRegisterOrManageDid": "Bạn là owner. Hãy đăng ký hoặc quản lý DID của bạn.",
+  "didInformation": "Thông tin DID",
+  "uriLabel": "URI",
+  "issuedAt": "Thời gian phát hành",
+  "expiration": "Thời gian hết hạn",
+  "copied": "Đã sao chép",
+  "notTrustedVerifierTitle": "Bạn không phải trusted verifier",
+  "notTrustedVerifierMessage": "Chỉ trusted verifiers mới có thể xem và xử lý yêu cầu xác minh.",
+  "noVerificationRequestsTitle": "Không có yêu cầu xác minh",
+  "noVerificationRequestsMessage": "Các yêu cầu xác minh mới sẽ xuất hiện tại đây để xử lý nhanh.",
+  "moreRequests": "+{count} yêu cầu khác",
+  "@moreRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manualVerifyDescription": "Nhập orgID, VC index và hash để xác minh thủ công khi không thể quét QR.",
+  "walletAddressNotFound": "Không tìm thấy địa chỉ ví. Vui lòng mở ví trước.",
+  "connectWalletToDisplayQr": "Kết nối ví hoặc WalletConnect để hiển thị mã QR.",
+  "selectCredentialToShare": "Chọn credential để chia sẻ",
+  "vcNumber": "VC #{index}",
+  "@vcNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "expiryShort": "HSD: {date}",
+  "@expiryShort": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusRevoked": "Đã thu hồi",
+  "statusVerified": "Đã xác minh",
+  "statusNotVerified": "Chưa xác minh",
+  "queueOrgId": "OrgID",
+  "queueSent": "Gửi",
+  "queueVerifier": "Verifier",
+  "queueAny": "Bất kỳ",
+  "notAvailable": "N/A",
+  "timeDaysAgo": "{count} ngày trước",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count} giờ trước",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeMinutesAgo": "{count} phút trước",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeJustNow": "Vừa xong",
+  "authorizeIssuer": "Ủy quyền Issuer",
+  "issuerAddress": "Địa chỉ Issuer",
+  "authorize": "Ủy quyền",
+  "createAndIssueVerifiableCredential": "Tạo và phát hành Verifiable Credential",
+  "credentialTypeLabel": "Loại Credential *",
+  "credentialTypeHint": "Ví dụ: EducationalCredential, IdentityCredential",
+  "subjectNameLabel": "Tên chủ thể *",
+  "subjectNameHint": "Tên người nhận credential",
+  "subjectEmailLabel": "Email chủ thể",
+  "expirationDateOptional": "Ngày hết hạn (tùy chọn)",
+  "selectExpirationDate": "Chọn ngày hết hạn",
+  "uploadDocumentToIssueVC": "Upload tài liệu để phát hành VC",
+  "uploadDocumentDescription": "Bạn có thể upload file PDF, JSON, hoặc hình ảnh chứa thông tin credential. Nếu là file JSON, dữ liệu sẽ được tự động trích xuất.",
+  "documentSelected": "Tài liệu đã chọn",
+  "pleaseEnterSubjectName": "Vui lòng nhập tên chủ thể",
+  "pleaseChooseDocument": "Vui lòng chọn tài liệu",
+  "governmentId": "Căn Cước Công Dân",
+  "passport": "Hộ Chiếu",
+  "driverLicense": "Bằng Lái Xe",
+  "universityDegree": "Bằng Đại Học",
+  "professionalCertificate": "Chứng Chỉ Nghề Nghiệp",
+  "trainingCertificate": "Chứng Chỉ Đào Tạo",
+  "employmentCredential": "Giấy Chứng Nhận Công Tác",
+  "workPermit": "Giấy Phép Lao Động",
+  "healthInsurance": "Bảo Hiểm Y Tế",
+  "vaccinationCertificate": "Giấy Chứng Nhận Tiêm Chủng",
+  "membershipCard": "Thẻ Thành Viên",
+  "credential": "Chứng Nhận",
+  "noDid": "Chưa có DID",
+  "registerDidToStartUsingServices": "Đăng ký DID để bắt đầu sử dụng dịch vụ",
+  "didDeactivated": "DID đã bị vô hiệu hóa",
+  "noDidInformationAvailable": "Không có thông tin DID",
+  "noPermissionUpdateDid": "Bạn không có quyền cập nhật DID này",
+  "noPermissionDeactivateDid": "Bạn không có quyền vô hiệu hóa DID này",
+  "noPermissionAuthorizeIssuer": "Bạn không có quyền ủy quyền issuer",
+  "issuerAddressNotValid": "Địa chỉ issuer không hợp lệ",
+  "authorizingIssuer": "Đang ủy quyền issuer...",
+  "issuerAuthorizedSuccessfully": "Đã ủy quyền issuer thành công!",
+  "confirmDeactivateDid": "Xác nhận vô hiệu hóa DID",
+  "deactivateDidWarning": "Bạn có chắc chắn muốn vô hiệu hóa DID này? Sau khi vô hiệu hóa, bạn sẽ không thể phát hành VC mới.",
+  "deactivatingDid": "Đang vô hiệu hóa DID...",
+  "deactivateDid": "Vô hiệu hóa DID",
+  "errorDeactivatingDid": "Lỗi vô hiệu hóa DID: {error}",
+  "@errorDeactivatingDid": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAuthorizingIssuer": "Lỗi ủy quyền issuer: {error}",
+  "@errorAuthorizingIssuer": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseSelectCredentialType": "Vui lòng chọn loại chứng nhận",
+  "pleaseSelectCredentialTypeFirst": "Vui lòng chọn loại chứng nhận trước",
+  "informationFilledFromQR": "Đã điền thông tin từ QR code",
+  "cannotReadQRCode": "Không thể đọc thông tin từ QR code",
+  "errorScanningQR": "Lỗi quét QR code: {error}",
+  "@errorScanningQR": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectImageSource": "Chọn nguồn ảnh",
+  "imageSavedOCRLater": "Đã lưu ảnh. OCR sẽ được hỗ trợ trong phiên bản tiếp theo.",
+  "informationFilledFromImage": "Đã điền thông tin từ ảnh",
+  "cannotReadFromImage": "Không thể đọc thông tin từ ảnh. Đã lưu ảnh.",
+  "errorOCR": "Lỗi OCR: {error}. Đã lưu ảnh.",
+  "@errorOCR": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "createNewCredential": "Tạo Chứng Nhận Mới",
+  "selectCredentialType": "Chọn loại chứng nhận",
+  "scanQR": "Quét QR",
+  "ocrFromImage": "OCR từ ảnh",
+  "createCredential": "Tạo Chứng Nhận",
+  "pleaseFillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc",
+  "fieldRequired": "{field} là bắt buộc",
+  "@fieldRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidValue": "Giá trị không hợp lệ"
 }
 

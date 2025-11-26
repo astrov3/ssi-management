@@ -770,6 +770,763 @@
   "verifiableCredential": "Verifiable Credential",
   "@verifiableCredential": {
     "description": "Verifiable credential label"
+  },
+  "defaultWalletName": "SSI Account",
+  "@defaultWalletName": {
+    "description": "Default wallet account name when no custom name is set"
+  },
+  "creatingDidAndUploadingToIpfs": "Creating DID document and uploading to IPFS...",
+  "@creatingDidAndUploadingToIpfs": {
+    "description": "Message shown when creating DID document and uploading it to IPFS"
+  },
+  "uploadingLogoToIpfs": "Uploading logo to IPFS...",
+  "@uploadingLogoToIpfs": {
+    "description": "Message shown when uploading a logo file to IPFS"
+  },
+  "uploadingDocumentToIpfs": "Uploading document to IPFS...",
+  "@uploadingDocumentToIpfs": {
+    "description": "Message shown when uploading a document file to IPFS"
+  },
+  "creatingDidDocument": "Creating DID document...",
+  "@creatingDidDocument": {
+    "description": "Message shown when creating DID document"
+  },
+  "cannotGetCurrentWalletAddress": "Cannot get current wallet address",
+  "@cannotGetCurrentWalletAddress": {
+    "description": "Error message when the current wallet address cannot be retrieved"
+  },
+  "sendingTransactionToMetamask": "Sending transaction to MetaMask...\n\nPlease open MetaMask wallet and confirm the transaction.",
+  "@sendingTransactionToMetamask": {
+    "description": "Message shown when sending a transaction to MetaMask and waiting for user confirmation"
+  },
+  "registeringDidOnBlockchain": "Registering DID on blockchain...",
+  "@registeringDidOnBlockchain": {
+    "description": "Message shown when registering DID on the blockchain"
+  },
+  "trustedVerifierAdded": "Trusted verifier added: {txHash}",
+  "@trustedVerifierAdded": {
+    "description": "Message shown when a trusted verifier is added",
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "trustedVerifierRemoved": "Trusted verifier removed: {txHash}",
+  "@trustedVerifierRemoved": {
+    "description": "Message shown when a trusted verifier is removed",
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
+  "connectYourWalletToContinue": "Connect your wallet to continue",
+  "@connectYourWalletToContinue": {
+    "description": "Subtitle message on authentication screen"
+  },
+  "adminPanel": "Admin Panel - Manage Trusted Verifiers",
+  "@adminPanel": {
+    "description": "Admin panel dialog title"
+  },
+  "verifierAddress": "Verifier Address *",
+  "@verifierAddress": {
+    "description": "Label for verifier address input"
+  },
+  "addEnable": "Add/Enable",
+  "@addEnable": {
+    "description": "Radio option to add/enable verifier"
+  },
+  "removeDisable": "Remove/Disable",
+  "@removeDisable": {
+    "description": "Radio option to remove/disable verifier"
+  },
+  "pleaseEnterVerifierAddress": "Please enter verifier address",
+  "@pleaseEnterVerifierAddress": {
+    "description": "Validation message for empty verifier address"
+  },
+  "addVerifier": "Add Verifier",
+  "@addVerifier": {
+    "description": "Button to add verifier"
+  },
+  "removeVerifier": "Remove Verifier",
+  "@removeVerifier": {
+    "description": "Button to remove verifier"
+  },
+  "createYourDecentralizedIdentity": "Create your decentralized identity (DID)",
+  "@createYourDecentralizedIdentity": {
+    "description": "Subtitle for register DID dialog"
+  },
+  "fillForm": "Fill form",
+  "@fillForm": {
+    "description": "Tab label for form input"
+  },
+  "uploadDocument": "Upload document",
+  "@uploadDocument": {
+    "description": "Tab label for document upload"
+  },
+  "walletAddressLabel": "Wallet Address",
+  "@walletAddressLabel": {
+    "description": "Label for wallet address field"
+  },
+  "displayName": "Display name *",
+  "@displayName": {
+    "description": "Label for display name field"
+  },
+  "enterYourOrOrgName": "Enter your or your organization name",
+  "@enterYourOrOrgName": {
+    "description": "Hint for display name field"
+  },
+  "describeYourselfOrOrg": "Describe yourself or your organization (optional)",
+  "@describeYourselfOrOrg": {
+    "description": "Hint for description field"
+  },
+  "website": "Website",
+  "@website": {
+    "description": "Label for website field"
+  },
+  "contactAddressOptional": "Contact address (optional)",
+  "@contactAddressOptional": {
+    "description": "Hint for address field"
+  },
+  "phoneNumber": "Phone number",
+  "@phoneNumber": {
+    "description": "Label for phone number field"
+  },
+  "logoOptional": "Logo (optional)",
+  "@logoOptional": {
+    "description": "Label for logo upload section"
+  },
+  "chooseLogo": "Choose logo",
+  "@chooseLogo": {
+    "description": "Dialog title for choosing logo"
+  },
+  "takePhoto": "Take photo",
+  "@takePhoto": {
+    "description": "Option to take photo with camera"
+  },
+  "chooseFromGallery": "Choose from gallery",
+  "@chooseFromGallery": {
+    "description": "Option to choose from gallery"
+  },
+  "selectedLogo": "Selected logo: {filename}",
+  "@selectedLogo": {
+    "description": "Message showing selected logo filename",
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseLogoJpgPng": "Choose logo (JPG, PNG)",
+  "@chooseLogoJpgPng": {
+    "description": "Hint for logo upload"
+  },
+  "uploadDocumentToRegisterDid": "Upload document to register DID",
+  "@uploadDocumentToRegisterDid": {
+    "description": "Title for document upload section"
+  },
+  "uploadDocumentDescription": "You can upload a PDF, JSON file, or image containing your DID information. If it is a JSON file, metadata will be extracted automatically.",
+  "@uploadDocumentDescription": {
+    "description": "Description for document upload"
+  },
+  "documentRequired": "Document *",
+  "@documentRequired": {
+    "description": "Label for document upload"
+  },
+  "documentSelected": "Document selected",
+  "@documentSelected": {
+    "description": "Message when document is selected"
+  },
+  "chooseDocument": "Choose document (PDF, JSON, JPG, PNG)",
+  "@chooseDocument": {
+    "description": "Hint for document upload"
+  },
+  "noteJsonWillBeParsed": "Note: JSON files will be parsed automatically to extract metadata. PDF and image files will be stored on IPFS.",
+  "@noteJsonWillBeParsed": {
+    "description": "Note about JSON parsing"
+  },
+  "pleaseEnterName": "Please enter a name",
+  "@pleaseEnterName": {
+    "description": "Validation error for empty name"
+  },
+  "pleaseChooseDocument": "Please choose a document",
+  "@pleaseChooseDocument": {
+    "description": "Validation error for no document selected"
+  },
+  "adminPanelAction": "Admin Panel",
+  "@adminPanelAction": {
+    "description": "Admin panel quick action"
+  },
+  "manageVerifiers": "Manage trusted verifiers",
+  "@manageVerifiers": {
+    "description": "Admin panel subtitle"
+  },
+  "updateDid": "Update DID",
+  "@updateDid": {
+    "description": "Update DID dialog title"
+  },
+  "uploadDocumentToUpdateDid": "Upload document to update DID",
+  "@uploadDocumentToUpdateDid": {
+    "description": "Title for document upload section in update DID"
+  },
+  "update": "Update",
+  "@update": {
+    "description": "Update button"
+  },
+  "updateYourDidInformation": "Update your decentralized identity (DID) information",
+  "@updateYourDidInformation": {
+    "description": "Subtitle for update DID dialog"
+  },
+  "errorPickingImage": "Error picking image: {error}",
+  "@errorPickingImage": {
+    "description": "Error message when picking image fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPickingFile": "Error picking file: {error}",
+  "@errorPickingFile": {
+    "description": "Error message when picking file fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudflare": "Cloudflare",
+  "@cloudflare": {
+    "description": "Cloudflare gateway label"
+  },
+  "pinata": "Pinata",
+  "@pinata": {
+    "description": "Pinata gateway label"
+  },
+  "defaultGateway": "Default",
+  "@defaultGateway": {
+    "description": "Default gateway label"
+  },
+  "original": "Original",
+  "@original": {
+    "description": "Original URL label"
+  },
+  "cannotOpenLink": "Cannot open link",
+  "@cannotOpenLink": {
+    "description": "Error when link cannot be opened"
+  },
+  "cannotOpenFile": "Cannot open file: {error}",
+  "@cannotOpenFile": {
+    "description": "Error when file cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verifiedStatus": "Verified",
+  "@verifiedStatus": {
+    "description": "Verified status label"
+  },
+  "unverified": "Unverified",
+  "@unverified": {
+    "description": "Unverified status label"
+  },
+  "viewDetails": "View details",
+  "@viewDetails": {
+    "description": "View details button label"
+  },
+  "verificationQueue": "Verification Queue",
+  "@verificationQueue": {
+    "description": "Verification queue screen title"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button tooltip"
+  },
+  "noVerificationRequests": "No verification requests",
+  "@noVerificationRequests": {
+    "description": "Empty state message for verification requests"
+  },
+  "onlyTrustedVerifiersCanSee": "Only trusted verifiers can see and process verification requests.",
+  "@onlyTrustedVerifiersCanSee": {
+    "description": "Information message about trusted verifiers"
+  },
+  "credentialVerifiedSuccessfully": "Credential verified successfully!\nHash: {hash}",
+  "@credentialVerifiedSuccessfully": {
+    "description": "Success message when credential is verified",
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationErrorMessage": "Verification error: {error}",
+  "@verificationErrorMessage": {
+    "description": "Error message during verification",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationCancelledInWallet": "Verification was cancelled in wallet. Please try again.",
+  "@verificationCancelledInWallet": {
+    "description": "Error when verification is cancelled in wallet"
+  },
+  "verificationTimedOut": "Verification request timed out. Please try again.",
+  "@verificationTimedOut": {
+    "description": "Error when verification times out"
+  },
+  "confirmCancelVerificationRequest": "Are you sure you want to cancel this verification request?",
+  "@confirmCancelVerificationRequest": {
+    "description": "Confirmation dialog for cancelling verification"
+  },
+  "requestCancelledSuccessfully": "Request cancelled successfully!\nHash: {hash}",
+  "@requestCancelledSuccessfully": {
+    "description": "Success message when request is cancelled",
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCancellingRequest": "Error cancelling request: {error}",
+  "@errorCancellingRequest": {
+    "description": "Error message when cancelling request fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cancellationRejectedInWallet": "Cancellation was rejected in wallet. Please try again.",
+  "@cancellationRejectedInWallet": {
+    "description": "Error when cancellation is rejected in wallet"
+  },
+  "cancellationTimedOut": "Cancellation request timed out. Please try again.",
+  "@cancellationTimedOut": {
+    "description": "Error when cancellation times out"
+  },
+  "ownerRegisterOrManageDid": "You are an owner. Register or manage your DID.",
+  "@ownerRegisterOrManageDid": {
+    "description": "Helper text when owner can register or manage DID"
+  },
+  "didInformation": "DID Information",
+  "@didInformation": {
+    "description": "Title for DID information card"
+  },
+  "uriLabel": "URI",
+  "@uriLabel": {
+    "description": "Label for URI field"
+  },
+  "issuedAt": "Issued At",
+  "@issuedAt": {
+    "description": "Label for issued at field"
+  },
+  "expiration": "Expiration",
+  "@expiration": {
+    "description": "Label for expiration field"
+  },
+  "copied": "Copied",
+  "@copied": {
+    "description": "Generic copied message"
+  },
+  "notTrustedVerifierTitle": "You are not a trusted verifier",
+  "@notTrustedVerifierTitle": {
+    "description": "Title when user is not a trusted verifier"
+  },
+  "notTrustedVerifierMessage": "Only trusted verifiers can see and process verification requests.",
+  "@notTrustedVerifierMessage": {
+    "description": "Message when user is not a trusted verifier"
+  },
+  "noVerificationRequestsTitle": "No verification requests",
+  "@noVerificationRequestsTitle": {
+    "description": "Title when there are no verification requests"
+  },
+  "noVerificationRequestsMessage": "New verification requests will appear here for quick processing.",
+  "@noVerificationRequestsMessage": {
+    "description": "Message when there are no verification requests"
+  },
+  "moreRequests": "+{count} more request(s)",
+  "@moreRequests": {
+    "description": "Label for additional requests count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manualVerifyDescription": "Enter orgID, VC index and hash to verify manually when QR scanning is not possible.",
+  "@manualVerifyDescription": {
+    "description": "Description text for manual verify card"
+  },
+  "walletAddressNotFound": "Wallet address not found. Please open your wallet first.",
+  "@walletAddressNotFound": {
+    "description": "Message when wallet address is not available"
+  },
+  "connectWalletToDisplayQr": "Connect wallet or WalletConnect to display QR code.",
+  "@connectWalletToDisplayQr": {
+    "description": "Message prompting user to connect wallet to display QR"
+  },
+  "selectCredentialToShare": "Select credential to share",
+  "@selectCredentialToShare": {
+    "description": "Subtitle in credential picker sheet"
+  },
+  "vcNumber": "VC #{index}",
+  "@vcNumber": {
+    "description": "VC number label",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "expiryShort": "Exp: {date}",
+  "@expiryShort": {
+    "description": "Short expiration label",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusRevoked": "Revoked",
+  "@statusRevoked": {
+    "description": "Status text for revoked"
+  },
+  "statusVerified": "Verified",
+  "@statusVerified": {
+    "description": "Status text for verified"
+  },
+  "statusNotVerified": "Not verified",
+  "@statusNotVerified": {
+    "description": "Status text for not verified"
+  },
+  "queueOrgId": "OrgID",
+  "@queueOrgId": {
+    "description": "Label for OrgID in queue tile"
+  },
+  "queueSent": "Sent",
+  "@queueSent": {
+    "description": "Label for sent time in queue tile"
+  },
+  "queueVerifier": "Verifier",
+  "@queueVerifier": {
+    "description": "Label for verifier in queue tile"
+  },
+  "queueAny": "Any",
+  "@queueAny": {
+    "description": "Label when any verifier is allowed"
+  },
+  "notAvailable": "N/A",
+  "@notAvailable": {
+    "description": "Generic not-available label"
+  },
+  "timeDaysAgo": "{count} day(s) ago",
+  "@timeDaysAgo": {
+    "description": "Relative time in days",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count} hour(s) ago",
+  "@timeHoursAgo": {
+    "description": "Relative time in hours",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeMinutesAgo": "{count} minute(s) ago",
+  "@timeMinutesAgo": {
+    "description": "Relative time in minutes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeJustNow": "Just now",
+  "@timeJustNow": {
+    "description": "Relative time for just now"
+  },
+  "authorizeIssuer": "Authorize Issuer",
+  "@authorizeIssuer": {
+    "description": "Title for authorize issuer dialog"
+  },
+  "issuerAddress": "Issuer Address",
+  "@issuerAddress": {
+    "description": "Label for issuer address field"
+  },
+  "authorize": "Authorize",
+  "@authorize": {
+    "description": "Button label for authorize action"
+  },
+  "createAndIssueVerifiableCredential": "Create and issue Verifiable Credential",
+  "@createAndIssueVerifiableCredential": {
+    "description": "Subtitle for issue VC dialog"
+  },
+  "credentialTypeLabel": "Credential Type *",
+  "@credentialTypeLabel": {
+    "description": "Label for credential type field"
+  },
+  "credentialTypeHint": "Example: EducationalCredential, IdentityCredential",
+  "@credentialTypeHint": {
+    "description": "Hint for credential type field"
+  },
+  "subjectNameLabel": "Subject Name *",
+  "@subjectNameLabel": {
+    "description": "Label for subject name field"
+  },
+  "subjectNameHint": "Name of credential recipient",
+  "@subjectNameHint": {
+    "description": "Hint for subject name field"
+  },
+  "subjectEmailLabel": "Subject Email",
+  "@subjectEmailLabel": {
+    "description": "Label for subject email field"
+  },
+  "expirationDateOptional": "Expiration Date (optional)",
+  "@expirationDateOptional": {
+    "description": "Label for expiration date field"
+  },
+  "selectExpirationDate": "Select expiration date",
+  "@selectExpirationDate": {
+    "description": "Hint for expiration date field"
+  },
+  "uploadDocumentToIssueVC": "Upload document to issue VC",
+  "@uploadDocumentToIssueVC": {
+    "description": "Title for upload tab"
+  },
+  "uploadDocumentDescription": "You can upload a PDF, JSON file, or image containing credential information. If it is a JSON file, metadata will be extracted automatically.",
+  "@uploadDocumentDescription": {
+    "description": "Description for upload tab"
+  },
+  "documentSelected": "Document selected",
+  "@documentSelected": {
+    "description": "Text when document is selected"
+  },
+  "pleaseEnterSubjectName": "Please enter subject name",
+  "@pleaseEnterSubjectName": {
+    "description": "Error message when subject name is empty"
+  },
+  "pleaseChooseDocument": "Please choose document",
+  "@pleaseChooseDocument": {
+    "description": "Error message when document is not selected"
+  },
+  "governmentId": "Government ID",
+  "@governmentId": {
+    "description": "Title for identity credential type"
+  },
+  "passport": "Passport",
+  "@passport": {
+    "description": "Title for passport credential type"
+  },
+  "driverLicense": "Driver License",
+  "@driverLicense": {
+    "description": "Title for driver license credential type"
+  },
+  "universityDegree": "University Degree",
+  "@universityDegree": {
+    "description": "Title for university degree credential type"
+  },
+  "professionalCertificate": "Professional Certificate",
+  "@professionalCertificate": {
+    "description": "Title for professional certificate credential type"
+  },
+  "trainingCertificate": "Training Certificate",
+  "@trainingCertificate": {
+    "description": "Title for training certificate credential type"
+  },
+  "employmentCredential": "Employment Credential",
+  "@employmentCredential": {
+    "description": "Title for employment credential type"
+  },
+  "workPermit": "Work Permit",
+  "@workPermit": {
+    "description": "Title for work permit credential type"
+  },
+  "healthInsurance": "Health Insurance",
+  "@healthInsurance": {
+    "description": "Title for health insurance credential type"
+  },
+  "vaccinationCertificate": "Vaccination Certificate",
+  "@vaccinationCertificate": {
+    "description": "Title for vaccination certificate credential type"
+  },
+  "membershipCard": "Membership Card",
+  "@membershipCard": {
+    "description": "Title for membership card credential type"
+  },
+  "credential": "Credential",
+  "@credential": {
+    "description": "Generic credential title"
+  },
+  "noDid": "No DID",
+  "@noDid": {
+    "description": "Title when no DID exists"
+  },
+  "registerDidToStartUsingServices": "Register a DID to start using services",
+  "@registerDidToStartUsingServices": {
+    "description": "Description when user has no DID yet"
+  },
+  "didDeactivated": "DID has been deactivated",
+  "@didDeactivated": {
+    "description": "Message when DID has been deactivated"
+  },
+  "noDidInformationAvailable": "No DID information available",
+  "@noDidInformationAvailable": {
+    "description": "Error when there is no DID information to show"
+  },
+  "noPermissionUpdateDid": "You do not have permission to update this DID",
+  "@noPermissionUpdateDid": {
+    "description": "Error when user tries to update DID without permission"
+  },
+  "noPermissionDeactivateDid": "You do not have permission to deactivate this DID",
+  "@noPermissionDeactivateDid": {
+    "description": "Error when user tries to deactivate DID without permission"
+  },
+  "noPermissionAuthorizeIssuer": "You do not have permission to authorize an issuer",
+  "@noPermissionAuthorizeIssuer": {
+    "description": "Error when user tries to authorize issuer without permission"
+  },
+  "issuerAddressNotValid": "Issuer address is not valid",
+  "@issuerAddressNotValid": {
+    "description": "Error when issuer address is invalid"
+  },
+  "authorizingIssuer": "Authorizing issuer...",
+  "@authorizingIssuer": {
+    "description": "Spinner message when authorizing issuer"
+  },
+  "issuerAuthorizedSuccessfully": "Issuer has been authorized successfully!",
+  "@issuerAuthorizedSuccessfully": {
+    "description": "Success message when issuer is authorized"
+  },
+  "errorAuthorizingIssuer": "Error authorizing issuer: {error}",
+  "@errorAuthorizingIssuer": {
+    "description": "Error message when authorizing issuer fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeactivateDid": "Confirm DID deactivation",
+  "@confirmDeactivateDid": {
+    "description": "Title for confirm deactivate DID dialog"
+  },
+  "deactivateDidWarning": "Are you sure you want to deactivate this DID? After deactivation, you will not be able to issue new VCs.",
+  "@deactivateDidWarning": {
+    "description": "Warning message before deactivating DID"
+  },
+  "deactivatingDid": "Deactivating DID...",
+  "@deactivatingDid": {
+    "description": "Spinner message when deactivating DID"
+  },
+  "deactivateDid": "Deactivate DID",
+  "@deactivateDid": {
+    "description": "Button label for deactivating DID"
+  },
+  "errorDeactivatingDid": "Error deactivating DID: {error}",
+  "@errorDeactivatingDid": {
+    "description": "Error message when deactivating DID fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseSelectCredentialType": "Please select credential type",
+  "@pleaseSelectCredentialType": {
+    "description": "Error when credential type is not selected"
+  },
+  "pleaseSelectCredentialTypeFirst": "Please select credential type first",
+  "@pleaseSelectCredentialTypeFirst": {
+    "description": "Error when trying to scan QR before selecting type"
+  },
+  "informationFilledFromQR": "Information filled from QR code",
+  "@informationFilledFromQR": {
+    "description": "Success message when QR code data is parsed"
+  },
+  "cannotReadQRCode": "Cannot read information from QR code",
+  "@cannotReadQRCode": {
+    "description": "Error when QR code cannot be parsed"
+  },
+  "errorScanningQR": "Error scanning QR code: {error}",
+  "@errorScanningQR": {
+    "description": "Error message when QR scanning fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectImageSource": "Select Image Source",
+  "@selectImageSource": {
+    "description": "Dialog title for image source selection"
+  },
+  "imageSavedOCRLater": "Image saved. OCR will be supported in the next version.",
+  "@imageSavedOCRLater": {
+    "description": "Message when image is saved but OCR not available"
+  },
+  "informationFilledFromImage": "Information filled from image",
+  "@informationFilledFromImage": {
+    "description": "Success message when OCR data is parsed"
+  },
+  "cannotReadFromImage": "Cannot read information from image. Image saved.",
+  "@cannotReadFromImage": {
+    "description": "Error when OCR fails but image is saved"
+  },
+  "errorOCR": "OCR error: {error}. Image saved.",
+  "@errorOCR": {
+    "description": "Error message when OCR fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "createNewCredential": "Create New Credential",
+  "@createNewCredential": {
+    "description": "Dialog title for creating credential"
+  },
+  "selectCredentialType": "Select Credential Type",
+  "@selectCredentialType": {
+    "description": "Title for credential type selection"
+  },
+  "scanQR": "Scan QR",
+  "@scanQR": {
+    "description": "Button label for QR scanning"
+  },
+  "ocrFromImage": "OCR from Image",
+  "@ocrFromImage": {
+    "description": "Button label for OCR from image"
+  },
+  "createCredential": "Create Credential",
+  "@createCredential": {
+    "description": "Button label for creating credential"
+  },
+  "pleaseFillRequiredFields": "Please fill in all required fields",
+  "@pleaseFillRequiredFields": {
+    "description": "Validation error when required fields are missing"
+  },
+  "fieldRequired": "{field} is required",
+  "@fieldRequired": {
+    "description": "Validation error for required field",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidValue": "Invalid value",
+  "@invalidValue": {
+    "description": "Generic validation error message"
   }
 }
 

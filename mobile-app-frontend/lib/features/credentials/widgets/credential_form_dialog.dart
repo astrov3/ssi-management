@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/features/qr/scanner/qr_scanner_screen.dart';
 import 'package:ssi_app/features/credentials/models/credential_template.dart';
 import 'package:ssi_app/services/ocr/ocr_service.dart';
@@ -40,10 +41,11 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
 
   /// Scan QR code and auto-fill form
   Future<void> _scanQRCode() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn loại chứng nhận trước'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectCredentialTypeFirst),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -97,18 +99,18 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('✅ Đã điền thông tin từ QR code'),
+              SnackBar(
+                content: Text(l10n.informationFilledFromQR),
                 backgroundColor: AppColors.success,
-                duration: Duration(seconds: 2),
+                duration: const Duration(seconds: 2),
               ),
             );
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Không thể đọc thông tin từ QR code'),
+              SnackBar(
+                content: Text(l10n.cannotReadQRCode),
                 backgroundColor: AppColors.danger,
               ),
             );
@@ -119,7 +121,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi quét QR code: $e'),
+            content: Text(l10n.errorScanningQR(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -129,10 +131,11 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
 
   /// Capture image and extract text using OCR
   Future<void> _captureAndOCR() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn loại chứng nhận trước'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectCredentialTypeFirst),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -145,18 +148,18 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Chọn nguồn ảnh', style: TextStyle(color: Colors.white)),
+          title: Text(l10n.selectImageSource, style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.secondary),
-                title: const Text('Chụp ảnh', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.takePhoto, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.secondary),
-                title: const Text('Chọn từ thư viện', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.chooseFromGallery, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
             ],
@@ -193,10 +196,10 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Đã lưu ảnh. OCR sẽ được hỗ trợ trong phiên bản tiếp theo.'),
+              SnackBar(
+                content: Text(l10n.imageSavedOCRLater),
                 backgroundColor: AppColors.secondary,
-                duration: Duration(seconds: 2),
+                duration: const Duration(seconds: 2),
               ),
             );
           }
@@ -230,10 +233,10 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
             
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đã điền thông tin từ ảnh'),
+                SnackBar(
+                  content: Text(l10n.informationFilledFromImage),
                   backgroundColor: AppColors.success,
-                  duration: Duration(seconds: 2),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             }
@@ -244,8 +247,8 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
             
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Không thể đọc thông tin từ ảnh. Đã lưu ảnh.'),
+                SnackBar(
+                  content: Text(l10n.cannotReadFromImage),
                   backgroundColor: AppColors.secondary,
                 ),
               );
@@ -260,7 +263,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Lỗi OCR: $e. Đã lưu ảnh.'),
+                content: Text(l10n.errorOCR(e.toString())),
                 backgroundColor: AppColors.secondary,
               ),
             );
@@ -273,9 +276,10 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Close loading on error
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text(l10n.errorOccurred(e.toString())),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -317,10 +321,11 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
   }
 
   void _validateAndSubmit() {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Vui lòng chọn loại chứng nhận'),
+          content: Text(l10n.pleaseSelectCredentialType),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -335,7 +340,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
       if (field.required) {
         final value = _fieldValues[field.key] ?? _controllers[field.key]?.text ?? '';
         if (value.isEmpty) {
-          _fieldErrors[field.key] = '${field.label} là bắt buộc';
+          _fieldErrors[field.key] = l10n.fieldRequired(field.label);
           isValid = false;
         }
       }
@@ -346,7 +351,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
         if (value.isNotEmpty) {
           final regex = RegExp(field.validationRegex!);
           if (!regex.hasMatch(value)) {
-            _fieldErrors[field.key] = field.validationMessage ?? 'Giá trị không hợp lệ';
+            _fieldErrors[field.key] = field.validationMessage ?? l10n.invalidValue;
             isValid = false;
           }
         }
@@ -392,6 +397,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -405,9 +411,9 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  const Text(
-                    'Tạo Chứng Nhận Mới',
-                    style: TextStyle(
+                  Text(
+                    l10n.createNewCredential,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -430,9 +436,9 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Chọn loại chứng nhận',
-                        style: TextStyle(
+                      Text(
+                        l10n.selectCredentialType,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -527,7 +533,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                                     child: OutlinedButton.icon(
                                       onPressed: _scanQRCode,
                                       icon: const Icon(Icons.qr_code_scanner, size: 20),
-                                      label: const Text('Quét QR', style: TextStyle(fontSize: 12)),
+                                      label: Text(l10n.scanQR, style: const TextStyle(fontSize: 12)),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: AppColors.secondary,
                                         side: BorderSide(color: AppColors.secondary),
@@ -540,7 +546,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                                     child: OutlinedButton.icon(
                                       onPressed: _captureAndOCR,
                                       icon: const Icon(Icons.camera_alt, size: 20),
-                                      label: const Text('OCR từ ảnh', style: TextStyle(fontSize: 12)),
+                                      label: Text(l10n.ocrFromImage, style: const TextStyle(fontSize: 12)),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: AppColors.secondary,
                                         side: BorderSide(color: AppColors.secondary),
@@ -593,7 +599,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+                      child: Text(l10n.cancel, style: const TextStyle(color: Colors.white54)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -605,9 +611,9 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                         backgroundColor: AppColors.secondary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text(
-                        'Tạo Chứng Nhận',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Text(
+                        l10n.createCredential,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

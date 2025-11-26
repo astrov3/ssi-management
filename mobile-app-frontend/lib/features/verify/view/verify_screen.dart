@@ -164,11 +164,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   String _getCredentialTitle(Map<String, dynamic> credential, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final vcType = credential['vcType'] as String?;
     if (vcType != null) {
-      final typeMetadata = credentialTypeMetadata[vcType];
-      if (typeMetadata != null) {
-        return typeMetadata.title;
+      final typeTitle = CredentialTypeMetadata.getLocalizedTitle(vcType, l10n);
+      if (typeTitle != null) {
+        return typeTitle;
       }
     }
 
@@ -178,7 +179,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
 
     final index = credential['index'];
-    final l10n = AppLocalizations.of(context)!;
     return '${l10n.credentials} #${index ?? '?'}';
   }
 
@@ -210,7 +210,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             color: Colors.grey[900],
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
             onPressed: _isRefreshing ? null : () => _loadData(refresh: true),
           ),
         ],
@@ -251,7 +251,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
       return _InfoBanner(
         icon: Icons.account_balance_wallet_outlined,
         title: l10n.walletAddress,
-        message: 'Kết nối ví hoặc WalletConnect để hiển thị mã QR.',
+        message: l10n.connectWalletToDisplayQr,
       );
     }
 
@@ -278,7 +278,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
         Row(
           children: [
             Text(
-              'Danh sách chờ xác thực',
+              l10n.verificationQueue,
               style: TextStyle(
                 color: Colors.grey[900],
                 fontWeight: FontWeight.bold,
@@ -289,7 +289,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
             if (_isTrustedVerifier)
               TextButton(
                 onPressed: _pendingRequests.isEmpty ? null : _openVerificationRequestsScreen,
-                child: const Text('Xem tất cả'),
+                child: Text(l10n.viewDetails),
               ),
           ],
         ),
@@ -297,14 +297,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
         if (!_isTrustedVerifier)
           _InfoBanner(
             icon: Icons.verified_outlined,
-            title: 'Bạn chưa là trusted verifier',
-            message: 'Chỉ trusted verifier mới nhìn thấy và xử lý các yêu cầu xác thực.',
+            title: l10n.notTrustedVerifierTitle,
+            message: l10n.notTrustedVerifierMessage,
           )
         else if (_pendingRequests.isEmpty)
           _InfoBanner(
             icon: Icons.inbox_outlined,
-            title: 'Không có yêu cầu xác thực',
-            message: 'Khi có yêu cầu mới, chúng sẽ hiển thị tại đây để bạn xử lý nhanh.',
+            title: l10n.noVerificationRequestsTitle,
+            message: l10n.noVerificationRequestsMessage,
           )
         else
           Column(
@@ -321,7 +321,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '+${_pendingRequests.length - 3} yêu cầu khác',
+                    l10n.moreRequests(_pendingRequests.length - 3),
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
@@ -371,7 +371,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Nhập orgID, VC index và hash để xác thực thủ công khi không thể quét QR.',
+              l10n.manualVerifyDescription,
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
@@ -397,7 +397,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   Future<void> _handleShowMyQr() async {
     if (_address.isEmpty) {
-      _showMessage('Chưa tìm thấy địa chỉ ví. Vui lòng mở ví trước.');
+      _showMessage(AppLocalizations.of(context)!.walletAddressNotFound);
       return;
     }
     if (_credentials.isEmpty) {
@@ -479,7 +479,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     ),
                     const SizedBox(width: 8),
                     _StatusChip(
-                      label: isVerified ? 'Verified' : 'Unverified',
+                      label: isVerified ? l10n.verifiedStatus : l10n.unverified,
                       color: isVerified ? AppColors.success : Colors.orange,
                     ),
                   ],
@@ -503,7 +503,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
               icon: const Icon(Icons.open_in_new),
-              label: const Text('Xem chi tiết'),
+              label: Text(l10n.viewDetails),
             ),
           ],
         );
@@ -832,7 +832,7 @@ class _PendingRequestTile extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         title: Text(
-          'VC #$vcIndex',
+          AppLocalizations.of(context)!.vcNumber(int.tryParse(vcIndex) ?? 0),
           style: TextStyle(
             color: Colors.grey[900],
             fontWeight: FontWeight.w600,
@@ -844,25 +844,25 @@ class _PendingRequestTile extends StatelessWidget {
             const SizedBox(height: 8),
             _QueueInfoRow(
               icon: Icons.business,
-              label: 'OrgID',
-              value: _formatAddress(orgID),
+              label: AppLocalizations.of(context)!.queueOrgId,
+              value: _formatAddress(orgID, context),
             ),
             const SizedBox(height: 4),
             _QueueInfoRow(
               icon: Icons.schedule,
-              label: 'Gửi',
-              value: _formatRelativeTime(requestedAt),
+              label: AppLocalizations.of(context)!.queueSent,
+              value: _formatRelativeTime(requestedAt, context),
             ),
             const SizedBox(height: 4),
             _QueueInfoRow(
               icon: Icons.verified_user_outlined,
-              label: 'Verifier',
+              label: AppLocalizations.of(context)!.queueVerifier,
               value: targetVerifier == null ||
                       targetVerifier.isEmpty ||
                       targetVerifier.toLowerCase() ==
                           '0x0000000000000000000000000000000000000000'
-                  ? 'Bất kỳ'
-                  : _formatAddress(targetVerifier),
+                  ? AppLocalizations.of(context)!.queueAny
+                  : _formatAddress(targetVerifier, context),
             ),
           ],
         ),
@@ -871,24 +871,27 @@ class _PendingRequestTile extends StatelessWidget {
     );
   }
 
-  static String _formatAddress(String? address) {
-    if (address == null || address.isEmpty) return 'N/A';
+  static String _formatAddress(String? address, BuildContext context) {
+    if (address == null || address.isEmpty) {
+      return AppLocalizations.of(context)!.notAvailable;
+    }
     if (address.length <= 10) return address;
     return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';
   }
 
-  static String _formatRelativeTime(int timestamp) {
-    if (timestamp == 0) return 'N/A';
+  static String _formatRelativeTime(int timestamp, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (timestamp == 0) return l10n.notAvailable;
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     final diff = DateTime.now().difference(date);
     if (diff.inDays > 0) {
-      return '${diff.inDays} ngày trước';
+      return l10n.timeDaysAgo(diff.inDays);
     } else if (diff.inHours > 0) {
-      return '${diff.inHours} giờ trước';
+      return l10n.timeHoursAgo(diff.inHours);
     } else if (diff.inMinutes > 0) {
-      return '${diff.inMinutes} phút trước';
+      return l10n.timeMinutesAgo(diff.inMinutes);
     }
-    return 'Vừa xong';
+    return l10n.timeJustNow;
   }
 }
 
@@ -1066,7 +1069,7 @@ class _CredentialPickerSheet extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Chọn credential muốn chia sẻ',
+              l10n.selectCredentialToShare,
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
@@ -1094,7 +1097,7 @@ class _CredentialPickerSheet extends StatelessWidget {
                           ? title!
                           : (vcType?.isNotEmpty == true
                               ? vcType!
-                              : 'VC #${credential['index']}'),
+                              : l10n.vcNumber(credential['index'] as int)),
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[900],
@@ -1105,7 +1108,7 @@ class _CredentialPickerSheet extends StatelessWidget {
                       children: [
                         const SizedBox(height: 4),
                         Text(
-                          _buildStatusText(isValid, isVerified),
+                          _buildStatusText(isValid, isVerified, l10n),
                           style: TextStyle(
                             color: isValid ? AppColors.success : AppColors.danger,
                             fontSize: 12,
@@ -1115,7 +1118,7 @@ class _CredentialPickerSheet extends StatelessWidget {
                         if (expiration > 0) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'HSD: ${_formatDate(expiration)}',
+                            l10n.expiryShort(_formatDate(expiration)),
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                         ],
@@ -1132,10 +1135,10 @@ class _CredentialPickerSheet extends StatelessWidget {
     );
   }
 
-  static String _buildStatusText(bool isValid, bool isVerified) {
-    if (!isValid) return 'Đã thu hồi';
-    if (isVerified) return 'Đã xác thực';
-    return 'Chưa xác thực';
+  static String _buildStatusText(bool isValid, bool isVerified, AppLocalizations l10n) {
+    if (!isValid) return l10n.statusRevoked;
+    if (isVerified) return l10n.statusVerified;
+    return l10n.statusNotVerified;
   }
 
   static String _formatDate(int seconds) {

@@ -83,16 +83,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(
+        title: const Text(
           'QR Code Data',
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nội dung QR code:',
+              'QR code content:',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
             ),
             const SizedBox(height: 8),
@@ -102,7 +102,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Bạn có muốn sử dụng dữ liệu này?',
+              'Do you want to use this data?',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
             ),
           ],
@@ -114,9 +114,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               setState(() => _isProcessing = false);
               _controller.start();
             },
-            child: Text(
-              'Thử lại',
-              style: const TextStyle(color: Colors.white54),
+            child: const Text(
+              'Try Again',
+              style: TextStyle(color: Colors.white54),
             ),
           ),
           TextButton(
@@ -125,9 +125,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               // Return raw data as map
               Navigator.of(context).pop({'rawData': data});
             },
-            child: Text(
-              'Sử dụng',
-              style: const TextStyle(color: AppColors.secondary),
+            child: const Text(
+              'Use',
+              style: TextStyle(color: AppColors.secondary),
             ),
           ),
         ],
