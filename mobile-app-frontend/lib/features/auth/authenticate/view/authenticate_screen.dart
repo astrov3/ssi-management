@@ -269,8 +269,6 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
               // Main scrollable content
               Column(
                 children: [
-                  // Header with back button
-                  _TopHeader(),
                   // Main content
                   Expanded(
                     child: SingleChildScrollView(
@@ -304,24 +302,6 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
               ),
             ],
           ),
-      ),
-    );
-  }
-}
-
-class _TopHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-
-        ],
       ),
     );
   }

@@ -11,7 +11,6 @@ class QuickActions extends StatelessWidget {
     this.isAdmin = false,
     this.isVerifier = false,
     this.onRegister,
-    required this.onIssue,
     this.onManageDID,
     this.onAdminPanel,
   });
@@ -21,7 +20,6 @@ class QuickActions extends StatelessWidget {
   final bool isAdmin;
   final bool isVerifier;
   final VoidCallback? onRegister;
-  final VoidCallback onIssue;
   final VoidCallback? onManageDID;
   final VoidCallback? onAdminPanel;
 
@@ -48,13 +46,6 @@ class QuickActions extends StatelessWidget {
             iconColor: AppColors.secondary,
             onTap: onManageDID!,
           ),
-        QuickActionTile(
-          title: l10n.issueCredential,
-          subtitle: l10n.createAndIssueNewVC,
-          icon: Icons.add_card,
-          iconColor: const Color(0xFF3B82F6),
-          onTap: onIssue,
-        ),
         if (onRegister != null)
           QuickActionTile(
             title: l10n.registerDid,

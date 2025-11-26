@@ -346,6 +346,9 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
         const SizedBox(height: 24),
         // Credential details
         GlassContainer(
+          backgroundColor: Colors.white,
+          borderColor: Colors.grey[200],
+          blurSigma: 0,
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -393,6 +396,9 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
     final verificationMethod = didDoc['verificationMethod'] as List?;
 
     return GlassContainer(
+      backgroundColor: Colors.white,
+      borderColor: Colors.grey[200],
+      blurSigma: 0,
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -460,6 +466,9 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
       children: [
         // Verification result
         GlassContainer(
+          backgroundColor: Colors.white,
+          borderColor: Colors.grey[200],
+          blurSigma: 0,
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
@@ -490,6 +499,9 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
         // VC details
         if (document != null) ...[
           GlassContainer(
+            backgroundColor: Colors.white,
+            borderColor: Colors.grey[200],
+            blurSigma: 0,
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -539,7 +551,7 @@ class _DetailRow extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: Colors.grey[600],
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -547,8 +559,8 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Colors.grey[900],
               fontSize: 14,
             ),
           ),

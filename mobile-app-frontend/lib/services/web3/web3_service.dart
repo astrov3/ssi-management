@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:eth_sig_util/eth_sig_util.dart';
+import 'package:eth_sig_util/model/typed_data.dart';
+import 'package:eth_sig_util/util/signature.dart';
+import 'package:eth_sig_util/util/typed_data.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' show Client;
@@ -412,7 +416,7 @@ class Web3Service {
       'https://www.w3.org/2018/credentials/examples/v1',
     ];
     final vcTypes = ['VerifiableCredential', vcType];
-    final normalizedClaims = claims.map((key, value) => MapEntry(key, value.toString()));
+    final normalizedClaims = _normalizeClaims(claims);
     final credentialSubject = <String, String>{
       'id': subjectDid,
       ...normalizedClaims,
@@ -502,6 +506,16 @@ class Web3Service {
       vc['expirationDate'] = expirationDateIso;
     }
 
+    final isSignatureValid = await verifyVCSignature(
+      vc,
+      expectedIssuer: issuerAddress,
+    );
+    if (!isSignatureValid) {
+      throw StateError(
+        'Chữ ký VC không hợp lệ. Vui lòng thử lại quy trình ký trong MetaMask.',
+      );
+    }
+
     return vc;
   }
 
@@ -515,7 +529,8 @@ class Web3Service {
     final types = (vc['type'] as List<dynamic>? ?? []).map((e) => e.toString()).toList();
     final credentialSubjectMap = Map<String, dynamic>.from(vc['credentialSubject'] as Map? ?? {});
     final subjectId = credentialSubjectMap['id']?.toString() ?? '';
-    final normalizedClaims = credentialSubjectMap..remove('id');
+    final filteredClaims = Map<String, dynamic>.from(credentialSubjectMap)..remove('id');
+    final normalizedClaims = _normalizeClaims(filteredClaims);
 
     final credentialSubjectTypes = [
       {'name': 'id', 'type': 'string'},
@@ -524,7 +539,7 @@ class Web3Service {
 
     final messageCredentialSubject = <String, String>{
       'id': subjectId,
-      for (final entry in normalizedClaims.entries) entry.key: entry.value.toString(),
+      ...normalizedClaims,
     };
 
     final typedData = {
@@ -723,7 +738,12 @@ class Web3Service {
         params: [orgID],
       );
 
-      final owner = result[0] as EthereumAddress;
+      if (result.isEmpty) {
+        return null;
+      }
+
+      final owner = (result[0] as EthereumAddress?) ??
+          EthereumAddress.fromHex('0x0000000000000000000000000000000000000000');
       // Check if DID exists - if owner is zero address, DID doesn't exist
       if (owner == EthereumAddress.fromHex('0x0000000000000000000000000000000000000000')) {
         return null;
@@ -731,11 +751,15 @@ class Web3Service {
 
       return {
         'owner': owner.hex,
-        'hashData': _bytesToHex(result[1] as List<int>),
-        'uri': result[2] as String,
-        'active': result[3] as bool,
+        'hashData': _bytesToHex((result[1] as List<int>?) ?? List<int>.filled(32, 0)),
+        'uri': (result[2] as String?) ?? '',
+        'active': result.length > 3 ? result[3] as bool? ?? false : false,
       };
     } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] DID lookup returned no data for $orgID (treating as not registered)');
+        return null;
+      }
       debugPrint('[Web3Service] Error getting DID: $e');
       // Nếu client đã bị close, throw error rõ ràng hơn
       if (e.toString().contains('closed') || e.toString().contains('Client')) {
@@ -746,61 +770,97 @@ class Web3Service {
   }
 
   Future<List<Map<String, dynamic>>> getVCs(String orgID) async {
-    final lengthFunction = _contract.function('getVCLength');
-    final lengthResult = await _client.call(
-      contract: _contract,
-      function: lengthFunction,
-      params: [orgID],
-    );
-
-    final length = (lengthResult.first as BigInt).toInt();
-    final vcs = <Map<String, dynamic>>[];
-    final getVCFunction = _contract.function('getVC');
-
-    for (var i = 0; i < length; i++) {
-      final result = await _client.call(
+    try {
+      final lengthFunction = _contract.function('getVCLength');
+      final lengthResult = await _client.call(
         contract: _contract,
-        function: getVCFunction,
-        params: [orgID, BigInt.from(i)],
+        function: lengthFunction,
+        params: [orgID],
       );
 
-      vcs.add({
-        'index': i,
-        'hashCredential': _bytesToHex(result[0] as List<int>),
-        'uri': result[1] as String,
-        'issuer': (result[2] as EthereumAddress).hex,
-        'valid': result[3] as bool,
-        'expirationDate': (result[4] as BigInt).toInt(),
-        'issuedAt': (result[5] as BigInt).toInt(),
-        'verified': result[6] as bool,
-        'verifier': (result[7] as EthereumAddress).hex,
-        'verifiedAt': (result[8] as BigInt).toInt(),
-      });
-    }
+      final length = (lengthResult.first as BigInt?)?.toInt() ?? 0;
+      final vcs = <Map<String, dynamic>>[];
+      final getVCFunction = _contract.function('getVC');
 
-    return vcs;
+      for (var i = 0; i < length; i++) {
+        final result = await _client.call(
+          contract: _contract,
+          function: getVCFunction,
+          params: [orgID, BigInt.from(i)],
+        );
+
+        if (result.isEmpty) {
+          continue;
+        }
+
+        final expirationDate = (result[4] as BigInt?)?.toInt() ?? 0;
+        final issuedAt = (result[5] as BigInt?)?.toInt() ?? 0;
+        final verifiedAt = (result.length > 8 ? result[8] as BigInt? : BigInt.zero)?.toInt() ?? 0;
+
+        vcs.add({
+          'index': i,
+          'hashCredential': _bytesToHex((result[0] as List<int>?) ?? List<int>.filled(32, 0)),
+          'uri': (result[1] as String?) ?? '',
+          'issuer': ((result[2] as EthereumAddress?) ??
+                  EthereumAddress.fromHex('0x0000000000000000000000000000000000000000'))
+              .hex,
+          'valid': result[3] as bool? ?? false,
+          'expirationDate': expirationDate,
+          'issuedAt': issuedAt,
+          'verified': result[6] as bool? ?? false,
+          'verifier': ((result[7] as EthereumAddress?) ??
+                  EthereumAddress.fromHex('0x0000000000000000000000000000000000000000'))
+              .hex,
+          'verifiedAt': verifiedAt,
+        });
+      }
+
+      return vcs;
+    } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] getVCs returned empty result for $orgID (no credentials on-chain yet)');
+        return <Map<String, dynamic>>[];
+      }
+      debugPrint('[Web3Service] Error getting VCs for $orgID: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> getVC(String orgID, int index) async {
-    final getVCFunction = _contract.function('getVC');
-    final result = await _client.call(
-      contract: _contract,
-      function: getVCFunction,
-      params: [orgID, BigInt.from(index)],
-    );
+    try {
+      final getVCFunction = _contract.function('getVC');
+      final result = await _client.call(
+        contract: _contract,
+        function: getVCFunction,
+        params: [orgID, BigInt.from(index)],
+      );
 
-    return {
-      'index': index,
-      'hashCredential': _bytesToHex(result[0] as List<int>),
-      'uri': result[1] as String,
-      'issuer': (result[2] as EthereumAddress).hex,
-      'valid': result[3] as bool,
-      'expirationDate': (result[4] as BigInt).toInt(),
-      'issuedAt': (result[5] as BigInt).toInt(),
-      'verified': result[6] as bool,
-      'verifier': (result[7] as EthereumAddress).hex,
-      'verifiedAt': (result[8] as BigInt).toInt(),
-    };
+      final expirationDate = (result.length > 4 ? result[4] as BigInt? : BigInt.zero)?.toInt() ?? 0;
+      final issuedAt = (result.length > 5 ? result[5] as BigInt? : BigInt.zero)?.toInt() ?? 0;
+      final verifiedAt = (result.length > 8 ? result[8] as BigInt? : BigInt.zero)?.toInt() ?? 0;
+
+      return {
+        'index': index,
+        'hashCredential': _bytesToHex((result[0] as List<int>?) ?? List<int>.filled(32, 0)),
+        'uri': (result[1] as String?) ?? '',
+        'issuer': ((result[2] as EthereumAddress?) ??
+                EthereumAddress.fromHex('0x0000000000000000000000000000000000000000'))
+            .hex,
+        'valid': result[3] as bool? ?? false,
+        'expirationDate': expirationDate,
+        'issuedAt': issuedAt,
+        'verified': result[6] as bool? ?? false,
+        'verifier': ((result[7] as EthereumAddress?) ??
+                EthereumAddress.fromHex('0x0000000000000000000000000000000000000000'))
+            .hex,
+        'verifiedAt': verifiedAt,
+      };
+    } catch (e) {
+      if (_isNullIntCastError(e)) {
+        throw StateError('Credential not found for $orgID at index $index');
+      }
+      rethrow;
+    }
   }
 
   Future<bool> verifyVC(String orgID, int index, String providedHash) async {
@@ -933,6 +993,10 @@ class Web3Service {
 
       return result.first as bool;
     } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] Authorization lookup returned empty result for $orgID / $issuerAddress (treating as unauthorized)');
+        return false;
+      }
       debugPrint('[Web3Service] Error checking authorized issuer: $e');
       // Nếu client đã bị close hoặc network error, return false để validation tiếp tục
       // Contract sẽ revert với message rõ ràng hơn nếu thực sự không có quyền
@@ -999,13 +1063,21 @@ class Web3Service {
   /// Kiểm tra xem một địa chỉ có phải là trusted verifier không
   Future<bool> isTrustedVerifier(String verifierAddress) async {
     final function = _contract.function('trustedVerifiers');
-    final result = await _client.call(
-      contract: _contract,
-      function: function,
-      params: [EthereumAddress.fromHex(verifierAddress)],
-    );
+    try {
+      final result = await _client.call(
+        contract: _contract,
+        function: function,
+        params: [EthereumAddress.fromHex(verifierAddress)],
+      );
 
-    return result.first as bool;
+      return result.first as bool;
+    } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] trustedVerifiers returned empty result for $verifierAddress (treating as untrusted)');
+        return false;
+      }
+      rethrow;
+    }
   }
 
   /// Estimate gas for a transaction
@@ -1176,6 +1248,10 @@ class Web3Service {
       );
       return (result.first as BigInt).toInt();
     } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] nextRequestId returned empty result (defaulting to 0)');
+        return 0;
+      }
       debugPrint('[Web3Service] Error getting nextRequestId: $e');
       return 0;
     }
@@ -1226,7 +1302,11 @@ class Web3Service {
       }
       
       // Sắp xếp theo requestedAt (mới nhất trước)
-      requests.sort((a, b) => (b['requestedAt'] as int).compareTo(a['requestedAt'] as int));
+      requests.sort((a, b) {
+        final requestedAtB = (b['requestedAt'] as int?) ?? 0;
+        final requestedAtA = (a['requestedAt'] as int?) ?? 0;
+        return requestedAtB.compareTo(requestedAtA);
+      });
       
       return requests;
     } catch (e) {
@@ -1698,94 +1778,37 @@ class Web3Service {
     required Map<String, dynamic> typedData,
   }) {
     try {
-      // Parse signature
-      final signatureBytes = _hexToBytes(signature);
-      if (signatureBytes.length != 65) {
+      final normalizedSignature =
+          signature.startsWith('0x') ? signature : '0x$signature';
+      final typedMessage = TypedMessage.fromJson(typedData);
+      final publicKey = TypedDataUtil.recoverPublicKey(
+        typedMessage,
+        normalizedSignature,
+        TypedDataVersion.V4,
+      );
+      if (publicKey == null) {
+        debugPrint('Error recovering signature: public key is null');
         return null;
       }
-
-      final r = BigInt.parse(
-        '0x${signatureBytes.sublist(0, 32).map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
-      );
-      final s = BigInt.parse(
-        '0x${signatureBytes.sublist(32, 64).map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
-      );
-      final v = signatureBytes[64];
-
-      // Create the message hash using the same method as signing
-      // For EIP-712, we need: keccak256("\x19\x01" || domainSeparator || hashStruct(message))
-      // Simplified: hash the JSON representation with EIP-712 prefix
-      final domain = typedData['domain'] as Map<String, dynamic>;
-      final domainName = domain['name'] as String? ?? 'SSI Identity Manager';
-      final domainVersion = domain['version'] as String? ?? '1';
-      final chainId = domain['chainId'] is BigInt 
-          ? domain['chainId'] as BigInt 
-          : BigInt.from(domain['chainId'] ?? Environment.chainId);
-      final verifyingContract = domain['verifyingContract'] as String? ?? Environment.contractAddress;
-
-      // Hash domain (simplified)
-      final domainTypeString = 'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)';
-      final domainTypeHash = crypto.keccak256(Uint8List.fromList(utf8.encode(domainTypeString)));
-      
-      // Encode domain values
-      final nameHash = crypto.keccak256(Uint8List.fromList(utf8.encode(domainName)));
-      final versionHash = crypto.keccak256(Uint8List.fromList(utf8.encode(domainVersion)));
-      final chainIdBytes = _padUint256(chainId);
-      final contractBytes = _padAddress(verifyingContract);
-      
-      // Combine domain encoding
-      final domainEncoding = Uint8List.fromList([
-        ...domainTypeHash,
-        ...nameHash,
-        ...versionHash,
-        ...chainIdBytes,
-        ...contractBytes,
-      ]);
-      final domainSeparator = crypto.keccak256(domainEncoding);
-
-      // Hash the message struct
-      // For simplicity, we'll hash the JSON representation of the message
-      // In production, implement proper struct hashing
-      final message = typedData['message'] as Map<String, dynamic>;
-      final messageJson = jsonEncode(message);
-      final messageHash = crypto.keccak256(Uint8List.fromList(utf8.encode(messageJson)));
-
-      // Create final hash: keccak256("\x19\x01" || domainSeparator || messageHash)
-      final prefix = Uint8List.fromList([0x19, 0x01]);
-      final finalHash = crypto.keccak256(Uint8List.fromList([
-        ...prefix,
-        ...domainSeparator,
-        ...messageHash,
-      ]));
-
-      // Recover address using web3dart's ECDSA recovery
-      // Create MsgSignature - web3dart uses recovery ID (v - 27) or just v
-      // EIP-712 signatures typically use v = 27 or 28, but we need recovery ID 0 or 1
-      final recoveryId = v >= 27 ? v - 27 : v;
-      final msgSignature = crypto.MsgSignature(r, s, recoveryId);
-      
-      // ecRecover returns Uint8List (20 bytes for address)
-      final addressBytes = crypto.ecRecover(finalHash, msgSignature);
+      final addressBytes = SignatureUtil.publicKeyToAddress(publicKey);
       return _bytesToHex(addressBytes);
     } catch (e) {
-      // If verification fails, return null
       debugPrint('Error recovering signature: $e');
       return null;
     }
   }
 
-  /// Pad a uint256 to 32 bytes
-  Uint8List _padUint256(BigInt value) {
-    final hex = value.toRadixString(16).padLeft(64, '0');
-    return Uint8List.fromList(_hexToBytes('0x$hex'));
+  Map<String, String> _normalizeClaims(Map<String, dynamic> claims) {
+    final sorted = SplayTreeMap<String, String>();
+    for (final entry in claims.entries) {
+      sorted[entry.key] = entry.value?.toString() ?? '';
+    }
+    return sorted;
   }
 
-  /// Pad an address to 32 bytes (left-padded with zeros)
-  Uint8List _padAddress(String address) {
-    final addressBytes = _hexToBytes(address.startsWith('0x') ? address : '0x$address');
-    final padded = Uint8List(32);
-    padded.setRange(32 - addressBytes.length, 32, addressBytes);
-    return padded;
+  bool _isNullIntCastError(Object error) {
+    return error is TypeError &&
+        error.toString().contains("type 'Null' is not a subtype of type 'int'");
   }
 }
 

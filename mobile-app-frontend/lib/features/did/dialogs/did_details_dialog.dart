@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:ssi_app/app/theme/app_colors.dart';
-import 'package:ssi_app/services/ipfs/pinata_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_detail_widgets.dart';
 import 'package:ssi_app/features/credentials/widgets/fullscreen_image_viewer.dart';
 import 'package:ssi_app/features/credentials/widgets/fullscreen_pdf_viewer.dart';
+import 'package:ssi_app/services/ipfs/pinata_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class DIDDetailsDialog extends StatefulWidget {
@@ -28,6 +29,8 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
   String? _previewingFileUri;
   String? _previewingFileName;
   GatewayLink? _selectedGatewayLink;
+  String? _previewingContentType;
+  bool _isResolvingContentType = false;
 
   List<GatewayLink> _buildGatewayLinks(String uri) {
     final links = <GatewayLink>[];
@@ -145,6 +148,16 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
     return false;
   }
 
+  bool _isImageContentType(String? contentType) {
+    if (contentType == null) return false;
+    return contentType.toLowerCase().startsWith('image/');
+  }
+
+  bool _isPdfContentType(String? contentType) {
+    if (contentType == null) return false;
+    return contentType.toLowerCase().contains('application/pdf');
+  }
+
   Future<void> _openExternalLink(String url) async {
     try {
       final uri = Uri.parse(url);
@@ -205,7 +218,165 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
           _selectedGatewayLink = GatewayLink(label: 'Original', url: uri);
         }
       }
+      _previewingContentType = null;
+      _isResolvingContentType = false;
     });
+    _resolvePreviewContentType();
+  }
+
+  Future<void> _resolvePreviewContentType() async {
+    final url = _selectedGatewayLink?.url;
+    if (url == null ||
+        _isImageFile(_previewingFileName, url) ||
+        _isPdfFile(_previewingFileName, url)) {
+      return;
+    }
+    setState(() {
+      _isResolvingContentType = true;
+      _previewingContentType = null;
+    });
+    try {
+      final response = await http.head(Uri.parse(url));
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _previewingContentType = response.headers['content-type'];
+      });
+    } catch (e) {
+      debugPrint('Error resolving content type: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResolvingContentType = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildPreviewContent() {
+    if (_selectedGatewayLink == null) {
+      return const SizedBox.shrink();
+    }
+
+    final url = _selectedGatewayLink!.url;
+    final isImage = _isImageFile(_previewingFileName, url) ||
+        _isImageContentType(_previewingContentType);
+    final isPdf = _isPdfFile(_previewingFileName, url) ||
+        _isPdfContentType(_previewingContentType);
+
+    if (isImage) {
+      return GestureDetector(
+        onTap: () => _openFullscreenImage(url, _previewingFileName),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 3.0,
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: progress.expectedTotalBytes != null
+                        ? progress.cumulativeBytesLoaded /
+                            (progress.expectedTotalBytes ?? 1)
+                        : null,
+                    color: AppColors.secondary,
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return AttachmentPreviewFallback(
+                  url: url,
+                  onOpenExternal: () => _openExternalLink(url),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isPdf) {
+      return GestureDetector(
+        onTap: () => _openFullscreenPdf(url, _previewingFileName),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: WebViewWidget(
+                    controller: WebViewController()
+                      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                      ..setNavigationDelegate(
+                        NavigationDelegate(
+                          onPageFinished: (loadedUrl) {
+                            debugPrint('PDF loaded: $loadedUrl');
+                          },
+                          onWebResourceError: (error) {
+                            debugPrint('PDF load error: ${error.description}');
+                          },
+                        ),
+                      )
+                      ..loadRequest(
+                        Uri.parse(
+                          'https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true',
+                        ),
+                      ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      _previewingFileName ?? 'Document',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.open_in_new, color: Colors.grey[700], size: 20),
+                    onPressed: () => _openExternalLink(url),
+                    tooltip: 'Mở PDF trong trình duyệt',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_isResolvingContentType) {
+      return const SizedBox(
+        width: 48,
+        height: 48,
+        child: CircularProgressIndicator(color: AppColors.secondary),
+      );
+    }
+
+    return AttachmentPreviewFallback(
+      url: url,
+      onOpenExternal: () => _openExternalLink(url),
+    );
   }
 
   void _copyToClipboard(String text, String label) {
@@ -270,6 +441,8 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
     final metadata = widget.didDocument?['metadata'] as Map<String, dynamic>?;
     final logoUri = metadata?['logo'] as String?;
     final documentUri = metadata?['document'] as String?;
+    final logoFileName = metadata?['logoFileName']?.toString();
+    final documentFileName = metadata?['documentFileName']?.toString();
     final serviceEndpoint = (widget.didDocument?['service'] as List?)?.isNotEmpty == true
         ? (widget.didDocument?['service'] as List).first['serviceEndpoint'] as String?
         : null;
@@ -380,7 +553,13 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                 ),
                 const SizedBox(height: 8),
                 ...metadata.entries
-                    .where((e) => e.key != 'logo' && e.key != 'document')
+                    .where(
+                      (e) =>
+                          e.key != 'logo' &&
+                          e.key != 'document' &&
+                          e.key != 'logoFileName' &&
+                          e.key != 'documentFileName',
+                    )
                     .map((e) => _buildDetailRow(
                           e.key,
                           e.value?.toString() ?? '',
@@ -402,22 +581,32 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                     leading: const Icon(Icons.image, color: AppColors.secondary),
                     title: const Text('Logo'),
                     subtitle: Text(
-                      _extractFileNameFromUri(logoUri) ?? 'logo',
+                      logoFileName ?? _extractFileNameFromUri(logoUri) ?? 'logo',
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _handleViewFile(logoUri, _extractFileNameFromUri(logoUri) ?? 'logo'),
+                    onTap: () => _handleViewFile(
+                      logoUri,
+                      logoFileName ?? _extractFileNameFromUri(logoUri) ?? 'logo',
+                    ),
                   ),
                 if (documentUri != null)
                   ListTile(
                     leading: const Icon(Icons.insert_drive_file, color: AppColors.secondary),
                     title: const Text('Document'),
                     subtitle: Text(
-                      _extractFileNameFromUri(documentUri) ?? 'document',
+                      documentFileName ??
+                          _extractFileNameFromUri(documentUri) ??
+                          'document',
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _handleViewFile(documentUri, _extractFileNameFromUri(documentUri) ?? 'document'),
+                    onTap: () => _handleViewFile(
+                      documentUri,
+                      documentFileName ??
+                          _extractFileNameFromUri(documentUri) ??
+                          'document',
+                    ),
                   ),
               ],
               if (_previewingFileUri != null && _selectedGatewayLink != null) ...[
@@ -453,7 +642,10 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                               onSelected: (link) {
                                 setState(() {
                                   _selectedGatewayLink = link;
+                              _previewingContentType = null;
+                              _isResolvingContentType = false;
                                 });
+                            _resolvePreviewContentType();
                               },
                               itemBuilder: (context) {
                                 final gateways = _buildGatewayLinks(_previewingFileUri!);
@@ -472,6 +664,8 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                                 _previewingFileUri = null;
                                 _previewingFileName = null;
                                 _selectedGatewayLink = null;
+                                _previewingContentType = null;
+                                _isResolvingContentType = false;
                               });
                             },
                           ),
@@ -481,112 +675,7 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                       SizedBox(
                         height: 300,
                         child: Center(
-                          child: _isImageFile(_previewingFileName, _selectedGatewayLink!.url)
-                              ? GestureDetector(
-                                  onTap: () => _openFullscreenImage(
-                                    _selectedGatewayLink!.url,
-                                    _previewingFileName,
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: InteractiveViewer(
-                                      minScale: 0.5,
-                                      maxScale: 3.0,
-                                      child: Image.network(
-                                        _selectedGatewayLink!.url,
-                                        fit: BoxFit.contain,
-                                        loadingBuilder: (context, child, progress) {
-                                          if (progress == null) return child;
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              value: progress.expectedTotalBytes != null
-                                                  ? progress.cumulativeBytesLoaded /
-                                                      (progress.expectedTotalBytes ?? 1)
-                                                  : null,
-                                              color: AppColors.secondary,
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return AttachmentPreviewFallback(
-                                            url: _selectedGatewayLink!.url,
-                                            onOpenExternal: () => _openExternalLink(_selectedGatewayLink!.url),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : _isPdfFile(_previewingFileName, _selectedGatewayLink!.url)
-                                  ? GestureDetector(
-                                      onTap: () => _openFullscreenPdf(
-                                        _selectedGatewayLink!.url,
-                                        _previewingFileName,
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[50],
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.grey[200]!),
-                                        ),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Expanded(
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(12),
-                                                child: WebViewWidget(
-                                                  controller: WebViewController()
-                                                    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                                                    ..setNavigationDelegate(
-                                                      NavigationDelegate(
-                                                        onPageFinished: (url) {
-                                                          debugPrint('PDF loaded: $url');
-                                                        },
-                                                        onWebResourceError: (error) {
-                                                          debugPrint('PDF load error: ${error.description}');
-                                                        },
-                                                      ),
-                                                    )
-                                                    ..loadRequest(
-                                                      Uri.parse(
-                                                        'https://docs.google.com/viewer?url=${Uri.encodeComponent(_selectedGatewayLink!.url)}&embedded=true',
-                                                      ),
-                                                    ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    _previewingFileName ?? 'Document',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[700],
-                                                      fontSize: 12,
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(Icons.open_in_new, color: Colors.grey[700], size: 20),
-                                                  onPressed: () => _openExternalLink(_selectedGatewayLink!.url),
-                                                  tooltip: 'Mở PDF trong trình duyệt',
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  : AttachmentPreviewFallback(
-                                      url: _selectedGatewayLink!.url,
-                                      onOpenExternal: () => _openExternalLink(_selectedGatewayLink!.url),
-                                    ),
+                          child: _buildPreviewContent(),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -631,7 +720,10 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                                   onSelected: (_) {
                                     setState(() {
                                       _selectedGatewayLink = link;
+                                      _previewingContentType = null;
+                                      _isResolvingContentType = false;
                                     });
+                                    _resolvePreviewContentType();
                                   },
                                   selectedColor: AppColors.secondary.withValues(alpha: 0.3),
                                   backgroundColor: Colors.grey[100],

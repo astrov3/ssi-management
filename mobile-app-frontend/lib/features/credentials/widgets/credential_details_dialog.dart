@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
@@ -7,6 +10,7 @@ import 'package:ssi_app/features/credentials/models/credential_models.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_detail_widgets.dart';
 import 'package:ssi_app/features/credentials/widgets/fullscreen_image_viewer.dart';
 import 'package:ssi_app/features/credentials/widgets/fullscreen_pdf_viewer.dart';
+import 'package:ssi_app/features/qr/display/qr_display_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class CredentialDetailsDialog extends StatefulWidget {
@@ -55,6 +59,29 @@ class CredentialDetailsDialog extends StatefulWidget {
 class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
   CredentialAttachment? _previewingAttachment;
   GatewayLink? _selectedGatewayLink;
+
+  int? _parseEpochSeconds(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is BigInt) {
+      return value.toInt();
+    }
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) {
+        return parsed;
+      }
+      final date = DateTime.tryParse(value);
+      if (date != null) {
+        return (date.millisecondsSinceEpoch / 1000).round();
+      }
+    }
+    return null;
+  }
 
   List<GatewayLink> _buildGatewayLinks(String uri) {
     final links = <GatewayLink>[];
@@ -228,6 +255,118 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
     }
   }
 
+  void _showCredentialQrDialog() {
+    final qrPayload = {
+      'type': 'VC',
+      'orgID': widget.orgID,
+      'index': widget.credential['index'],
+      'hashCredential': widget.credential['hashCredential'],
+      'uri': widget.credential['uri'],
+      'issuer': widget.credential['issuer'],
+    };
+    final qrString = jsonEncode(qrPayload);
+    final credentialTitle = widget.title;
+    final isVerified = widget.credential['verified'] == true;
+    final isValid = widget.credential['valid'] != false;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            '${l10n.myQrCode} - $credentialTitle',
+            style: TextStyle(color: Colors.grey[900]),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: QrImageView(
+                      data: qrString,
+                      version: QrVersions.auto,
+                      size: 200,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: AppColors.primary,
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: AppColors.surface,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isValid ? AppColors.success : AppColors.danger,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isValid ? l10n.valid : l10n.revoked,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isVerified ? AppColors.success : Colors.orange,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isVerified ? 'Verified' : 'Unverified',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.close),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => QRDisplayScreen(qrData: qrPayload),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Xem chi tiết'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isAttachmentKey(String key) {
@@ -247,6 +386,10 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
       }
       return false;
     }
+
+    final issuedAtSeconds = _parseEpochSeconds(widget.credential['issuedAt']);
+    final expirationSeconds = _parseEpochSeconds(widget.credential['expirationDate']);
+    final verifiedSeconds = _parseEpochSeconds(widget.credential['verifiedAt']);
 
     return Dialog(
       backgroundColor: Colors.white,
@@ -365,22 +508,19 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                 value: widget.credential['hashCredential'],
               ),
               CredentialDetailRow(label: 'URI', value: widget.credential['uri']),
-              if (widget.credential['issuedAt'] != null)
+              if (issuedAtSeconds != null)
                 CredentialDetailRow(
                   label: 'Issued At',
-                  value:
-                      DateTime.fromMillisecondsSinceEpoch(
-                        (widget.credential['issuedAt'] as int) * 1000,
-                      ).toIso8601String(),
+                  value: DateTime.fromMillisecondsSinceEpoch(
+                    issuedAtSeconds * 1000,
+                  ).toIso8601String(),
                 ),
-              if (widget.credential['expirationDate'] != null &&
-                  (widget.credential['expirationDate'] as int) > 0)
+              if (expirationSeconds != null && expirationSeconds > 0)
                 CredentialDetailRow(
                   label: 'Expiration',
-                  value:
-                      DateTime.fromMillisecondsSinceEpoch(
-                        (widget.credential['expirationDate'] as int) * 1000,
-                      ).toIso8601String(),
+                  value: DateTime.fromMillisecondsSinceEpoch(
+                    expirationSeconds * 1000,
+                  ).toIso8601String(),
                 ),
               if (widget.credential['verified'] == true) ...[
                 if (widget.credential['verifier'] != null)
@@ -388,14 +528,12 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                     label: 'Verified By',
                     value: widget.credential['verifier'],
                   ),
-                if (widget.credential['verifiedAt'] != null &&
-                    (widget.credential['verifiedAt'] as int) > 0)
+                if (verifiedSeconds != null && verifiedSeconds > 0)
                   CredentialDetailRow(
                     label: 'Verified At',
-                    value:
-                        DateTime.fromMillisecondsSinceEpoch(
-                          (widget.credential['verifiedAt'] as int) * 1000,
-                        ).toIso8601String(),
+                    value: DateTime.fromMillisecondsSinceEpoch(
+                      verifiedSeconds * 1000,
+                    ).toIso8601String(),
                   ),
               ],
               if (widget.vcDocument != null) ...[
@@ -730,6 +868,19 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       label: Text(AppLocalizations.of(context)!.copyHash),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _showCredentialQrDialog,
+                      icon: const Icon(Icons.qr_code_2),
+                      label: Text(AppLocalizations.of(context)!.myQrCode),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),

@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/app/theme/app_gradients.dart';
 import 'package:ssi_app/core/utils/navigation_utils.dart';
@@ -14,6 +17,28 @@ import 'package:ssi_app/features/credentials/widgets/credential_form_dialog.dart
 import 'package:ssi_app/features/credentials/models/credential_models.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_list_widgets.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_details_dialog.dart';
+import 'package:ssi_app/features/qr/display/qr_display_screen.dart';
+
+enum WalletActionStep {
+  signature,
+  uploading,
+  transaction,
+  confirming,
+}
+
+class WalletActionState {
+  const WalletActionState({
+    required this.step,
+    this.isCompleted = false,
+    this.isError = false,
+    this.errorMessage,
+  });
+
+  final WalletActionStep step;
+  final bool isCompleted;
+  final bool isError;
+  final String? errorMessage;
+}
 
 class CredentialsScreen extends StatefulWidget {
   const CredentialsScreen({super.key});
@@ -43,6 +68,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   String _address = '';
   Map<String, bool> _canIssueVC = {};
   Map<String, bool> _canRevokeVC = {};
+  ValueNotifier<WalletActionState>? _walletActionStateNotifier;
+  BuildContext? _walletActionSheetContext;
 
   @override
   void initState() {
@@ -58,12 +85,19 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     // _web3Service.dispose(); // Commented out to prevent "Client is already closed" errors
     _roleService.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    _walletActionStateNotifier?.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (_walletConnectService.isPendingTransactionOrSignature()) {
+        _dismissBlockingSpinner();
+      }
+    }
     if (state == AppLifecycleState.resumed) {
       _loadCredentials();
     }
@@ -386,6 +420,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     String orgID,
     Map<String, dynamic>? credentialData,
   ) async {
+    WalletActionStep currentWalletStep = WalletActionStep.signature;
+    bool isWalletConnectFlow = false;
     try {
       final l10n = AppLocalizations.of(context)!;
       _showBlockingSpinner('Đang xử lý files và tạo chứng nhận...');
@@ -404,14 +440,12 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         final key = entry.key;
         final value = entry.value;
 
-        // Check if this is a file field (documentFile, etc.)
         if (key.toLowerCase().contains('file') ||
             key.toLowerCase().contains('document')) {
           if (value is String && value.isNotEmpty) {
             try {
               final file = File(value);
               if (await file.exists()) {
-                // Upload file to IPFS
                 _showBlockingSpinner(
                   'Đang tải lên file: ${file.path.split('/').last}...',
                 );
@@ -421,32 +455,27 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                   fileBytes,
                   fileName,
                 );
-
-                // Store IPFS URI instead of file path
                 processedData[key] = ipfsUri;
                 processedData['${key}FileName'] = fileName;
               } else {
-                // File doesn't exist, skip it
                 debugPrint('File not found: $value');
               }
             } catch (e) {
               debugPrint('Error uploading file $value: $e');
-              // Continue without the file if upload fails
             }
           }
         } else {
-          // Regular field, keep as is
           processedData[key] = value;
         }
       }
 
-      // Check if using WalletConnect
       final isWC = await _walletConnectService.hasActiveSession();
+      isWalletConnectFlow = isWC;
+      if (!mounted) return;
 
-      if (isWC) {
-        _updateSpinnerMessage(
-          'Đang ký credential với MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận signature.\n\nNếu không thấy notification, vui lòng mở MetaMask app thủ công.',
-        );
+      if (isWalletConnectFlow) {
+        _dismissBlockingSpinner();
+        _showWalletActionSheet(currentWalletStep);
       } else {
         _updateSpinnerMessage(l10n.creatingVCAndUploading);
       }
@@ -458,14 +487,16 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         expirationDateIso: expirationIso,
       );
 
-      // Upload VC to IPFS
-      if (isWC) {
+      currentWalletStep = WalletActionStep.uploading;
+      if (isWalletConnectFlow) {
+        _updateWalletActionStep(currentWalletStep);
+      } else {
         _updateSpinnerMessage('Đang tải credential lên IPFS...');
       }
+
       final ipfsUri = await _pinataService.uploadJSON(signedVC);
       final hashCredential = _pinataService.generateHash(signedVC);
 
-      // Issue VC on blockchain
       int? expirationTimestamp;
       if (expirationIso != null) {
         final parsed = DateTime.tryParse(expirationIso);
@@ -474,10 +505,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         }
       }
 
-      if (isWC) {
-        _updateSpinnerMessage(
-          'Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.\n\nNếu không thấy notification, vui lòng mở MetaMask app thủ công.',
-        );
+      currentWalletStep = WalletActionStep.transaction;
+      if (isWalletConnectFlow) {
+        _updateWalletActionStep(currentWalletStep);
       } else {
         _updateSpinnerMessage('Đang đăng ký credential trên blockchain...');
       }
@@ -491,9 +521,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           expirationTimestamp: expirationTimestamp,
         );
       } catch (e) {
-        // Nếu validation fail, hiển thị error message ngay
-        NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
-        _spinnerContext = null;
+        _dismissBlockingSpinner();
+        if (isWalletConnectFlow) {
+          _setWalletActionError(currentWalletStep, e.toString());
+        }
         if (!mounted) return;
 
         String errorMessage = 'Lỗi khi issue VC: ${e.toString()}';
@@ -518,11 +549,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         return;
       }
 
-      // Đợi transaction được confirm và kiểm tra status
-      if (isWC) {
-        _updateSpinnerMessage(
-          'Đang đợi transaction được confirm trên blockchain...\n\nVui lòng đợi...',
-        );
+      currentWalletStep = WalletActionStep.confirming;
+      if (isWalletConnectFlow) {
+        _updateWalletActionStep(currentWalletStep);
       } else {
         _updateSpinnerMessage(
           'Đang đợi transaction được confirm trên blockchain...',
@@ -531,11 +560,13 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       final success = await _web3Service.waitForTransactionReceipt(txHash);
 
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
-      _spinnerContext = null;
+      _dismissBlockingSpinner();
       if (!mounted) return;
 
       if (success) {
+        if (isWalletConnectFlow) {
+          _updateWalletActionStep(currentWalletStep, completed: true);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -548,7 +579,12 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         );
         _loadCredentials();
       } else {
-        // Transaction bị revert - hiển thị thông báo chi tiết hơn
+        if (isWalletConnectFlow) {
+          _setWalletActionError(
+            WalletActionStep.transaction,
+            'Transaction đã bị revert trên blockchain.',
+          );
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -560,19 +596,20 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         );
       }
     } catch (e) {
-      // Safely dismiss dialog even if context is invalid
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
-      _spinnerContext = null;
-      
-      // Clear pending flags if transaction was rejected
+      _dismissBlockingSpinner();
+
       if (e.toString().toLowerCase().contains('rejected') ||
           e.toString().toLowerCase().contains('denied')) {
         _walletConnectService.clearPendingFlags();
       }
-      
-      if (!mounted) return;
 
-      // Provide more helpful error messages
+      if (!mounted) {
+        if (isWalletConnectFlow) {
+          _setWalletActionError(currentWalletStep, e.toString());
+        }
+        return;
+      }
+
       String errorMessage = AppLocalizations.of(
         context,
       )!.errorOccurred(e.toString());
@@ -588,6 +625,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
       }
 
+      if (isWalletConnectFlow) {
+        _setWalletActionError(currentWalletStep, errorMessage);
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -595,6 +636,70 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           duration: const Duration(seconds: 4),
         ),
       );
+    } finally {
+      if (isWalletConnectFlow) {
+        await Future.delayed(const Duration(milliseconds: 400));
+        await _hideWalletActionSheet();
+      }
+    }
+  }
+
+  void _showWalletActionSheet(WalletActionStep initialStep) {
+    if (!mounted) return;
+    _walletActionStateNotifier?.dispose();
+    _walletActionStateNotifier = ValueNotifier(
+      WalletActionState(step: initialStep),
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) {
+        _walletActionSheetContext = sheetContext;
+        return _WalletActionSheet(
+          stateListenable: _walletActionStateNotifier!,
+          onOpenWallet: () => _walletConnectService.openWalletApp(),
+        );
+      },
+    ).whenComplete(() {
+      _walletActionSheetContext = null;
+      _walletActionStateNotifier?.dispose();
+      _walletActionStateNotifier = null;
+    });
+  }
+
+  void _updateWalletActionStep(
+    WalletActionStep step, {
+    bool completed = false,
+  }) {
+    final notifier = _walletActionStateNotifier;
+    if (notifier == null) return;
+    notifier.value = WalletActionState(
+      step: step,
+      isCompleted: completed,
+    );
+  }
+
+  void _setWalletActionError(WalletActionStep step, String message) {
+    final notifier = _walletActionStateNotifier;
+    if (notifier == null) return;
+    notifier.value = WalletActionState(
+      step: step,
+      isError: true,
+      errorMessage: message,
+    );
+  }
+
+  Future<void> _hideWalletActionSheet() async {
+    final sheetContext = _walletActionSheetContext;
+    if (sheetContext == null) {
+      return;
+    }
+    if (Navigator.of(sheetContext).canPop()) {
+      Navigator.of(sheetContext).pop();
+    } else {
+      Navigator.of(sheetContext).maybePop();
     }
   }
 
@@ -603,7 +708,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       final l10n = AppLocalizations.of(context)!;
       _showBlockingSpinner(l10n.revokingVC);
       final txHash = await _web3Service.revokeVC(_address, index);
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -618,7 +723,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       );
       _loadCredentials();
     } catch (e) {
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       
       // Clear pending flags if transaction was rejected
@@ -737,7 +842,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             vcDocument = await _pinataService.getJSON(uri);
           } catch (e) {
             debugPrint('Error loading VC document from URI: $e');
-            NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+            _dismissBlockingSpinner();
             _spinnerContext = null;
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
@@ -749,7 +854,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             return;
           }
         } else {
-          NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+          _dismissBlockingSpinner();
           _spinnerContext = null;
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -775,7 +880,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         metadataUri,
       );
       
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -789,7 +894,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       );
       _loadCredentials();
     } catch (e) {
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       
       // Clear pending flags if transaction was rejected
@@ -864,7 +969,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       _showBlockingSpinner('Đang xác thực credential...');
       final txHash = await _web3Service.verifyCredential(_address, index);
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -875,7 +980,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       );
       _loadCredentials();
     } catch (e) {
-      NavigationUtils.safePopDialog(_spinnerContext ?? (mounted ? context : null));
+      _dismissBlockingSpinner();
       _spinnerContext = null;
       
       // Clear pending flags if transaction was rejected
@@ -926,6 +1031,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   }
 
   BuildContext? _spinnerContext;
+  bool _isSpinnerVisible = false;
 
   void _showBlockingSpinner([String? message]) {
     final l10n = AppLocalizations.of(context)!;
@@ -933,8 +1039,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        _spinnerContext = context;
+      builder: (dialogContext) {
+        _spinnerContext = dialogContext;
+        _isSpinnerVisible = true;
         return AlertDialog(
           backgroundColor: AppColors.surface,
           content: Column(
@@ -947,8 +1054,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 style: const TextStyle(color: Colors.white),
                 textAlign: TextAlign.center,
               ),
-              if (displayMessage.contains('MetaMask') ||
-                  displayMessage.contains('wallet'))
+              if (displayMessage.toLowerCase().contains('metamask') ||
+                  displayMessage.toLowerCase().contains('wallet'))
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
                   child: Text(
@@ -965,16 +1072,141 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   }
 
   void _updateSpinnerMessage(String message) {
-    if (_spinnerContext != null && Navigator.canPop(_spinnerContext!)) {
+    if (!_isSpinnerVisible || _spinnerContext == null) {
+      return;
+    }
+    if (Navigator.canPop(_spinnerContext!)) {
       Navigator.of(_spinnerContext!).pop();
       _showBlockingSpinner(message);
     }
+  }
+
+  void _dismissBlockingSpinner() {
+    if (_spinnerContext != null) {
+      NavigationUtils.safePopDialog(_spinnerContext);
+      _spinnerContext = null;
+    }
+    _isSpinnerVisible = false;
   }
 
   void _copyToClipboard(String value, String message) {
     Clipboard.setData(ClipboardData(text: value));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.success),
+    );
+  }
+
+  void _showCredentialQrDialog(int index) {
+    final credential = _credentials[index];
+    final qrPayload = {
+      'type': 'VC',
+      'orgID': _address,
+      'index': credential['index'],
+      'hashCredential': credential['hashCredential'],
+      'uri': credential['uri'],
+      'issuer': credential['issuer'],
+    };
+    final qrString = jsonEncode(qrPayload);
+    final credentialTitle = _titleForCredential(credential, index, context);
+    final isVerified = credential['verified'] == true;
+    final isValid = credential['valid'] != false;
+
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            '${l10n.myQrCode} - $credentialTitle',
+            style: TextStyle(color: Colors.grey[900]),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: QrImageView(
+                      data: qrString,
+                      version: QrVersions.auto,
+                      size: 200,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: AppColors.primary,
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: AppColors.surface,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isValid ? AppColors.success : AppColors.danger,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isValid ? l10n.valid : l10n.revoked,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isVerified ? AppColors.success : Colors.orange,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isVerified ? 'Verified' : 'Unverified',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.close),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => QRDisplayScreen(qrData: qrPayload),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Xem chi tiết'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1105,6 +1337,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                               isValid: credential['valid'] ?? false,
                               isVerified: credential['verified'] ?? false,
                               onTap: () => _showCredentialDetails(index),
+                              onShareQr: () => _showCredentialQrDialog(index),
                             );
                           },
                         ),
@@ -1122,6 +1355,276 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 label: Text(AppLocalizations.of(context)!.issueCredential),
               )
               : null,
+    );
+  }
+}
+
+const List<_WalletStepDescriptor> _walletStepDescriptors = [
+  _WalletStepDescriptor(
+    step: WalletActionStep.signature,
+    title: 'Ký credential',
+    subtitle: 'Xác nhận chữ ký EIP-712 trong MetaMask.',
+  ),
+  _WalletStepDescriptor(
+    step: WalletActionStep.uploading,
+    title: 'Upload credential',
+    subtitle: 'Ứng dụng tự động tải dữ liệu lên IPFS.',
+  ),
+  _WalletStepDescriptor(
+    step: WalletActionStep.transaction,
+    title: 'Ký giao dịch',
+    subtitle: 'Chấp nhận transaction issue VC trong MetaMask.',
+  ),
+  _WalletStepDescriptor(
+    step: WalletActionStep.confirming,
+    title: 'Chờ blockchain xác nhận',
+    subtitle: 'Giữ ứng dụng mở trong lúc chờ xác nhận on-chain.',
+  ),
+];
+
+class _WalletActionSheet extends StatelessWidget {
+  const _WalletActionSheet({
+    required this.stateListenable,
+    required this.onOpenWallet,
+  });
+
+  final ValueListenable<WalletActionState> stateListenable;
+  final Future<void> Function() onOpenWallet;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: ValueListenableBuilder<WalletActionState>(
+          valueListenable: stateListenable,
+          builder: (context, state, _) {
+            final int activeIndex = _walletStepDescriptors.indexWhere(
+              (descriptor) => descriptor.step == state.step,
+            );
+            final bool showWalletButton = !state.isCompleted &&
+                !state.isError &&
+                (state.step == WalletActionStep.signature ||
+                    state.step == WalletActionStep.transaction);
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Xác nhận trong MetaMask',
+                  style: TextStyle(
+                    color: Colors.grey[900],
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Giữ ứng dụng này mở và chuyển sang MetaMask khi được yêu cầu.',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ..._walletStepDescriptors.asMap().entries.map(
+                  (entry) {
+                    final descriptor = entry.value;
+                    final descriptorIndex = entry.key;
+                    final bool isCurrent = descriptorIndex == activeIndex &&
+                        !state.isCompleted &&
+                        !state.isError;
+                    final bool isCompleted = descriptorIndex < activeIndex ||
+                        (state.isCompleted && descriptor.step == state.step);
+                    final bool showError = state.isError && descriptor.step == state.step;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _WalletActionStepRow(
+                        descriptor: descriptor,
+                        isActive: isCurrent,
+                        isCompleted: isCompleted,
+                        showError: showError,
+                      ),
+                    );
+                  },
+                ),
+                if (showWalletButton) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onOpenWallet,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Mở MetaMask'),
+                    ),
+                  ),
+                ],
+                if (state.isCompleted) ...[
+                  const SizedBox(height: 12),
+                  const _WalletActionInfoBanner(
+                    icon: Icons.check_circle,
+                    color: AppColors.success,
+                    message: 'Đã hoàn tất. Bạn có thể quay lại ứng dụng.',
+                  ),
+                ],
+                if (state.isError && state.errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  _WalletActionInfoBanner(
+                    icon: Icons.error_outline,
+                    color: AppColors.danger,
+                    message: state.errorMessage!,
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _WalletStepDescriptor {
+  const _WalletStepDescriptor({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final WalletActionStep step;
+  final String title;
+  final String subtitle;
+}
+
+class _WalletActionStepRow extends StatelessWidget {
+  const _WalletActionStepRow({
+    required this.descriptor,
+    required this.isActive,
+    required this.isCompleted,
+    required this.showError,
+  });
+
+  final _WalletStepDescriptor descriptor;
+  final bool isActive;
+  final bool isCompleted;
+  final bool showError;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget indicator;
+    Color borderColor = Colors.grey[200]!;
+
+    if (showError) {
+      indicator = const Icon(Icons.error_outline, color: AppColors.danger, size: 20);
+      borderColor = AppColors.danger.withValues(alpha: 0.2);
+    } else if (isCompleted) {
+      indicator = const Icon(Icons.check_circle, color: AppColors.success, size: 20);
+      borderColor = AppColors.success.withValues(alpha: 0.2);
+    } else if (isActive) {
+      indicator = const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondary),
+        ),
+      );
+      borderColor = AppColors.secondary.withValues(alpha: 0.2);
+    } else {
+      indicator = Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.grey[300],
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: indicator,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  descriptor.title,
+                  style: TextStyle(
+                    color: Colors.grey[900],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  descriptor.subtitle,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WalletActionInfoBanner extends StatelessWidget {
+  const _WalletActionInfoBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

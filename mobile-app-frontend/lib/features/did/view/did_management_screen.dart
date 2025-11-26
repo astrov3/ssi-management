@@ -139,6 +139,8 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
       // Handle file uploads if any
       String? logoIpfsUri;
       String? documentIpfsUri;
+      String? logoFileName;
+      String? documentFileName;
       
       if (logoPath != null && logoPath.isNotEmpty) {
         try {
@@ -146,7 +148,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await logoFile.exists()) {
             _updateSpinnerMessage('Đang upload logo lên IPFS...');
             final logoBytes = await logoFile.readAsBytes();
-            final logoFileName = logoFile.path.split('/').last;
+            logoFileName = logoFile.path.split('/').last;
             logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
           }
         } catch (e) {
@@ -160,8 +162,8 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await docFile.exists()) {
             _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
             final docBytes = await docFile.readAsBytes();
-            final docFileName = docFile.path.split('/').last;
-            documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
+            documentFileName = docFile.path.split('/').last;
+            documentIpfsUri = await _pinataService.uploadFile(docBytes, documentFileName);
           }
         } catch (e) {
           debugPrint('Error uploading document: $e');
@@ -193,12 +195,18 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         }
         if (logoIpfsUri != null) {
           metadata['logo'] = logoIpfsUri;
+          if (logoFileName != null) {
+            metadata['logoFileName'] = logoFileName;
+          }
         }
       }
 
       // If document was uploaded, add it to metadata
       if (documentIpfsUri != null) {
         metadata['document'] = documentIpfsUri;
+        if (documentFileName != null) {
+          metadata['documentFileName'] = documentFileName;
+        }
       }
 
       // If document was uploaded and is JSON, try to parse it and merge metadata
@@ -219,6 +227,9 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
                   metadata.addAll(docData);
                   if (documentIpfsUri != null) {
                     metadata['document'] = documentIpfsUri;
+                    if (documentFileName != null) {
+                      metadata['documentFileName'] = documentFileName;
+                    }
                   }
                 } else {
                   // Form tab: merge document data (avoid overwriting form fields)
@@ -369,6 +380,8 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
       // Handle file uploads if any
       String? logoIpfsUri;
       String? documentIpfsUri;
+      String? logoFileName;
+      String? documentFileName;
       
       if (logoPath != null && logoPath.isNotEmpty) {
         try {
@@ -376,7 +389,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await logoFile.exists()) {
             _updateSpinnerMessage('Đang upload logo lên IPFS...');
             final logoBytes = await logoFile.readAsBytes();
-            final logoFileName = logoFile.path.split('/').last;
+            logoFileName = logoFile.path.split('/').last;
             logoIpfsUri = await _pinataService.uploadFile(logoBytes, logoFileName);
           }
         } catch (e) {
@@ -390,8 +403,8 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
           if (await docFile.exists()) {
             _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
             final docBytes = await docFile.readAsBytes();
-            final docFileName = docFile.path.split('/').last;
-            documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
+            documentFileName = docFile.path.split('/').last;
+            documentIpfsUri = await _pinataService.uploadFile(docBytes, documentFileName);
           }
         } catch (e) {
           debugPrint('Error uploading document: $e');
@@ -438,12 +451,18 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         }
         if (logoIpfsUri != null) {
           metadata['logo'] = logoIpfsUri;
+          if (logoFileName != null) {
+            metadata['logoFileName'] = logoFileName;
+          }
         }
       }
 
       // If document was uploaded, add it to metadata
       if (documentIpfsUri != null) {
         metadata['document'] = documentIpfsUri;
+        if (documentFileName != null) {
+          metadata['documentFileName'] = documentFileName;
+        }
       }
 
       // If document was uploaded and is JSON, try to parse it and merge metadata
@@ -464,6 +483,9 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
                   metadata.addAll(docData);
                   if (documentIpfsUri != null) {
                     metadata['document'] = documentIpfsUri;
+                    if (documentFileName != null) {
+                      metadata['documentFileName'] = documentFileName;
+                    }
                   }
                 } else {
                   // Form tab: merge document data (avoid overwriting form fields)

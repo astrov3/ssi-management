@@ -674,6 +674,11 @@ class WalletConnectService {
     }
   }
 
+  /// Public helper so UI can explicitly reopen the wallet app (e.g. MetaMask)
+  Future<void> openWalletApp() async {
+    await _tryOpenWalletApp();
+  }
+
   /// Sign EIP-712 typed data via WalletConnect
   Future<String> signTypedData(String typedDataJson) async {
     final app = _appKit;

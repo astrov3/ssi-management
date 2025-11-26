@@ -129,7 +129,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
       _showBlockingSpinner('Đang xác thực credential...');
       
       final orgID = request['orgID'] as String;
-      final vcIndex = request['vcIndex'] as int;
+      final vcIndex = request['vcIndex'] as int? ?? 0;
       
       final txHash = await _web3Service.verifyCredential(orgID, vcIndex);
       
@@ -212,7 +212,7 @@ class _VerificationRequestsScreenState extends State<VerificationRequestsScreen>
 
       _showBlockingSpinner('Đang hủy yêu cầu xác thực...');
       
-      final requestId = request['requestId'] as int;
+      final requestId = request['requestId'] as int? ?? 0;
       final txHash = await _web3Service.cancelVerificationRequest(requestId);
       
       NavigationUtils.safePopDialog(mounted ? context : null);

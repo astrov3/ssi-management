@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/features/dashboard/dialogs/admin_panel_dialog.dart';
-import 'package:ssi_app/features/dashboard/dialogs/issue_vc_dialog.dart';
 import 'package:ssi_app/features/dashboard/dialogs/register_did_dialog.dart';
 import 'package:ssi_app/features/dashboard/widgets/dashboard_header.dart';
 import 'package:ssi_app/features/dashboard/widgets/did_status_card.dart';
@@ -202,7 +201,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         isAdmin: _isAdmin,
                         isVerifier: _isVerifier,
                         onRegister: _showRegisterDIDDialog,
-                        onIssue: _showIssueVCDialog,
                         onManageDID: _didData != null && _isOwner
                             ? () {
                                 Navigator.push(
@@ -408,149 +406,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _showBlockingSpinner(message);
   }
 
-  void _showIssueVCDialog() {
-    final orgIDController = TextEditingController(text: _address);
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => IssueVcDialog(
-        orgIDController: orgIDController,
-        onSubmit: (orgID, uri, metadata, expirationDate) async {
-          await _issueVC(orgID, metadata, expirationDate);
-        },
-      ),
-    );
-  }
-
-  Future<void> _issueVC(String orgID, Map<String, dynamic>? metadata, String? expirationDateIso) async {
-    final navigator = Navigator.of(context);
-    try {
-      _showBlockingSpinner('Đang tạo VC document và upload lên IPFS...');
-
-      // Handle file uploads if any
-      String? documentIpfsUri;
-      Map<String, dynamic> credentialData = {};
-      
-      if (metadata != null) {
-        // Upload document if provided
-        if (metadata.containsKey('documentPath') && metadata['documentPath'] != null) {
-          try {
-            final docFile = File(metadata['documentPath'] as String);
-            if (await docFile.exists()) {
-              _updateSpinnerMessage('Đang upload tài liệu lên IPFS...');
-              final docBytes = await docFile.readAsBytes();
-              final docFileName = docFile.path.split('/').last;
-              documentIpfsUri = await _pinataService.uploadFile(docBytes, docFileName);
-              credentialData['document'] = documentIpfsUri;
-
-              // If JSON, parse and merge metadata
-              final extension = docFile.path.split('.').last.toLowerCase();
-              if (extension == 'json') {
-                try {
-                  final jsonContent = await docFile.readAsString();
-                  final docData = jsonDecode(jsonContent) as Map<String, dynamic>?;
-                  if (docData != null) {
-                    credentialData.addAll(docData);
-                    credentialData['document'] = documentIpfsUri;
-                  }
-                } catch (e) {
-                  debugPrint('Error parsing document JSON: $e');
-                }
-              }
-            }
-          } catch (e) {
-            debugPrint('Error uploading document: $e');
-          }
-        }
-
-        // Add other metadata fields
-        credentialData.addAll({
-          if (metadata.containsKey('name') && metadata['name'] != null) 'name': metadata['name'],
-          if (metadata.containsKey('email') && metadata['email'] != null) 'email': metadata['email'],
-          if (metadata.containsKey('description') && metadata['description'] != null) 'description': metadata['description'],
-        });
-      }
-
-      // Ensure we have at least a name
-      if (!credentialData.containsKey('name') || credentialData['name'] == null || credentialData['name'].toString().isEmpty) {
-        credentialData['name'] = 'Credential Subject';
-      }
-
-      _updateSpinnerMessage('Đang tạo VC document...');
-
-      // Get issuer address
-      String? issuerAddress;
-      try {
-        issuerAddress = await _web3Service.loadWallet();
-        if (issuerAddress == null) {
-          issuerAddress = await _walletConnectService.getStoredAddress();
-        }
-      } catch (e) {
-        debugPrint('Error getting issuer address: $e');
-      }
-
-      if (issuerAddress == null) {
-        throw StateError('Không thể lấy địa chỉ ví hiện tại');
-      }
-
-      final issuerDid = 'did:ethr:$issuerAddress';
-      final vcType = metadata?['type']?.toString() ?? 'Credential';
-
-      // Create VC document
-      final vcDocument = _pinataService.createVerifiableCredential(
-        id: 'vc:${DateTime.now().millisecondsSinceEpoch}:${issuerAddress.substring(0, 8)}',
-        type: ['VerifiableCredential', vcType],
-        issuer: issuerDid,
-        credentialSubject: 'did:ethr:$orgID',
-        credentialData: credentialData,
-        expirationDate: expirationDateIso,
-      );
-
-      // Upload to IPFS
-      final ipfsUri = await _pinataService.uploadJSON(vcDocument);
-      final hashData = _pinataService.generateHash(vcDocument);
-
-      // Convert expiration date to timestamp if provided
-      int? expirationTimestamp;
-      if (expirationDateIso != null && expirationDateIso.isNotEmpty) {
-        try {
-          final expirationDate = DateTime.parse(expirationDateIso);
-          expirationTimestamp = expirationDate.millisecondsSinceEpoch ~/ 1000;
-        } catch (e) {
-          debugPrint('Error parsing expiration date: $e');
-        }
-      }
-
-      // Check if using WalletConnect
-      final isWC = await _walletConnectService.isConnected();
-      if (isWC) {
-        _updateSpinnerMessage('Đang gửi transaction đến MetaMask...\n\nVui lòng mở MetaMask wallet và xác nhận transaction.');
-      } else {
-        _updateSpinnerMessage('Đang phát hành VC trên blockchain...');
-      }
-
-      // Issue VC on blockchain
-      final txHash = await _web3Service.issueVC(orgID, hashData, ipfsUri, expirationTimestamp: expirationTimestamp);
-      
-      navigator.pop();
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.vcIssued('${txHash.substring(0, 10)}...')),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      _loadWalletData();
-    } catch (e) {
-      navigator.pop();
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorOccurred(e.toString())), backgroundColor: AppColors.danger),
-      );
-    }
-  }
 
   void _showBlockingSpinner([String? message]) {
     showDialog<void>(
