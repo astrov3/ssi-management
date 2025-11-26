@@ -70,12 +70,16 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   Map<String, bool> _canRevokeVC = {};
   ValueNotifier<WalletActionState>? _walletActionStateNotifier;
   BuildContext? _walletActionSheetContext;
+  Future<void>? _ongoingCredentialLoad;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadCredentials();
+    // Defer heavy credential load until after first frame to avoid janking the splash.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCredentials();
+    });
   }
 
   @override
@@ -103,8 +107,27 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     }
   }
 
-  Future<void> _loadCredentials() async {
+  Future<void> _loadCredentials() {
+    if (_ongoingCredentialLoad != null) {
+      return _ongoingCredentialLoad!;
+    }
+    final future = _loadCredentialsInternal();
+    _ongoingCredentialLoad = future;
+    future.whenComplete(() {
+      if (identical(_ongoingCredentialLoad, future)) {
+        _ongoingCredentialLoad = null;
+      }
+    });
+    return future;
+  }
+
+  Future<void> _loadCredentialsInternal() async {
     try {
+      if (!_isLoading && mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
       String? address = await _web3Service.loadWallet();
       address ??= await _walletConnectService.getStoredAddress();
 

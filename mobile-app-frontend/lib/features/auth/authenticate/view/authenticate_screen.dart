@@ -23,8 +23,10 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> with WidgetsBin
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _walletConnectService.init();
-    _checkExistingWallet();
+    // Defer wallet checks until after first frame to avoid blocking initial UI.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkExistingWallet();
+    });
   }
 
   @override

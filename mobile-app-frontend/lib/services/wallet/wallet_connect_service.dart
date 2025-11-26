@@ -18,6 +18,7 @@ class WalletConnectService {
   bool _isPendingTransaction = false; // Track if we're waiting for transaction/signature
   bool _isPendingSignature = false; // Track if we're waiting for signature
   String? _lastWalletConnectUri;
+  String? _cachedAddress;
   
   /// Kiểm tra xem có pending request (transaction hoặc signature) không
   bool hasPendingRequest() {
@@ -83,11 +84,14 @@ class WalletConnectService {
   /// Checks if there's an active session and returns the address
   Future<String?> getActiveSessionAddress() async {
     await init();
+    if (_cachedAddress != null && _isValidEthereumAddress(_cachedAddress!)) {
+      return _cachedAddress;
+    }
     if (_activeSession != null) {
       try {
-        final account = _firstAccountFromSession(_activeSession!);
-        final address = _extractAddressFromAccount(account);
+        final address = _extractAddressFromSession(_activeSession!);
         if (_isValidEthereumAddress(address)) {
+          _cachedAddress = address;
           return address;
         }
       } catch (e) {
@@ -100,12 +104,17 @@ class WalletConnectService {
   Future<String?> getStoredAddress() async {
     await init();
     
+    if (_cachedAddress != null && _isValidEthereumAddress(_cachedAddress!)) {
+      debugPrint('[WalletConnect] Using cached address: $_cachedAddress');
+      return _cachedAddress;
+    }
+
     if (_activeSession != null) {
       try {
-        final account = _firstAccountFromSession(_activeSession!);
-        final address = _extractAddressFromAccount(account);
+        final address = _extractAddressFromSession(_activeSession!);
         if (_isValidEthereumAddress(address)) {
           debugPrint('[WalletConnect] Retrieved address from active session: $address');
+          _cachedAddress = address;
           return address;
         }
       } catch (e) {
@@ -163,6 +172,7 @@ class WalletConnectService {
     // Clear session references and cached links
     _activeSession = null;
     _lastWalletConnectUri = null;
+    _cachedAddress = null;
     
     if (clearStoredData) {
       debugPrint('[WalletConnect] Cleared cached wallet link and wc uri');
@@ -250,9 +260,7 @@ class WalletConnectService {
     // Extract account with better error handling
     String address;
     try {
-      final account = _firstAccountFromSession(session);
-      debugPrint('[WalletConnect] Account extracted: $account');
-      address = _extractAddressFromAccount(account);
+      address = _extractAddressFromSession(session);
       debugPrint('[WalletConnect] Address extracted: $address');
     } catch (e) {
       debugPrint('[WalletConnect] Error extracting account: $e');
@@ -276,26 +284,35 @@ class WalletConnectService {
     
     if (currentChainId != targetSepoliaChainId) {
       debugPrint('[WalletConnect] Current chain: $currentChainId, switching to Sepolia: $targetSepoliaChainId');
-      try {
-        await switchToSepolia().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            debugPrint('[WalletConnect] Sepolia switch timeout - connection still successful');
-            return;
-          },
-        );
-        debugPrint('[WalletConnect] Successfully switched to Sepolia');
-      } catch (e) {
-        debugPrint('[WalletConnect] Failed to switch to Sepolia: $e');
-        debugPrint('[WalletConnect] Connection successful, but wallet may be on different chain');
-        // Connection is still successful - user can manually switch to Sepolia if needed
-      }
+      unawaited(_attemptSepoliaSwitchInBackground());
     } else {
       debugPrint('[WalletConnect] Already connected to Sepolia (chainId: $targetSepoliaChainId)');
     }
 
+    _cachedAddress = address;
     debugPrint('[WalletConnect] Connection completed successfully. Returning address: $address');
     return address;
+  }
+
+  String _extractAddressFromSession(SessionData session) {
+    final account = _firstAccountFromSession(session);
+    debugPrint('[WalletConnect] Account extracted: $account');
+    return _extractAddressFromAccount(account);
+  }
+
+  Future<void> _attemptSepoliaSwitchInBackground() async {
+    try {
+      await switchToSepolia().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('[WalletConnect] Sepolia switch timeout - connection still successful');
+        },
+      );
+      debugPrint('[WalletConnect] Successfully switched to Sepolia');
+    } catch (e) {
+      debugPrint('[WalletConnect] Failed to switch to Sepolia: $e');
+      debugPrint('[WalletConnect] Connection successful, but wallet may be on different chain');
+    }
   }
 
   /// Gets the current chain ID from the session

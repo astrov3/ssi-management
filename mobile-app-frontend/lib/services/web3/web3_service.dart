@@ -1267,17 +1267,35 @@ class Web3Service {
         params: [BigInt.from(requestId)],
       );
 
+      if (result.isEmpty) {
+        return null;
+      }
+
+      final orgId = (result[0] as String?) ?? '';
+      final vcIndex = (result[1] as BigInt?)?.toInt() ?? 0;
+      final requester = (result[2] as EthereumAddress?)?.hex ??
+          EthereumAddress.fromHex('0x0000000000000000000000000000000000000000').hex;
+      final targetVerifier = (result[3] as EthereumAddress?)?.hex ??
+          EthereumAddress.fromHex('0x0000000000000000000000000000000000000000').hex;
+      final metadataUri = (result[4] as String?) ?? '';
+      final requestedAt = (result[5] as BigInt?)?.toInt() ?? 0;
+      final processed = result.length > 6 ? result[6] as bool? ?? false : false;
+
       return {
         'requestId': requestId,
-        'orgID': result[0] as String,
-        'vcIndex': (result[1] as BigInt).toInt(),
-        'requester': (result[2] as EthereumAddress).hex,
-        'targetVerifier': (result[3] as EthereumAddress).hex,
-        'metadataUri': result[4] as String,
-        'requestedAt': (result[5] as BigInt).toInt(),
-        'processed': result[6] as bool,
+        'orgID': orgId,
+        'vcIndex': vcIndex,
+        'requester': requester,
+        'targetVerifier': targetVerifier,
+        'metadataUri': metadataUri,
+        'requestedAt': requestedAt,
+        'processed': processed,
       };
     } catch (e) {
+      if (_isNullIntCastError(e)) {
+        debugPrint('[Web3Service] Verification request $requestId not found or empty, ignoring');
+        return null;
+      }
       debugPrint('[Web3Service] Error getting verification request $requestId: $e');
       return null;
     }

@@ -51,7 +51,6 @@ class _SplashScreenState extends State<SplashScreen>
     // Check for any wallet (private key or WalletConnect)
     final web3Service = Web3Service();
     final walletConnectService = WalletConnectService();
-    await walletConnectService.init();
     
     String? walletAddress;
     
@@ -153,23 +152,26 @@ class _SplashIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.3),
-            blurRadius: 40,
-            spreadRadius: 10,
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.fingerprint,
-        size: 80,
-        color: Colors.white,
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.18),
+          // Keep a very light shadow to avoid heavy raster work on low-end GPUs.
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.white24,
+              blurRadius: 12,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.fingerprint,
+          size: 80,
+          color: Colors.white,
+        ),
       ),
     );
   }
