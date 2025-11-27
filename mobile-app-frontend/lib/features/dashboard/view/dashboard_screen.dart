@@ -221,8 +221,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AdminPanelDialog(
-        onSubmit: (verifierAddress, isAdding) async {
+        onVerifierSubmit: (verifierAddress, isAdding) async {
           await _setTrustedVerifier(verifierAddress, isAdding);
+        },
+        onChangeAdmin: (newAdminAddress) async {
+          await _changeAdmin(newAdminAddress);
         },
       ),
     );
@@ -251,6 +254,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       navigator.pop();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorOccurred(e.toString())),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  Future<void> _changeAdmin(String newAdminAddress) async {
+    final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      _showBlockingSpinner(l10n.transferringAdminRights);
+      final txHash = await _web3Service.setAdmin(newAdminAddress);
+      navigator.pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.adminUpdatedSuccessfully('${txHash.substring(0, 10)}...'),
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      _loadWalletData(forceRefresh: true);
+    } catch (e) {
+      navigator.pop();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.errorOccurred(e.toString())),

@@ -5,10 +5,12 @@ import 'package:ssi_app/l10n/app_localizations.dart';
 class AdminPanelDialog extends StatefulWidget {
   const AdminPanelDialog({
     super.key,
-    required this.onSubmit,
+    required this.onVerifierSubmit,
+    required this.onChangeAdmin,
   });
 
-  final void Function(String verifierAddress, bool isAdding) onSubmit;
+  final void Function(String verifierAddress, bool isAdding) onVerifierSubmit;
+  final void Function(String newAdminAddress) onChangeAdmin;
 
   @override
   State<AdminPanelDialog> createState() => _AdminPanelDialogState();
@@ -16,11 +18,13 @@ class AdminPanelDialog extends StatefulWidget {
 
 class _AdminPanelDialogState extends State<AdminPanelDialog> {
   final _verifierAddressController = TextEditingController();
+  final _newAdminController = TextEditingController();
   bool _isAdding = true;
 
   @override
   void dispose() {
     _verifierAddressController.dispose();
+    _newAdminController.dispose();
     super.dispose();
   }
 
@@ -36,18 +40,20 @@ class _AdminPanelDialogState extends State<AdminPanelDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _verifierAddressController,
-                decoration: InputDecoration(
-                  labelText: l10n.verifierAddress,
-                  hintText: '0x...',
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
-                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+              Text(
+                l10n.manageTrustedVerifiers,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
                 ),
-                style: const TextStyle(color: Colors.white),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _verifierAddressController,
+                label: l10n.verifierAddress,
+                hint: '0x...',
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -70,6 +76,7 @@ class _AdminPanelDialogState extends State<AdminPanelDialog> {
                   ),
                 ],
               ),
+              _buildAdminTransferSection(l10n),
             ],
           ),
         ),
@@ -89,14 +96,84 @@ class _AdminPanelDialogState extends State<AdminPanelDialog> {
                 );
                 return;
               }
-              widget.onSubmit(_verifierAddressController.text.trim(), _isAdding);
+              widget.onVerifierSubmit(_verifierAddressController.text.trim(), _isAdding);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(_isAdding ? l10n.addVerifier : l10n.removeVerifier),
           ),
         ],
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: Colors.white70),
+        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+      ),
+      style: const TextStyle(color: Colors.white),
+    );
+  }
+
+  Widget _buildAdminTransferSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 32, color: Colors.white24),
+        Text(
+          l10n.transferAdminTitle,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.transferAdminDescription,
+          style: const TextStyle(color: Colors.white60, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _newAdminController,
+          label: l10n.newAdminAddressLabel,
+          hint: '0x...',
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          onPressed: () {
+            final newAdmin = _newAdminController.text.trim();
+            if (newAdmin.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.pleaseEnterNewAdminAddress),
+                  backgroundColor: AppColors.danger,
+                ),
+              );
+              return;
+            }
+            Navigator.pop(context);
+            widget.onChangeAdmin(newAdmin);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.secondary,
+            foregroundColor: Colors.white,
+          ),
+          icon: const Icon(Icons.swap_horiz),
+          label: Text(l10n.updateAdminButton),
+        ),
+      ],
     );
   }
 }

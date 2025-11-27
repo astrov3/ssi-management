@@ -642,6 +642,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminPanel => 'Admin Panel - Manage Trusted Verifiers';
 
   @override
+  String get manageTrustedVerifiers => 'Manage trusted verifiers';
+
+  @override
   String get verifierAddress => 'Verifier Address *';
 
   @override
@@ -658,6 +661,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removeVerifier => 'Remove Verifier';
+
+  @override
+  String get transferAdminTitle => 'Transfer admin rights';
+
+  @override
+  String get transferAdminDescription =>
+      'This permanently hands over admin privileges to another address. Make sure you trust the new admin before confirming.';
+
+  @override
+  String get newAdminAddressLabel => 'New admin address';
+
+  @override
+  String get pleaseEnterNewAdminAddress => 'Please enter the new admin address';
+
+  @override
+  String get updateAdminButton => 'Update admin';
+
+  @override
+  String get transferringAdminRights =>
+      'Transferring admin rights...\\nPlease approve the transaction in your wallet.';
+
+  @override
+  String adminUpdatedSuccessfully(String txHash) {
+    return 'Admin updated successfully (tx: $txHash)';
+  }
 
   @override
   String get createYourDecentralizedIdentity =>

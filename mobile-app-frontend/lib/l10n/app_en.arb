@@ -829,6 +829,10 @@
   "@adminPanel": {
     "description": "Admin panel dialog title"
   },
+  "manageTrustedVerifiers": "Manage trusted verifiers",
+  "@manageTrustedVerifiers": {
+    "description": "Section title for trusted verifier controls"
+  },
   "verifierAddress": "Verifier Address *",
   "@verifierAddress": {
     "description": "Label for verifier address input"
@@ -852,6 +856,40 @@
   "removeVerifier": "Remove Verifier",
   "@removeVerifier": {
     "description": "Button to remove verifier"
+  },
+  "transferAdminTitle": "Transfer admin rights",
+  "@transferAdminTitle": {
+    "description": "Title for the admin transfer section"
+  },
+  "transferAdminDescription": "This permanently hands over admin privileges to another address. Make sure you trust the new admin before confirming.",
+  "@transferAdminDescription": {
+    "description": "Helper text describing the impact of transferring admin rights"
+  },
+  "newAdminAddressLabel": "New admin address",
+  "@newAdminAddressLabel": {
+    "description": "Label for the new admin address text field"
+  },
+  "pleaseEnterNewAdminAddress": "Please enter the new admin address",
+  "@pleaseEnterNewAdminAddress": {
+    "description": "Validation error when admin address is missing"
+  },
+  "updateAdminButton": "Update admin",
+  "@updateAdminButton": {
+    "description": "Button label to confirm admin transfer"
+  },
+  "transferringAdminRights": "Transferring admin rights...\\nPlease approve the transaction in your wallet.",
+  "@transferringAdminRights": {
+    "description": "Spinner message while admin transfer transaction is pending"
+  },
+  "adminUpdatedSuccessfully": "Admin updated successfully (tx: {txHash})",
+  "@adminUpdatedSuccessfully": {
+    "description": "Snack bar message after admin transfer succeeds",
+    "placeholders": {
+      "txHash": {
+        "type": "String",
+        "example": "0x1234..."
+      }
+    }
   },
   "createYourDecentralizedIdentity": "Create your decentralized identity (DID)",
   "@createYourDecentralizedIdentity": {

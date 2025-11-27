@@ -207,12 +207,27 @@
   },
   "connectYourWalletToContinue": "Kết nối ví của bạn để tiếp tục",
   "adminPanel": "Quản trị - Quản lý Trusted Verifiers",
+  "manageTrustedVerifiers": "Quản lý verifier tin cậy",
   "verifierAddress": "Địa chỉ Verifier *",
   "addEnable": "Thêm/Kích hoạt",
   "removeDisable": "Xóa/Vô hiệu hóa",
   "pleaseEnterVerifierAddress": "Vui lòng nhập địa chỉ verifier",
   "addVerifier": "Thêm Verifier",
   "removeVerifier": "Xóa Verifier",
+  "transferAdminTitle": "Chuyển quyền admin",
+  "transferAdminDescription": "Hành động này sẽ chuyển vĩnh viễn quyền quản trị cho địa chỉ khác. Hãy đảm bảo bạn tin tưởng admin mới trước khi xác nhận.",
+  "newAdminAddressLabel": "Địa chỉ admin mới",
+  "pleaseEnterNewAdminAddress": "Vui lòng nhập địa chỉ admin mới",
+  "updateAdminButton": "Cập nhật admin",
+  "transferringAdminRights": "Đang chuyển quyền admin...\\nVui lòng xác nhận giao dịch trong ví.",
+  "adminUpdatedSuccessfully": "Đã cập nhật admin thành công (tx: {txHash})",
+  "@adminUpdatedSuccessfully": {
+    "placeholders": {
+      "txHash": {
+        "type": "String"
+      }
+    }
+  },
   "createYourDecentralizedIdentity": "Tạo danh tính phi tập trung (DID) của bạn",
   "fillForm": "Điền form",
   "uploadDocument": "Tải lên tài liệu",

@@ -887,6 +887,15 @@ class Web3Service {
     );
   }
 
+  /// Transfer admin role to a different address (only current admin can call).
+  Future<String> setAdmin(String newAdminAddress) async {
+    final function = _contract.function('setAdmin');
+    return _sendContractTransaction(
+      function: function,
+      parameters: [EthereumAddress.fromHex(newAdminAddress)],
+    );
+  }
+
   /// Xác thực VC bởi cơ quan cấp cao (trusted verifier)
   Future<String> verifyCredential(String orgID, int index) async {
     final function = _contract.function('verifyCredential');

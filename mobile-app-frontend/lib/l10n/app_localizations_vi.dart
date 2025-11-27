@@ -642,6 +642,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adminPanel => 'Quản trị - Quản lý Trusted Verifiers';
 
   @override
+  String get manageTrustedVerifiers => 'Quản lý verifier tin cậy';
+
+  @override
   String get verifierAddress => 'Địa chỉ Verifier *';
 
   @override
@@ -658,6 +661,31 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get removeVerifier => 'Xóa Verifier';
+
+  @override
+  String get transferAdminTitle => 'Chuyển quyền admin';
+
+  @override
+  String get transferAdminDescription =>
+      'Hành động này sẽ chuyển vĩnh viễn quyền quản trị cho địa chỉ khác. Hãy đảm bảo bạn tin tưởng admin mới trước khi xác nhận.';
+
+  @override
+  String get newAdminAddressLabel => 'Địa chỉ admin mới';
+
+  @override
+  String get pleaseEnterNewAdminAddress => 'Vui lòng nhập địa chỉ admin mới';
+
+  @override
+  String get updateAdminButton => 'Cập nhật admin';
+
+  @override
+  String get transferringAdminRights =>
+      'Đang chuyển quyền admin...\\nVui lòng xác nhận giao dịch trong ví.';
+
+  @override
+  String adminUpdatedSuccessfully(String txHash) {
+    return 'Đã cập nhật admin thành công (tx: $txHash)';
+  }
 
   @override
   String get createYourDecentralizedIdentity =>

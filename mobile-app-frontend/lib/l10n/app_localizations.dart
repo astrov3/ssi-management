@@ -1274,6 +1274,12 @@ abstract class AppLocalizations {
   /// **'Admin Panel - Manage Trusted Verifiers'**
   String get adminPanel;
 
+  /// Section title for trusted verifier controls
+  ///
+  /// In en, this message translates to:
+  /// **'Manage trusted verifiers'**
+  String get manageTrustedVerifiers;
+
   /// Label for verifier address input
   ///
   /// In en, this message translates to:
@@ -1309,6 +1315,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove Verifier'**
   String get removeVerifier;
+
+  /// Title for the admin transfer section
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer admin rights'**
+  String get transferAdminTitle;
+
+  /// Helper text describing the impact of transferring admin rights
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently hands over admin privileges to another address. Make sure you trust the new admin before confirming.'**
+  String get transferAdminDescription;
+
+  /// Label for the new admin address text field
+  ///
+  /// In en, this message translates to:
+  /// **'New admin address'**
+  String get newAdminAddressLabel;
+
+  /// Validation error when admin address is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the new admin address'**
+  String get pleaseEnterNewAdminAddress;
+
+  /// Button label to confirm admin transfer
+  ///
+  /// In en, this message translates to:
+  /// **'Update admin'**
+  String get updateAdminButton;
+
+  /// Spinner message while admin transfer transaction is pending
+  ///
+  /// In en, this message translates to:
+  /// **'Transferring admin rights...\\nPlease approve the transaction in your wallet.'**
+  String get transferringAdminRights;
+
+  /// Snack bar message after admin transfer succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Admin updated successfully (tx: {txHash})'**
+  String adminUpdatedSuccessfully(String txHash);
 
   /// Subtitle for register DID dialog
   ///
