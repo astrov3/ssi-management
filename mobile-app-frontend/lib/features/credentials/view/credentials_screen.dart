@@ -1375,7 +1375,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                         onRefresh: _loadCredentials,
                         color: AppColors.secondary,
                         child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
                           itemCount: _credentials.length,
                           itemBuilder: (context, index) {
                             final credential = _credentials[index];
