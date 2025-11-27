@@ -26,12 +26,9 @@ const VCOperations = () => {
         connectWallet,
         currentOrgID,
         didActive,
-        vcLength,
-        getVCCount,
         issueVC,
         verifyVC,
         revokeVC,
-        getVC,
         authorizeIssuer,
         requestVerification,
         verifyCredential,
@@ -39,10 +36,13 @@ const VCOperations = () => {
         isTrustedVerifier,
         getAdmin,
         account,
-        loading
+        loading,
+        walletState,
+        walletStateLoading,
+        loadWalletState
     } = useStore();
 
-    const [vcs, setVCs] = useState([]);
+    const vcs = walletState?.vcs ?? [];
     const [showIssueForm, setShowIssueForm] = useState(false);
     const [showQRDisplay, setShowQRDisplay] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
@@ -108,47 +108,31 @@ const VCOperations = () => {
         ]);
     };
 
+    const checkAdminAndVerifierStatus = useCallback(async () => {
+        if (!account) return;
+        try {
+            const admin = await getAdmin();
+            setIsAdmin(admin && admin.toLowerCase() === account.toLowerCase());
+
+            const isVerifierCheck = await isTrustedVerifier(account);
+            setIsVerifier(isVerifierCheck);
+        } catch (error) {
+            console.error('Error checking admin/verifier status:', error);
+        }
+    }, [account, getAdmin, isTrustedVerifier]);
+
     useEffect(() => {
         if (!isConnected) {
             connectWallet();
         }
     }, [isConnected, connectWallet]);
 
-    const loadVCs = useCallback(async () => {
-        if (!currentOrgID) return;
-
-        const count = await getVCCount(currentOrgID);
-        const vcList = [];
-
-        for (let i = 0; i < count; i++) {
-            const vc = await getVC(currentOrgID, i);
-            if (vc) {
-                vcList.push({ ...vc, index: i });
-            }
-        }
-
-        setVCs(vcList);
-    }, [currentOrgID, getVCCount, getVC]);
-
     useEffect(() => {
         if (currentOrgID && isConnected) {
-            loadVCs();
+            loadWalletState({ orgId: currentOrgID });
             checkAdminAndVerifierStatus();
         }
-    }, [currentOrgID, isConnected, loadVCs]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const checkAdminAndVerifierStatus = async () => {
-        if (!account) return;
-        try {
-            const admin = await getAdmin();
-            setIsAdmin(admin && admin.toLowerCase() === account.toLowerCase());
-            
-            const isVerifierCheck = await isTrustedVerifier(account);
-            setIsVerifier(isVerifierCheck);
-        } catch (error) {
-            console.error('Error checking admin/verifier status:', error);
-        }
-    };
+    }, [currentOrgID, isConnected, loadWalletState, checkAdminAndVerifierStatus]);
 
     const handleIssueVC = async (e) => {
         e.preventDefault();
@@ -187,7 +171,6 @@ const VCOperations = () => {
         if (success) {
             setShowIssueForm(false);
             resetIssueForm();
-            await loadVCs(); // Reload VCs
             toast.success('VC issued successfully');
         }
     };
@@ -232,7 +215,6 @@ const VCOperations = () => {
 
         const success = await revokeVC(currentOrgID, index);
         if (success) {
-            await loadVCs(); // Reload VCs
             toast.success('VC revoked successfully');
         }
     };
@@ -260,7 +242,6 @@ const VCOperations = () => {
         if (success) {
             setShowVerificationRequestForm(false);
             setVerificationRequestData({ vcIndex: '', targetVerifier: '', metadataUri: '' });
-            await loadVCs();
             toast.success('Verification request created successfully');
         }
     };
@@ -272,7 +253,6 @@ const VCOperations = () => {
 
         const success = await verifyCredential(currentOrgID, index);
         if (success) {
-            await loadVCs();
             toast.success('Credential verified successfully');
         }
     };
@@ -457,10 +437,13 @@ const VCOperations = () => {
             {
                 currentOrgID && (
                     <div className="card">
-                        <div className="px-6 py-4 border-b border-gray-200 -m-6 mb-6">
+                        <div className="px-6 py-4 border-b border-gray-200 -m-6 mb-6 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900">
-                                Verifiable Credentials ({vcLength})
+                                Verifiable Credentials ({vcs.length})
                             </h2>
+                            {walletStateLoading && (
+                                <span className="text-xs text-gray-500">Refreshing...</span>
+                            )}
                         </div>
 
                         {vcs.length === 0 ? (
@@ -484,7 +467,7 @@ const VCOperations = () => {
                         ) : (
                             <div className="divide-y divide-base-300">
                                 {vcs.map((vc, index) => (
-                                    <div key={index} className="px-responsive py-4">
+                                    <div key={`${vc.index ?? index}-${vc.hashCredential ?? index}`} className="px-responsive py-4">
                                         <div className="flex-responsive sm:items-center sm:justify-between gap-responsive">
                                             <div className="flex-1">
                                                 <div className="flex-responsive sm:items-center gap-responsive-sm flex-wrap">

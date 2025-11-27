@@ -2,7 +2,6 @@ import {
     CheckCircle,
     Home,
     Menu,
-    Scan,
     Settings,
     Shield,
     User,
@@ -16,13 +15,12 @@ import { useStore } from '../store/useStore';
 const Layout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
-    const { account, isConnected, message } = useStore();
+    const { account, isConnected, message, walletState } = useStore();
 
     const navigation = [
         { name: 'Dashboard', href: '/', icon: Home },
         { name: 'DID Management', href: '/did', icon: User },
         { name: 'VC Operations', href: '/vc', icon: Shield },
-        { name: 'QR Scanner', href: '/scanner', icon: Scan },
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
 
@@ -32,6 +30,9 @@ const Layout = ({ children }) => {
         }
         return location.pathname.startsWith(path);
     };
+
+    const displayName = walletState?.displayName ?? account;
+    const defaultWalletMessage = account ? `Connected: ${account}` : '';
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -82,8 +83,13 @@ const Layout = ({ children }) => {
                                 <p className="text-sm font-medium text-gray-700">
                                     {isConnected ? 'Connected' : 'Disconnected'}
                                 </p>
-                                {account && (
+                                {displayName && (
                                     <p className="text-xs text-gray-500">
+                                        {displayName}
+                                    </p>
+                                )}
+                                {account && displayName !== account && (
+                                    <p className="text-[11px] text-gray-400">
                                         {account.slice(0, 6)}...{account.slice(-4)}
                                     </p>
                                 )}
@@ -135,11 +141,18 @@ const Layout = ({ children }) => {
                                     {isConnected ? 'Connected' : 'Disconnected'}
                                 </p>
                                 {account && (
-                                    <p className="text-xs text-gray-500 break-all">
-                                        {account.slice(0, 10)}...{account.slice(-6)}
-                                    </p>
+                                    <>
+                                        <p className="text-xs text-gray-500 break-all">
+                                            {displayName || account}
+                                        </p>
+                                        {displayName && displayName !== account && (
+                                            <p className="text-[11px] text-gray-400">
+                                                {account.slice(0, 10)}...{account.slice(-6)}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
-                                {message && (
+                                {message && message !== defaultWalletMessage && (
                                     <p className="text-xs text-blue-600 mt-1">{message}</p>
                                 )}
                             </div>

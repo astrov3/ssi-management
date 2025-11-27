@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import QRDisplay from '../components/QRDisplay';
 import QRScanner from '../components/QRScanner';
 import { useStore } from '../store/useStore';
+import { normalizeOrgId } from '../utils/orgId';
 
 const DIDManagement = () => {
     const {
@@ -41,6 +42,22 @@ const DIDManagement = () => {
         { key: 'name', value: '' },
         { key: 'email', value: '' }
     ]);
+    const initialRegisterForm = {
+        orgID: '',
+        name: '',
+        description: '',
+        email: '',
+        website: '',
+        address: '',
+        phone: ''
+    };
+    const [registerForm, setRegisterForm] = useState(initialRegisterForm);
+    const [registerMode, setRegisterMode] = useState('form');
+    const [logoFile, setLogoFile] = useState(null);
+    const [documentFile, setDocumentFile] = useState(null);
+    const [jsonUploadFile, setJsonUploadFile] = useState(null);
+    const registerMetadataInitial = [{ key: '', value: '' }];
+    const [registerMetadataFields, setRegisterMetadataFields] = useState(registerMetadataInitial);
     const [orgIdError, setOrgIdError] = useState('');
 
     useEffect(() => {
@@ -72,9 +89,14 @@ const DIDManagement = () => {
             return;
         }
 
+        const normalized = normalizeOrgId(account);
         setFormData((prev) => ({
             ...prev,
-            orgID: account
+            orgID: normalized
+        }));
+        setRegisterForm((prev) => ({
+            ...prev,
+            orgID: normalized
         }));
         setOrgIdError('');
         toast.success('Organization ID set to your wallet address');
@@ -99,14 +121,81 @@ const DIDManagement = () => {
         setMetadataFields((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const handleRegisterMetadataChange = (index, field, value) => {
+        setRegisterMetadataFields((prev) => {
+            const next = [...prev];
+            next[index] = {
+                ...next[index],
+                [field]: value
+            };
+            return next;
+        });
+    };
+
+    const handleAddRegisterMetadataField = () => {
+        setRegisterMetadataFields((prev) => [...prev, { key: '', value: '' }]);
+    };
+
+    const handleRemoveRegisterMetadataField = (index) => {
+        setRegisterMetadataFields((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handleRegisterInputChange = (field, value) => {
+        setRegisterForm((prev) => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const resetRegisterFormState = (nextOrgId = '') => {
+        setRegisterForm({
+            ...initialRegisterForm,
+            orgID: nextOrgId
+        });
+        setRegisterMode('form');
+        setLogoFile(null);
+        setDocumentFile(null);
+        setJsonUploadFile(null);
+        setRegisterMetadataFields(registerMetadataInitial);
+    };
+
+    useEffect(() => {
+        if (showRegisterForm) {
+            const fallbackOrgId = formData.orgID || account || '';
+            setRegisterForm((prev) => ({
+                ...prev,
+                orgID: fallbackOrgId || prev.orgID
+            }));
+        }
+    }, [showRegisterForm, formData.orgID, account]);
+
     const handleRegisterDID = async (e) => {
         e.preventDefault();
+        const targetOrgId = registerForm.orgID?.trim() || formData.orgID?.trim() || account || '';
 
-        if (!validateOrgId(formData.orgID)) {
+        if (!validateOrgId(targetOrgId)) {
             return;
         }
 
-        const customData = metadataFields.reduce((acc, field) => {
+        if (registerMode === 'upload' && !jsonUploadFile) {
+            toast.error('Please upload a DID JSON document.');
+            return;
+        }
+
+        if (registerMode === 'form' && !registerForm.name.trim()) {
+            toast.error('Display name is required.');
+            return;
+        }
+
+        const structuredMetadata = {};
+        ['name', 'description', 'email', 'website', 'address', 'phone'].forEach((field) => {
+            const value = registerForm[field];
+            if (value && value.trim()) {
+                structuredMetadata[field] = value.trim();
+            }
+        });
+
+        const customMetadata = registerMetadataFields.reduce((acc, field) => {
             const key = field.key.trim();
             const value = field.value.trim();
             if (key && value) {
@@ -116,31 +205,20 @@ const DIDManagement = () => {
         }, {});
 
         const payload = {
-            serviceEndpoint: formData.serviceEndpoint.trim() || undefined,
-            description: formData.description.trim() || undefined,
-            alsoKnownAs: formData.alsoKnownAs
-                ? formData.alsoKnownAs
-                    .split(',')
-                    .map((item) => item.trim())
-                    .filter(Boolean)
-                : undefined,
-            ...customData
+            metadata: structuredMetadata,
+            additionalMetadata: customMetadata,
+            serviceEndpoint: registerForm.website?.trim() || undefined,
+            logoFile,
+            documentFile,
+            jsonDocumentFile: registerMode === 'upload' ? jsonUploadFile : null,
+            mode: registerMode,
         };
 
-        const success = await registerDID(formData.orgID.trim(), payload);
+        const success = await registerDID(targetOrgId, payload);
         if (success) {
-            setCurrentOrgID(formData.orgID.trim());
+            resetRegisterFormState(targetOrgId);
+            setCurrentOrgID(targetOrgId);
             setShowRegisterForm(false);
-            setFormData({
-                orgID: '',
-                serviceEndpoint: '',
-                alsoKnownAs: '',
-                description: ''
-            });
-            setMetadataFields([
-                { key: 'name', value: '' },
-                { key: 'email', value: '' }
-            ]);
             toast.success('DID registered successfully');
         }
     };
@@ -377,21 +455,25 @@ const DIDManagement = () => {
                     className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
                     onClick={(event) => {
                         if (event.target === event.currentTarget) {
+                            resetRegisterFormState(formData.orgID || account || '');
                             setShowRegisterForm(false);
                         }
                     }}
                 >
-                    <div className="relative top-16 mx-auto p-6 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+                    <div className="relative top-16 mx-auto p-6 border w-full max-w-3xl shadow-lg rounded-lg bg-white">
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">Register New DID</h3>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    Structure your DID document with friendly form controls. Optional fields help enrich the DID metadata.
+                                    Use a guided form or upload an existing DID document to publish on-chain.
                                 </p>
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setShowRegisterForm(false)}
+                                onClick={() => {
+                                    resetRegisterFormState(formData.orgID || account || '');
+                                    setShowRegisterForm(false);
+                                }}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
                                 aria-label="Close"
                             >
@@ -399,7 +481,22 @@ const DIDManagement = () => {
                             </button>
                         </div>
 
-                        <form onSubmit={handleRegisterDID} className="space-y-5">
+                        <div className="bg-gray-100 rounded-full p-1 flex text-sm font-medium gap-1">
+                            {['form', 'upload'].map((mode) => (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => setRegisterMode(mode)}
+                                    className={`flex-1 rounded-full px-3 py-1 capitalize ${
+                                        registerMode === mode ? 'bg-white shadow text-gray-900' : 'text-gray-500'
+                                    }`}
+                                >
+                                    {mode === 'form' ? 'Fill Form' : 'Upload JSON'}
+                                </button>
+                            ))}
+                        </div>
+
+                        <form onSubmit={handleRegisterDID} className="space-y-5 mt-4">
                             <div>
                                 <label htmlFor="registerOrgID" className="form-label">
                                     Organization ID
@@ -407,78 +504,156 @@ const DIDManagement = () => {
                                 <input
                                     type="text"
                                     id="registerOrgID"
-                                    value={formData.orgID}
+                                    value={registerForm.orgID}
                                     onChange={(e) => {
-                                        const value = e.target.value;
-                                        setFormData({ ...formData, orgID: value });
+                                        handleRegisterInputChange('orgID', e.target.value);
                                         if (orgIdError) {
-                                            validateOrgId(value);
+                                            validateOrgId(e.target.value);
                                         }
                                     }}
                                     className="form-input"
                                     placeholder="Enter organization ID"
-                                    required
                                 />
                                 <p className="mt-1 text-xs text-gray-500">
-                                    Use 3-64 characters (letters, numbers, \".\", \"-\", \"_\") or your wallet address.
+                                    Defaults to your wallet address. Use letters, numbers, dashes, underscores, or any valid address.
                                 </p>
                             </div>
 
+                            {registerMode === 'form' ? (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="registerName" className="form-label">
+                                                Display Name
+                                            </label>
+                                            <input
+                                                id="registerName"
+                                                type="text"
+                                                value={registerForm.name}
+                                                onChange={(e) => handleRegisterInputChange('name', e.target.value)}
+                                                className="form-input"
+                                                placeholder="Verifier Inc."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="registerEmail" className="form-label">
+                                                Email (optional)
+                                            </label>
+                                            <input
+                                                id="registerEmail"
+                                                type="email"
+                                                value={registerForm.email}
+                                                onChange={(e) => handleRegisterInputChange('email', e.target.value)}
+                                                className="form-input"
+                                                placeholder="contact@example.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="registerWebsite" className="form-label">
+                                                Service Endpoint / Website
+                                            </label>
+                                            <input
+                                                id="registerWebsite"
+                                                type="url"
+                                                value={registerForm.website}
+                                                onChange={(e) => handleRegisterInputChange('website', e.target.value)}
+                                                className="form-input"
+                                                placeholder="https://ssi.yourorg.com"
+                                            />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Provide a URL where verifiers can reach your SSI services.
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="registerPhone" className="form-label">
+                                                Phone (optional)
+                                            </label>
+                                            <input
+                                                id="registerPhone"
+                                                type="tel"
+                                                value={registerForm.phone}
+                                                onChange={(e) => handleRegisterInputChange('phone', e.target.value)}
+                                                className="form-input"
+                                                placeholder="+84..."
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="registerAddress" className="form-label">
+                                            Contact Address
+                                        </label>
+                                        <textarea
+                                            id="registerAddress"
+                                            rows={2}
+                                            value={registerForm.address}
+                                            onChange={(e) => handleRegisterInputChange('address', e.target.value)}
+                                            className="form-input"
+                                            placeholder="Headquarter address, support office, etc."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="registerDescription" className="form-label">
+                                            Organization Description
+                                        </label>
+                                        <textarea
+                                            id="registerDescription"
+                                            rows={3}
+                                            value={registerForm.description}
+                                            onChange={(e) => handleRegisterInputChange('description', e.target.value)}
+                                            className="form-input"
+                                            placeholder="Brief description about your organization"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="space-y-3">
+                                    <label className="form-label">Upload DID JSON</label>
+                                    <input
+                                        type="file"
+                                        accept=".json,application/json"
+                                        onChange={(e) => setJsonUploadFile(e.target.files?.[0] || null)}
+                                        className="form-input"
+                                    />
+                                    {jsonUploadFile && (
+                                        <p className="text-xs text-gray-500">Selected file: {jsonUploadFile.name}</p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        Must follow the W3C DID Document structure. It will be uploaded to IPFS and linked on-chain.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="serviceEndpoint" className="form-label">
-                                        Service Endpoint (optional)
-                                    </label>
+                                    <label className="form-label">Logo (optional)</label>
                                     <input
-                                        id="serviceEndpoint"
-                                        type="url"
-                                        value={formData.serviceEndpoint}
-                                        onChange={(e) => setFormData({ ...formData, serviceEndpoint: e.target.value })}
+                                        type="file"
+                                        accept=".png,.jpg,.jpeg,.svg,.webp"
+                                        onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
                                         className="form-input"
-                                        placeholder="https://example.com/ssi"
                                     />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Provide a URL where verifiers can reach your SSI services.
-                                    </p>
+                                    {logoFile && <p className="text-xs text-gray-500">Selected: {logoFile.name}</p>}
                                 </div>
                                 <div>
-                                    <label htmlFor="alsoKnownAs" className="form-label">
-                                        Also Known As (optional)
-                                    </label>
+                                    <label className="form-label">Supporting Document</label>
                                     <input
-                                        id="alsoKnownAs"
-                                        type="text"
-                                        value={formData.alsoKnownAs}
-                                        onChange={(e) => setFormData({ ...formData, alsoKnownAs: e.target.value })}
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg"
+                                        onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
                                         className="form-input"
-                                        placeholder="Comma-separated domains or handles"
                                     />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Example: org.com, twitter.com/yourorg, github.com/yourorg
-                                    </p>
+                                    {documentFile && (
+                                        <p className="text-xs text-gray-500">Selected: {documentFile.name}</p>
+                                    )}
                                 </div>
-                            </div>
-
-                            <div>
-                                <label htmlFor="didDescription" className="form-label">
-                                    Organization Description
-                                </label>
-                                <textarea
-                                    id="didDescription"
-                                    rows={3}
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="form-input"
-                                    placeholder="Brief description about your organization"
-                                />
                             </div>
 
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="form-label mb-0">Contact & Metadata</label>
+                                    <label className="form-label mb-0">Additional Metadata</label>
                                     <button
                                         type="button"
-                                        onClick={handleAddMetadataField}
+                                        onClick={handleAddRegisterMetadataField}
                                         className="btn-ghost btn-sm inline-flex items-center gap-1"
                                     >
                                         <Plus className="w-4 h-4" />
@@ -486,27 +661,31 @@ const DIDManagement = () => {
                                     </button>
                                 </div>
                                 <div className="space-y-3">
-                                    {metadataFields.map((field, index) => (
-                                        <div key={`metadata-${index}`} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+                                    {registerMetadataFields.map((field, index) => (
+                                        <div
+                                            key={`register-metadata-${index}`}
+                                            className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-center"
+                                        >
                                             <input
                                                 type="text"
                                                 value={field.key}
-                                                onChange={(e) => handleMetadataChange(index, 'key', e.target.value)}
+                                                onChange={(e) => handleRegisterMetadataChange(index, 'key', e.target.value)}
                                                 className="form-input"
-                                                placeholder="Field name (e.g., phone, supportEmail)"
+                                                placeholder="Field name (e.g., supportEmail)"
                                             />
                                             <input
                                                 type="text"
                                                 value={field.value}
-                                                onChange={(e) => handleMetadataChange(index, 'value', e.target.value)}
+                                                onChange={(e) => handleRegisterMetadataChange(index, 'value', e.target.value)}
                                                 className="form-input"
                                                 placeholder="Field value"
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => handleRemoveMetadataField(index)}
-                                                className="btn-ghost text-error px-3 py-2 rounded-md hover:bg-error/10"
+                                                onClick={() => handleRemoveRegisterMetadataField(index)}
+                                                className="btn-ghost text-error px-3 py-2 rounded-md hover:bg-error/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 aria-label="Remove field"
+                                                disabled={registerMetadataFields.length <= 1}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -514,14 +693,17 @@ const DIDManagement = () => {
                                     ))}
                                 </div>
                                 <p className="mt-1 text-xs text-gray-500">
-                                    These fields become part of the DID metadata (e.g., contact email, support phone).
+                                    Extra metadata (e.g., supportEmail, hotline) becomes part of the DID document.
                                 </p>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setShowRegisterForm(false)}
+                                    onClick={() => {
+                                        resetRegisterFormState(formData.orgID || account || '');
+                                        setShowRegisterForm(false);
+                                    }}
                                     className="btn-secondary btn-sm"
                                 >
                                     Cancel

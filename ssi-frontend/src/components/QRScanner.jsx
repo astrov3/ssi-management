@@ -1,12 +1,12 @@
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { AlertCircle, Camera, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { parseQRCodeData, validateQRCodeData } from '../utils/qrCode';
 
 const QRScanner = ({ onScan, onClose, title = "Scan QR Code" }) => {
     const [isScanning, setIsScanning] = useState(false);
     const [error, setError] = useState(null);
-    const [scanner, setScanner] = useState(null);
+    const scannerRef = useRef(null);
 
     useEffect(() => {
         const initializeScanner = () => {
@@ -50,7 +50,7 @@ const QRScanner = ({ onScan, onClose, title = "Scan QR Code" }) => {
                     }
                 );
 
-                setScanner(html5QrcodeScanner);
+                scannerRef.current = html5QrcodeScanner;
                 setIsScanning(true);
                 setError(null);
             } catch (error) {
@@ -64,15 +64,15 @@ const QRScanner = ({ onScan, onClose, title = "Scan QR Code" }) => {
 
         return () => {
             clearTimeout(timer);
-            if (scanner) {
-                scanner.clear();
+            if (scannerRef.current) {
+                scannerRef.current.clear();
             }
         };
     }, [onScan]);
 
     const handleClose = () => {
-        if (scanner) {
-            scanner.clear();
+        if (scannerRef.current) {
+            scannerRef.current.clear();
         }
         onClose();
     };

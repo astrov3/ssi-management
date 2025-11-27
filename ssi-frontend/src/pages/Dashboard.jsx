@@ -1,12 +1,12 @@
 import {
     Activity,
     CheckCircle,
-    Scan,
     Shield,
     User,
-    Wallet
+    Wallet,
+    Timer
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 
@@ -19,15 +19,36 @@ const Dashboard = () => {
         didActive,
         vcLength,
         loading,
-        message
+        message,
+        walletState,
+        walletStateLoading,
+        loadWalletState
     } = useStore();
 
-    const [stats] = useState({
-        totalDIDs: 0,
-        totalVCs: 0,
-        activeDIDs: 0,
-        validVCs: 0
-    });
+    const defaultConnectMessage = account ? `Connected: ${account}` : '';
+
+    useEffect(() => {
+        if (isConnected) {
+            loadWalletState({ orgId: currentOrgID });
+        }
+    }, [isConnected, currentOrgID, loadWalletState]);
+
+    const stats = useMemo(() => {
+        const totalVCs = walletState?.vcs?.length ?? vcLength ?? 0;
+        const validVCs =
+            walletState?.vcs?.filter((vc) => vc.valid && !vc.isExpired)?.length ?? 0;
+        const didIsActive = walletState?.didData?.active ?? didActive ?? false;
+        const hasDid = walletState?.didData ? 1 : 0;
+
+        return {
+            totalDIDs: hasDid,
+            totalVCs,
+            activeDIDs: didIsActive ? 1 : 0,
+            validVCs
+        };
+    }, [walletState, vcLength, didActive]);
+
+    const verificationRequests = walletState?.verificationRequests ?? [];
 
     useEffect(() => {
         // Initialize wallet connection if not connected
@@ -58,13 +79,6 @@ const Dashboard = () => {
             description: 'Issue, verify, and manage Verifiable Credentials',
             icon: Shield,
             href: '/vc',
-            disabled: !isConnected
-        },
-        {
-            title: 'Scan QR Code',
-            description: 'Scan QR codes to verify credentials',
-            icon: Scan,
-            href: '/scanner',
             disabled: !isConnected
         }
     ];
@@ -140,8 +154,15 @@ const Dashboard = () => {
                                 Wallet Connected
                             </h3>
                             <div className="mt-2 text-sm text-green-700">
-                                <p>Connected as: <code className="bg-green-100 px-1 rounded">{account}</code></p>
-                                {message && <p className="mt-1">{message}</p>}
+                                <p>
+                                    Connected as:{' '}
+                                    <code className="bg-green-100 px-1 rounded break-all inline-block">
+                                        {account}
+                                    </code>
+                                </p>
+                                {message && message !== defaultConnectMessage && (
+                                    <p className="mt-1 break-all">{message}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -241,7 +262,7 @@ const Dashboard = () => {
             </div>
 
             {/* Current Status */}
-            {isConnected && (currentOrgID || didActive !== null || vcLength > 0) && (
+            {isConnected && (currentOrgID || didActive !== null || stats.totalVCs > 0) && (
                 <div>
                     <h2 className="text-lg font-bold text-gray-900 mb-4">Current Status</h2>
                     <div className="bg-white shadow rounded-lg p-6">
@@ -249,7 +270,7 @@ const Dashboard = () => {
                             {currentOrgID && (
                                 <div>
                                     <dt className="text-sm font-semibold text-gray-700">Current Organization ID</dt>
-                                    <dd className="mt-1 text-sm text-gray-900 font-mono bg-gray-50 p-3 rounded">
+                                    <dd className="mt-1 text-sm text-gray-900 font-mono bg-gray-50 p-3 rounded break-all">
                                         {currentOrgID}
                                     </dd>
                                 </div>
@@ -267,14 +288,64 @@ const Dashboard = () => {
                                     </dd>
                                 </div>
                             )}
-                            {vcLength > 0 && (
+                            {stats.totalVCs > 0 && (
                                 <div>
                                     <dt className="text-sm font-semibold text-gray-700">VC Count</dt>
-                                    <dd className="mt-1 text-sm font-semibold text-gray-900">{vcLength}</dd>
+                                    <dd className="mt-1 text-sm font-semibold text-gray-900">{stats.totalVCs}</dd>
                                 </div>
                             )}
                         </dl>
                     </div>
+                </div>
+            )}
+
+            {isConnected && (
+                <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Timer className="h-5 w-5 text-blue-600" />
+                            <h2 className="text-lg font-bold text-gray-900">Pending Verification Requests</h2>
+                        </div>
+                        {walletStateLoading && (
+                            <span className="text-sm text-gray-500">Refreshing...</span>
+                        )}
+                    </div>
+                    {verificationRequests.length === 0 ? (
+                        <p className="text-sm text-gray-600">No pending requests yet.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-700">Request ID</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-700">VC Index</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-700">Target Verifier</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-gray-700">Requested At</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {verificationRequests.slice(0, 5).map((request) => (
+                                        <tr key={request.requestId}>
+                                            <td className="px-3 py-2 font-mono text-xs text-gray-900">
+                                                #{request.requestId}
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-900">{request.vcIndex}</td>
+                                            <td className="px-3 py-2 text-gray-900">
+                                                {request.targetVerifier && request.targetVerifier !== '0x0000000000000000000000000000000000000000'
+                                                    ? `${request.targetVerifier.slice(0, 6)}...${request.targetVerifier.slice(-4)}`
+                                                    : 'Any trusted verifier'}
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-900">
+                                                {request.requestedAt
+                                                    ? new Date(request.requestedAt * 1000).toLocaleString()
+                                                    : 'N/A'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

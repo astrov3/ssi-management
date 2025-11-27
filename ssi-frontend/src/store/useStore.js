@@ -1,7 +1,14 @@
 import { ethers } from 'ethers';
 import { create } from 'zustand';
-import { createDIDDocument, uploadDIDDocumentToIPFS, uploadVCToIPFS, retrieveJSONFromIPFS } from '../utils/ipfs';
+import Web3Service from '../services/web3/web3Service';
+import WalletStateManager from '../services/wallet/walletStateManager';
+import RoleContextProvider from '../services/role/roleContextProvider';
+import RoleService from '../services/role/roleService';
+import WalletNameService from '../services/wallet/walletNameService';
+import { createDIDDocument, uploadDIDDocumentToIPFS, uploadVCToIPFS, retrieveJSONFromIPFS, uploadFileToIPFS } from '../utils/ipfs';
 import { createAndSignVC, verifyVCSignature } from '../utils/vc';
+import IdentityManager from '../contracts/IdentityManager.json';
+import { normalizeOrgId } from '../utils/orgId';
 
 export const useStore = create((set, get) => ({
   // Wallet state
@@ -10,6 +17,8 @@ export const useStore = create((set, get) => ({
   account: null,
   isConnected: false,
   contract: null,
+  web3Service: null,
+  walletStateManager: null,
 
   // App state
   loading: false,
@@ -20,6 +29,9 @@ export const useStore = create((set, get) => ({
   currentOrgID: '',
   didData: null,
   didActive: null,
+
+  walletState: null,
+  walletStateLoading: false,
 
   // VC state
   vcList: [],
@@ -44,16 +56,29 @@ export const useStore = create((set, get) => ({
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const signer = await provider.getSigner();
       const account = await signer.getAddress();
+      const normalizedAccountOrgId = normalizeOrgId(account);
 
       // Initialize contract
-      const IdentityManagerAbi = (await import('../IdentityManager.json')).abi;
       const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
       
       if (!contractAddress) {
         throw new Error('Contract address not configured');
       }
 
-      const contract = new ethers.Contract(contractAddress, IdentityManagerAbi, signer);
+      const contract = new ethers.Contract(contractAddress, IdentityManager.abi, signer);
+      const web3Service = new Web3Service({ provider, signer, contractAddress });
+      const walletNameService = new WalletNameService(
+        typeof window !== 'undefined' ? window.localStorage : null,
+      );
+      const roleContextProvider = new RoleContextProvider({
+        roleService: new RoleService({ web3Service }),
+        web3Service,
+      });
+      const walletStateManager = new WalletStateManager({
+        web3Service,
+        roleContextProvider,
+        walletNameService,
+      });
 
       set({
         provider,
@@ -61,10 +86,19 @@ export const useStore = create((set, get) => ({
         account,
         isConnected: true,
         contract,
+        web3Service,
+        walletStateManager,
+        walletState: null,
+        walletStateLoading: false,
+        currentOrgID: normalizedAccountOrgId,
         loading: false,
         message: `Connected: ${account}`
       });
 
+      await get().loadWalletState({
+        orgId: normalizedAccountOrgId,
+        forceRefresh: true,
+      });
       return true;
     } catch (error) {
       set({ 
@@ -78,7 +112,8 @@ export const useStore = create((set, get) => ({
 
   updateDID: async (orgID, updates) => {
     const { contract, account } = get();
-    if (!contract || !orgID || !account) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !account) return false;
 
     try {
       set({ loading: true });
@@ -86,7 +121,7 @@ export const useStore = create((set, get) => ({
       // Fetch current DID document from IPFS if available
       let existingDoc = null;
       try {
-        const did = await contract.dids(orgID);
+        const did = await contract.dids(normalizedOrgId);
         if (did && did.uri) {
           existingDoc = await retrieveJSONFromIPFS(did.uri);
         }
@@ -95,7 +130,7 @@ export const useStore = create((set, get) => ({
       }
 
       // Build next DID Document (merge if existing)
-      const didId = `did:ethr:${orgID}`;
+      const didId = `did:ethr:${normalizedOrgId}`;
       let nextDoc;
 
       if (existingDoc) {
@@ -183,13 +218,17 @@ export const useStore = create((set, get) => ({
 
       // Hash and update on-chain
       const hashData = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(nextDoc)));
-      const tx = await contract.updateDID(orgID, hashData, uri);
+      const tx = await contract.updateDID(normalizedOrgId, hashData, uri);
       await tx.wait();
 
       set({
         loading: false,
         didData: { ...(get().didData || {}), uri, hashData },
-        message: '✅ DID updated successfully',
+        message: 'DID updated successfully',
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
@@ -203,32 +242,85 @@ export const useStore = create((set, get) => ({
   },
 
   disconnectWallet: () => {
+    const { walletStateManager } = get();
+    walletStateManager?.clearCache?.();
     set({
       provider: null,
       signer: null,
       account: null,
       isConnected: false,
       contract: null,
+      web3Service: null,
+      walletStateManager: null,
+      walletState: null,
+      walletStateLoading: false,
       message: 'Disconnected'
     });
   },
 
   // DID actions
-  setCurrentOrgID: (orgID) => set({ currentOrgID: orgID }),
+  setCurrentOrgID: (orgID) => {
+    const normalizedOrgId = normalizeOrgId(orgID);
+    set({ currentOrgID: normalizedOrgId });
+    get().loadWalletState({
+      orgId: normalizedOrgId || undefined,
+      forceRefresh: true,
+    });
+  },
+
+  loadWalletState: async ({ orgId, forceRefresh = false } = {}) => {
+    const {
+      walletStateManager,
+      currentOrgID,
+      isConnected,
+      walletStateLoading,
+    } = get();
+    if (!walletStateManager || !isConnected || walletStateLoading) {
+      return null;
+    }
+
+    set({ walletStateLoading: true });
+    try {
+      const targetOrgId =
+        normalizeOrgId(orgId) || normalizeOrgId(currentOrgID) || undefined;
+      const state = await walletStateManager.load({
+        orgId: targetOrgId,
+        forceRefresh,
+      });
+      const nextOrgId = normalizeOrgId(state?.orgId) || currentOrgID;
+      set({
+        walletState: state,
+        walletStateLoading: false,
+        currentOrgID: nextOrgId,
+        didData: state?.didData ?? get().didData,
+        didActive: state?.didData?.active ?? get().didActive,
+      });
+      return state;
+    } catch (error) {
+      set({
+        walletStateLoading: false,
+        error: error.message,
+        message: `Error loading wallet state: ${error.message}`,
+      });
+      return null;
+    }
+  },
   
   checkDID: async (orgID) => {
     const { contract } = get();
-    if (!contract || !orgID) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return false;
 
     try {
       set({ loading: true });
-      const did = await contract.dids(orgID);
-      set({ 
+      const did = await contract.dids(normalizedOrgId);
+      set({
         didData: did,
         didActive: did.active,
         loading: false,
         message: `DID active: ${did.active}`
       });
+      get().setCurrentOrgID(normalizedOrgId);
       return did;
     } catch (error) {
       set({ 
@@ -240,90 +332,129 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  registerDID: async (orgID, data) => {
+  registerDID: async (orgID, options = {}) => {
     const { contract, account, signer } = get();
-    if (!contract || !orgID || !account || !signer) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !account || !signer) return false;
+
+    const {
+      metadata: incomingMetadata = {},
+      additionalMetadata = {},
+      serviceEndpoint,
+      logoFile,
+      documentFile,
+      jsonDocumentFile,
+      mode = 'form',
+    } = options ?? {};
 
     try {
       set({ loading: true });
-      
-      // Parse data - can be string (JSON) or object
-      let didData = {};
-      if (typeof data === 'string') {
-        try {
-          didData = JSON.parse(data);
-        } catch {
-          // If not JSON, treat as plain text and store in metadata
-          didData = { data: data };
-        }
-      } else if (typeof data === 'object' && data !== null) {
-        didData = data;
-      }
 
-      // Create W3C DID Document
-      const didId = `did:ethr:${orgID}`;
-      const didDocument = createDIDDocument({
-        id: didId,
-        controller: account,
-        serviceEndpoint: didData.serviceEndpoint
-      });
-
-      // Add custom data to DID Document if provided
-      if (didData.alsoKnownAs) {
-        didDocument.alsoKnownAs = didData.alsoKnownAs;
-      }
-      
-      // Store all custom data in metadata
-      // If data is plain text (stored in didData.data), preserve it
-      // If data has other properties, store them in metadata
-      const metadata = {
+      let mergedMetadata = {
         createdAt: new Date().toISOString(),
+        ...incomingMetadata,
       };
-      
-      // If data is plain text
-      if (didData.data && typeof didData.data === 'string') {
-        metadata.originalData = didData.data;
-      }
-      
-      // Add other custom fields (except reserved fields)
-      const reservedFields = ['serviceEndpoint', 'alsoKnownAs', 'data', 'metadata', 'id', 'controller'];
-      Object.keys(didData).forEach(key => {
-        if (!reservedFields.includes(key) && didData[key] !== undefined) {
-          metadata[key] = didData[key];
+
+      Object.entries(additionalMetadata || {}).forEach(([key, value]) => {
+        if (key && value) {
+          mergedMetadata[key.trim()] = typeof value === 'string' ? value.trim() : value;
         }
       });
-      
-      // Merge with existing metadata if provided
-      if (didData.metadata && typeof didData.metadata === 'object') {
-        Object.assign(metadata, didData.metadata);
-      }
-      
-      // Only add metadata if it has content
-      if (Object.keys(metadata).length > 1 || metadata.originalData) {
-        didDocument.metadata = metadata;
+
+      if (!mergedMetadata.name || !mergedMetadata.name.trim()) {
+        mergedMetadata.name = `DID ${account.slice(0, 10)}...`;
       }
 
-      // Upload DID Document to IPFS
+      if (logoFile instanceof File) {
+        const upload = await uploadFileToIPFS(logoFile, `did-logo-${normalizedOrgId}`);
+        mergedMetadata.logo = upload.uri;
+        mergedMetadata.logoFileName = upload.fileName;
+      }
+
+      if (documentFile instanceof File) {
+        const upload = await uploadFileToIPFS(documentFile, `did-attachment-${normalizedOrgId}`);
+        mergedMetadata.document = upload.uri;
+        mergedMetadata.documentFileName = upload.fileName;
+      }
+
+      let parsedDocument = null;
+      if (jsonDocumentFile instanceof File) {
+        const text = await jsonDocumentFile.text();
+        try {
+          parsedDocument = JSON.parse(text);
+        } catch {
+          throw new Error('Invalid DID JSON document. Please upload a valid JSON file.');
+        }
+      }
+
+      const didId = `did:ethr:${normalizedOrgId}`;
+      const nowIso = new Date().toISOString();
+      let didDocument;
+
+      if (parsedDocument && mode === 'upload') {
+        didDocument = {
+          ...parsedDocument,
+          id: parsedDocument.id || didId,
+          controller: account,
+          updated: nowIso,
+        };
+        if (!didDocument.created) {
+          didDocument.created = nowIso;
+        }
+
+        const parsedMetadata =
+          parsedDocument.metadata && typeof parsedDocument.metadata === 'object'
+            ? parsedDocument.metadata
+            : {};
+
+        didDocument.metadata = {
+          ...parsedMetadata,
+          ...mergedMetadata,
+          updatedAt: nowIso,
+        };
+
+        if (!didDocument.service && (serviceEndpoint || mergedMetadata.website)) {
+          didDocument.service = [
+            {
+              id: `${didId}#service-1`,
+              type: 'LinkedDomains',
+              serviceEndpoint: serviceEndpoint || mergedMetadata.website,
+            },
+          ];
+        }
+      } else {
+        const endpoint = serviceEndpoint || mergedMetadata.website || 'https://ssi.example.com';
+        didDocument = createDIDDocument({
+          id: didId,
+          controller: account,
+          serviceEndpoint: endpoint,
+        });
+        didDocument.metadata = {
+          ...mergedMetadata,
+          updatedAt: nowIso,
+        };
+      }
+
       const { uri } = await uploadDIDDocumentToIPFS(didDocument);
-      
-      // Calculate hash of DID Document
-      const hashData = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(didDocument)));
+      const hashData = ethers.keccak256(
+        ethers.toUtf8Bytes(JSON.stringify(didDocument)),
+      );
 
-      // Register DID on blockchain
-      const tx = await contract.registerDID(orgID, hashData, uri);
+      const tx = await contract.registerDID(normalizedOrgId, hashData, uri);
       await tx.wait();
 
-      set({ 
+      set({
         loading: false,
         didActive: true,
-        message: '✅ DID registered successfully'
+        message: 'DID registered successfully',
       });
+      get().setCurrentOrgID(normalizedOrgId);
       return true;
     } catch (error) {
-      set({ 
-        loading: false, 
+      set({
+        loading: false,
         error: error.message,
-        message: `Error registering DID: ${error.message}`
+        message: `Error registering DID: ${error.message}`,
       });
       return false;
     }
@@ -331,16 +462,24 @@ export const useStore = create((set, get) => ({
 
   authorizeIssuer: async (orgID, issuerAddress) => {
     const { contract } = get();
-    if (!contract || !orgID || !issuerAddress) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !issuerAddress) return false;
 
     try {
       set({ loading: true });
-      const tx = await contract.authorizeIssuer(orgID, issuerAddress);
+      const tx = await contract.authorizeIssuer(
+        normalizedOrgId,
+        issuerAddress,
+      );
       await tx.wait();
 
       set({ 
         loading: false,
-        message: `✅ Issuer ${issuerAddress} authorized`
+        message: `Issuer ${issuerAddress} authorized`
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
@@ -353,104 +492,88 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  issueVC: async (orgID, vcData) => {
+  issueVC: async (orgID, options = {}) => {
     const { contract, account, signer } = get();
-    if (!contract || !orgID || !account || !signer) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !account || !signer) return false;
+
+    const {
+      claims: rawClaims = {},
+      vcType = 'Credential',
+      expirationDate = null,
+    } = options ?? {};
 
     try {
       set({ loading: true });
-      
-      // Parse vcData - can be string (JSON) or object
-      let claims = {};
-      let vcType = 'Credential';
-      let expirationDate = null;
 
-      if (typeof vcData === 'string') {
-        try {
-          const parsed = JSON.parse(vcData);
-          // If parsed is an object with claims, use claims; otherwise use the whole object
-          if (parsed.claims && typeof parsed.claims === 'object') {
-            claims = parsed.claims;
-          } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            // Remove reserved fields and use rest as claims
-            const { type, expirationDate: expDate, claims: parsedClaims, ...rest } = parsed;
-            claims = parsedClaims || rest;
-            vcType = type || vcType;
-            expirationDate = expDate || null;
-          } else {
-            claims = { data: vcData };
-          }
-        } catch {
-          // If not JSON, treat as plain text
-          claims = { data: vcData };
-        }
-      } else if (typeof vcData === 'object' && vcData !== null) {
-        // If vcData has claims property, use it; otherwise use vcData itself as claims
-        if (vcData.claims && typeof vcData.claims === 'string') {
-          // If claims is a string, try to parse it
-          try {
-            claims = JSON.parse(vcData.claims);
-          } catch {
-            claims = { data: vcData.claims };
-          }
-        } else if (vcData.claims && typeof vcData.claims === 'object') {
-          claims = vcData.claims;
+      const processedClaims = {};
+      for (const [key, value] of Object.entries(rawClaims)) {
+        if (!key) continue;
+        if (value === undefined || value === null || value === '') continue;
+
+        if (value instanceof File) {
+          const upload = await uploadFileToIPFS(
+            value,
+            `vc-${normalizedOrgId}-${key}`,
+          );
+          processedClaims[key] = upload.uri;
+          processedClaims[`${key}FileName`] = upload.fileName;
         } else {
-          // Use vcData as claims, but exclude reserved fields
-          const { type, expirationDate: expDate, claims: _, ...rest } = vcData;
-          claims = rest;
-          vcType = type || vcType;
-          expirationDate = expDate || null;
+          processedClaims[key] =
+            typeof value === 'string' ? value.trim() : value;
         }
-        // Override with explicit type and expirationDate if provided
-        vcType = vcData.type || vcType;
-        expirationDate = vcData.expirationDate || expirationDate;
       }
 
-      // Create and sign W3C Verifiable Credential
-      const signedVC = await createAndSignVC({
-        type: vcType,
-        issuer: `did:ethr:${account}`,
-        credentialSubject: `did:ethr:${orgID}`,
-        claims: claims,
-        expirationDate: expirationDate
-      }, signer);
+      if (Object.keys(processedClaims).length === 0) {
+        throw new Error('Please provide at least one credential field.');
+      }
 
-      // Upload VC to IPFS
+      const signedVC = await createAndSignVC(
+        {
+          type: vcType,
+          issuer: `did:ethr:${account}`,
+          credentialSubject: `did:ethr:${normalizedOrgId}`,
+          claims: processedClaims,
+          expirationDate: expirationDate || null,
+        },
+        signer,
+      );
+
       const { uri } = await uploadVCToIPFS(signedVC);
-      
-      // Calculate hash of VC document
-      const hashVC = ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(signedVC)));
-      
-      // Calculate expiration timestamp (0 means no expiration)
-      // Handle expirationDate - can be ISO string, datetime-local string, or Date object
+      const hashVC = ethers.keccak256(
+        ethers.toUtf8Bytes(JSON.stringify(signedVC)),
+      );
+
       let expirationTimestamp = 0;
       if (expirationDate) {
-        try {
-          // If it's a datetime-local format (YYYY-MM-DDTHH:mm), convert to ISO
-          const date = new Date(expirationDate);
-          if (!isNaN(date.getTime())) {
-            expirationTimestamp = Math.floor(date.getTime() / 1000);
-          }
-        } catch {
-          console.warn('Invalid expiration date format:', expirationDate);
+        const date = new Date(expirationDate);
+        if (!Number.isNaN(date.getTime())) {
+          expirationTimestamp = Math.floor(date.getTime() / 1000);
         }
       }
 
-      // Issue VC on blockchain with expiration date
-      const tx = await contract.issueVCWithExpiration(orgID, hashVC, uri, expirationTimestamp);
+      const tx = await contract.issueVCWithExpiration(
+        normalizedOrgId,
+        hashVC,
+        uri,
+        expirationTimestamp,
+      );
       await tx.wait();
 
-      set({ 
+      set({
         loading: false,
-        message: '✅ VC issued successfully'
+        message: '✅ VC issued successfully',
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
-      set({ 
-        loading: false, 
+      set({
+        loading: false,
         error: error.message,
-        message: `Error issuing VC: ${error.message}`
+        message: `Error issuing VC: ${error.message}`,
       });
       return false;
     }
@@ -458,10 +581,11 @@ export const useStore = create((set, get) => ({
 
   getVCCount: async (orgID) => {
     const { contract } = get();
-    if (!contract || !orgID) return 0;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return 0;
 
     try {
-      const count = await contract.getVCLength(orgID);
+      const count = await contract.getVCLength(normalizedOrgId);
       set({ 
         vcLength: Number(count),
         message: `VC count: ${count.toString()}`
@@ -478,16 +602,21 @@ export const useStore = create((set, get) => ({
 
   verifyVC: async (orgID, index, providedHash) => {
     const { contract, signer } = get();
-    if (!contract || !orgID) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return false;
 
     try {
       // Verify on blockchain (checks validity, expiration, and hash)
-      const isValid = await contract.verifyVC(orgID, index, providedHash);
+      const isValid = await contract.verifyVC(
+        normalizedOrgId,
+        index,
+        providedHash,
+      );
       
       // If valid on blockchain, also verify signature from IPFS
       if (isValid) {
         try {
-          const vc = await get().getVC(orgID, index);
+          const vc = await get().getVC(normalizedOrgId, index);
           if (vc && vc.document && vc.document.proof && signer) {
             const signatureValid = await verifyVCSignature(vc.document, signer, vc.issuer);
             if (!signatureValid) {
@@ -503,7 +632,7 @@ export const useStore = create((set, get) => ({
       }
 
       set({ 
-        message: isValid ? '✅ VC is valid' : '❌ VC is invalid'
+        message: isValid ? 'VC is valid' : 'VC is invalid'
       });
       return isValid;
     } catch (error) {
@@ -517,16 +646,21 @@ export const useStore = create((set, get) => ({
 
   revokeVC: async (orgID, index) => {
     const { contract } = get();
-    if (!contract || !orgID) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return false;
 
     try {
       set({ loading: true });
-      const tx = await contract.revokeVC(orgID, index);
+      const tx = await contract.revokeVC(normalizedOrgId, index);
       await tx.wait();
 
       set({ 
         loading: false,
-        message: '✅ VC revoked successfully'
+        message: 'VC revoked successfully'
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
@@ -541,10 +675,11 @@ export const useStore = create((set, get) => ({
 
   getVC: async (orgID, index) => {
     const { contract, signer } = get();
-    if (!contract || !orgID) return null;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return null;
 
     try {
-      const vc = await contract.getVC(orgID, index);
+      const vc = await contract.getVC(normalizedOrgId, index);
       
       // Retrieve VC document from IPFS
       let vcDocument = null;
@@ -602,6 +737,7 @@ export const useStore = create((set, get) => ({
         loading: false,
         message: `Trusted verifier ${allowed ? 'added' : 'removed'} successfully`
       });
+      await get().loadWalletState({ forceRefresh: true });
       return true;
     } catch (error) {
       set({ 
@@ -616,15 +752,20 @@ export const useStore = create((set, get) => ({
   // Xác thực VC bởi cơ quan cấp cao (trusted verifier)
   verifyCredential: async (orgID, index) => {
     const { contract, account } = get();
-    if (!contract || !orgID || !account) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !account) return false;
 
     try {
       set({ loading: true });
-      const tx = await contract.verifyCredential(orgID, index);
+      const tx = await contract.verifyCredential(normalizedOrgId, index);
       await tx.wait();
       set({ 
         loading: false,
         message: 'VC verified successfully'
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
@@ -657,12 +798,13 @@ export const useStore = create((set, get) => ({
   // Yêu cầu xác thực VC on-chain
   requestVerification: async (orgID, vcIndex, targetVerifier, metadataUri) => {
     const { contract, account } = get();
-    if (!contract || !orgID || !account) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId || !account) return false;
 
     try {
       set({ loading: true });
       const tx = await contract.requestVerification(
-        orgID,
+        normalizedOrgId,
         vcIndex,
         targetVerifier || ethers.ZeroAddress,
         metadataUri
@@ -671,6 +813,10 @@ export const useStore = create((set, get) => ({
       set({ 
         loading: false,
         message: 'Verification request created successfully'
+      });
+      await get().loadWalletState({
+        forceRefresh: true,
+        orgId: normalizedOrgId,
       });
       return true;
     } catch (error) {
@@ -696,6 +842,7 @@ export const useStore = create((set, get) => ({
         loading: false,
         message: 'Verification request cancelled successfully'
       });
+      await get().loadWalletState({ forceRefresh: true });
       return true;
     } catch (error) {
       set({ 
@@ -735,10 +882,14 @@ export const useStore = create((set, get) => ({
   // Lấy request ID của VC
   getVCRequestId: async (orgID, vcIndex) => {
     const { contract } = get();
-    if (!contract) return 0;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return 0;
 
     try {
-      const requestId = await contract.vcRequestId(orgID, vcIndex);
+      const requestId = await contract.vcRequestId(
+        normalizedOrgId,
+        vcIndex,
+      );
       return Number(requestId);
     } catch {
       return 0;
@@ -748,10 +899,14 @@ export const useStore = create((set, get) => ({
   // Kiểm tra xem VC có đang có verification request chưa được xử lý không
   hasPendingVerificationRequest: async (orgID, vcIndex) => {
     const { contract } = get();
-    if (!contract) return false;
+    const normalizedOrgId = normalizeOrgId(orgID);
+    if (!contract || !normalizedOrgId) return false;
 
     try {
-      const hasPending = await contract.hasPendingVerificationRequest(orgID, vcIndex);
+      const hasPending = await contract.hasPendingVerificationRequest(
+        normalizedOrgId,
+        vcIndex,
+      );
       return hasPending;
     } catch {
       return false;

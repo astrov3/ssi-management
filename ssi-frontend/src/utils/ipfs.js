@@ -206,6 +206,59 @@ export const uploadVCToIPFS = async (vc) => {
 };
 
 /**
+ * Upload a binary file to IPFS via Pinata
+ * @param {File} file - Browser File instance
+ * @param {string} metadataName - Optional name for the pin
+ * @returns {Promise<{hash: string, uri: string, fileName: string}>}
+ */
+export const uploadFileToIPFS = async (file, metadataName = 'ssi-file') => {
+  if (!file) {
+    throw new Error('No file provided for IPFS upload');
+  }
+
+  try {
+    const credentials = getPinataCredentials();
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    const metadata = {
+      name: `${metadataName}-${Date.now()}`,
+    };
+
+    formData.append('pinataMetadata', JSON.stringify(metadata));
+    formData.append('pinataOptions', JSON.stringify({ cidVersion: 1 }));
+
+    const response = await axios.post(
+      `${PINATA_API_URL}/pinning/pinFileToIPFS`,
+      formData,
+      {
+        maxContentLength: Infinity,
+        headers: {
+          ...credentials,
+        },
+      }
+    );
+
+    if (!response.data?.IpfsHash) {
+      throw new Error('Invalid Pinata response when uploading file');
+    }
+
+    const ipfsHash = response.data.IpfsHash;
+    return {
+      hash: ipfsHash,
+      uri: `ipfs://${ipfsHash}`,
+      fileName: file.name,
+    };
+  } catch (error) {
+    console.error('Failed to upload file to IPFS:', error);
+    if (error.response?.status === 413) {
+      throw new Error('File is too large to upload to IPFS via Pinata.');
+    }
+    throw new Error(error.message || 'File upload to IPFS failed.');
+  }
+};
+
+/**
  * Retrieve data from IPFS via Pinata Gateway
  * @param {string} hash - IPFS hash or URI
  * @returns {Promise<string>} - Retrieved data as string
