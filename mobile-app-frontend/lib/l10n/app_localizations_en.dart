@@ -1138,4 +1138,142 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidValue => 'Invalid value';
+
+  @override
+  String get requestVerificationTitle => 'Request Verification';
+
+  @override
+  String get requestVerificationDescription =>
+      'The entire credential content will be sent automatically to the verifier.';
+
+  @override
+  String requestVerificationVcIndex(String index) {
+    return 'VC Index: $index';
+  }
+
+  @override
+  String get requestVerificationAddressLabel => 'Verifier address *';
+
+  @override
+  String get requestVerificationAddressHint =>
+      '0x... (leave empty to allow any verifier)';
+
+  @override
+  String get requestVerificationSubmit => 'Send Request';
+
+  @override
+  String get loadingCredentialInformation =>
+      'Loading credential information...';
+
+  @override
+  String unableToLoadCredentialInformation(String error) {
+    return 'Unable to load credential information: $error';
+  }
+
+  @override
+  String get credentialMissingInformation =>
+      'Credential has no information to send. Please check again.';
+
+  @override
+  String get uploadingFullCredential =>
+      'Uploading full credential content to IPFS...';
+
+  @override
+  String get sendingVerificationRequest =>
+      'Sending verification request to the blockchain...';
+
+  @override
+  String verificationRequestSuccess(String hash) {
+    return 'Verification request sent successfully!\\nHash: $hash';
+  }
+
+  @override
+  String get verificationRequestCancelled =>
+      'Verification request was cancelled in your wallet. Please try again.';
+
+  @override
+  String get verificationRequestGasLimitHigh =>
+      'Gas limit too high. The system tried to adjust automatically, but your wallet may be re-estimating. Please try again or reduce the metadata size if possible.';
+
+  @override
+  String get verificationRequestTimeout =>
+      'Verification request timed out. Please try again.';
+
+  @override
+  String get walletConnectSessionDisconnected =>
+      'WalletConnect session was disconnected. Please reconnect your wallet.';
+
+  @override
+  String get verifyingCredential => 'Verifying credential...';
+
+  @override
+  String get verifyCredentialDialogTitle => 'Verify Credential';
+
+  @override
+  String get verifyCredentialDialogMessage =>
+      'Are you sure you want to verify this credential?';
+
+  @override
+  String get verifyCredentialConfirm => 'Verify';
+
+  @override
+  String credentialVerifiedMessage(String hash) {
+    return 'Credential verified: $hash';
+  }
+
+  @override
+  String get verifyCredentialCancelled =>
+      'Credential verification was cancelled in your wallet. Please try again.';
+
+  @override
+  String get requestVerificationButton => 'Request Verification';
+
+  @override
+  String get verifyButton => 'Verify';
+
+  @override
+  String get credentialDetailsSectionTitle => 'Details';
+
+  @override
+  String get credentialFilesSectionTitle => 'Files';
+
+  @override
+  String get credentialDetailTypeLabel => 'Type';
+
+  @override
+  String get credentialDetailSubjectLabel => 'Subject';
+
+  @override
+  String get credentialSignatureLabel => 'Signature';
+
+  @override
+  String get credentialVerifiedByLabel => 'Verified By';
+
+  @override
+  String get credentialVerifiedAtLabel => 'Verified At';
+
+  @override
+  String get credentialGatewayLabel => 'Gateway';
+
+  @override
+  String get credentialGatewayDefault => 'Default';
+
+  @override
+  String get credentialGatewayOriginal => 'Original';
+
+  @override
+  String get documentLabel => 'Document';
+
+  @override
+  String get openInBrowser => 'Open in browser';
+
+  @override
+  String get attachmentPreviewUnavailableTitle => 'Cannot preview this file';
+
+  @override
+  String get attachmentPreviewUnavailableSubtitle =>
+      'Try another gateway or open it in your browser.';
+
+  @override
+  String get viewFileTooltip => 'View file';
 }

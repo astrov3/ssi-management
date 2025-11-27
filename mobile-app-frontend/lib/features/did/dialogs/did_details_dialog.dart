@@ -15,11 +15,13 @@ class DIDDetailsDialog extends StatefulWidget {
     required this.didData,
     required this.didDocument,
     required this.pinataService,
+    this.showVerificationTools = true,
   });
 
   final Map<String, dynamic> didData;
   final Map<String, dynamic>? didDocument;
   final PinataService pinataService;
+  final bool showVerificationTools;
 
   @override
   State<DIDDetailsDialog> createState() => _DIDDetailsDialogState();
@@ -212,6 +214,7 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
   }
 
   void _handleViewFile(String uri, String? fileName) {
+    if (!widget.showVerificationTools) return;
     setState(() {
       _previewingFileUri = uri;
       _previewingFileName = fileName;
@@ -573,7 +576,7 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                           e.value?.toString() ?? '',
                         )),
               ],
-              if (logoUri != null || documentUri != null) ...[
+              if (widget.showVerificationTools && (logoUri != null || documentUri != null)) ...[
                 const SizedBox(height: 24),
                 const Text(
                   'Files',
@@ -617,7 +620,7 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                     ),
                   ),
               ],
-              if (_previewingFileUri != null && _selectedGatewayLink != null) ...[
+              if (widget.showVerificationTools && _previewingFileUri != null && _selectedGatewayLink != null) ...[
                 const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -750,22 +753,24 @@ class _DIDDetailsDialogState extends State<DIDDetailsDialog> {
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _copyToClipboard(
-                    widget.didData['hashData'] ?? '',
-                    'Hash',
-                  ),
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy Hash'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              if (widget.showVerificationTools) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _copyToClipboard(
+                      widget.didData['hashData'] ?? '',
+                      'Hash',
+                    ),
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy Hash'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

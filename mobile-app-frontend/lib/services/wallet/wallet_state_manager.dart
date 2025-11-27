@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:ssi_app/services/role/role_context_provider.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/wallet/wallet_name_service.dart';
@@ -8,6 +9,7 @@ import 'package:ssi_app/services/wallet/wallet_name_service.dart';
 class WalletState {
   const WalletState({
     required this.address,
+    required this.orgId,
     required this.displayName,
     required this.didData,
     required this.vcs,
@@ -20,6 +22,9 @@ class WalletState {
 
   /// Current wallet address (either private key wallet or WalletConnect).
   final String address;
+
+  /// The orgID (DID identifier) currently being inspected.
+  final String orgId;
 
   /// Friendly name for the wallet (from [WalletNameService]) or shortened address.
   final String displayName;
@@ -60,6 +65,7 @@ class WalletStateManager {
   final Web3Service _web3Service = Web3Service();
   final WalletConnectService _walletConnectService = WalletConnectService();
   final WalletNameService _walletNameService = WalletNameService();
+  final RoleContextProvider _roleContextProvider = RoleContextProvider();
 
   WalletState? _cache;
   DateTime? _lastUpdated;
@@ -73,21 +79,22 @@ class WalletStateManager {
   /// - Trả về null nếu chưa có ví (chưa import hoặc chưa connect WalletConnect).
   /// - Nếu [forceRefresh] = false và cache còn mới → dùng cache.
   /// - Nếu [forceRefresh] = true hoặc cache hết hạn → gọi lại RPC để lấy dữ liệu mới nhất.
-  Future<WalletState?> loadWalletState({bool forceRefresh = false}) async {
+  Future<WalletState?> loadWalletState({bool forceRefresh = false, String? orgId}) async {
     final now = DateTime.now();
-
-    // 1. Lấy địa chỉ hiện tại từ Web3Service (ưu tiên private key, fallback WalletConnect).
-    final address = await _web3Service.getCurrentAddress();
-    if (address == null || address.isEmpty) {
+    final roleContext = await _roleContextProvider.load(orgId: orgId, forceRefresh: forceRefresh);
+    if (roleContext == null) {
       _cache = null;
       _lastUpdated = null;
       return null;
     }
 
-    // 2. Nếu cache cùng địa chỉ và chưa quá hạn, dùng lại.
+    final address = roleContext.address;
+    final resolvedOrgId = roleContext.orgId;
+
     final isCacheValid = !forceRefresh &&
         _cache != null &&
         _cache!.address.toLowerCase() == address.toLowerCase() &&
+        _cache!.orgId.toLowerCase() == resolvedOrgId.toLowerCase() &&
         _lastUpdated != null &&
         now.difference(_lastUpdated!) < cacheTtl;
 
@@ -98,37 +105,32 @@ class WalletStateManager {
 
     debugPrint('[WalletStateManager] Refreshing wallet state for $address (forceRefresh=$forceRefresh)');
 
-    // 3. Tải dữ liệu song song tối đa có thể.
-    // DID, VCs, verification requests, quyền, tên ví, tình trạng WalletConnect.
     final futures = await Future.wait<dynamic>([
-      _web3Service.getDID(address), // 0
-      _web3Service.getVCs(address), // 1
-      _web3Service.getAllVerificationRequests(), // 2
-      _web3Service.isAuthorizedIssuer(address, address), // 3: canIssue
-      _web3Service.isAuthorizedIssuer(address, address), // 4: canRevoke (same logic, tách nếu khác rule)
-      _web3Service.isTrustedVerifier(address), // 5
-      _walletNameService.getDisplayName(address), // 6
-      _walletConnectService.hasActiveSession(), // 7
+      _web3Service.getVCs(resolvedOrgId),
+      _web3Service.getAllVerificationRequests(
+        onlyPending: true,
+        orgIdFilter: resolvedOrgId,
+        requesterAddress: address,
+      ),
+      _walletNameService.getDisplayName(address),
+      _walletConnectService.hasActiveSession(),
     ]);
 
-    final didData = futures[0] as Map<String, dynamic>?;
-    final vcs = (futures[1] as List).cast<Map<String, dynamic>>();
-    final verificationRequests = (futures[2] as List).cast<Map<String, dynamic>>();
-    final canIssueVc = futures[3] as bool? ?? false;
-    final canRevokeVc = futures[4] as bool? ?? false;
-    final isTrustedVerifier = futures[5] as bool? ?? false;
-    final displayName = futures[6] as String? ?? address;
-    final isUsingWalletConnect = futures[7] as bool? ?? false;
+    final vcs = (futures[0] as List).cast<Map<String, dynamic>>();
+    final verificationRequests = (futures[1] as List).cast<Map<String, dynamic>>();
+    final displayName = futures[2] as String? ?? address;
+    final isUsingWalletConnect = futures[3] as bool? ?? false;
 
     final state = WalletState(
       address: address,
+      orgId: resolvedOrgId,
       displayName: displayName,
-      didData: didData,
+      didData: roleContext.didData,
       vcs: vcs,
       verificationRequests: verificationRequests,
-      canIssueVc: canIssueVc,
-      canRevokeVc: canRevokeVc,
-      isTrustedVerifier: isTrustedVerifier,
+      canIssueVc: roleContext.canIssue,
+      canRevokeVc: roleContext.canRevoke,
+      isTrustedVerifier: roleContext.isTrustedVerifier,
       isUsingWalletConnect: isUsingWalletConnect,
     );
 

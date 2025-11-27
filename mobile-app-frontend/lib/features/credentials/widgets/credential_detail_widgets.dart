@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/features/credentials/models/credential_models.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 class CredentialDetailRow extends StatelessWidget {
   const CredentialDetailRow({
@@ -55,6 +56,7 @@ class AttachmentPreviewFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -65,13 +67,13 @@ class AttachmentPreviewFallback extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Không thể preview file này',
+          l10n.attachmentPreviewUnavailableTitle,
           style: TextStyle(color: Colors.grey[700]),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
-          'Vui lòng thử mở bằng gateway khác hoặc trình duyệt.',
+          l10n.attachmentPreviewUnavailableSubtitle,
           style: TextStyle(
             color: Colors.grey[600],
             fontSize: 12,
@@ -93,7 +95,7 @@ class AttachmentPreviewFallback extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: onOpenExternal,
           icon: const Icon(Icons.open_in_new),
-          label: const Text('Mở trong trình duyệt'),
+          label: Text(l10n.openInBrowser),
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
         ),
       ],
@@ -113,6 +115,7 @@ class AttachmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final subtitle = attachment.fileName ?? attachment.label;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -164,7 +167,7 @@ class AttachmentRow extends StatelessWidget {
           IconButton(
             onPressed: onView,
             icon: Icon(Icons.visibility, color: Colors.grey[700]),
-            tooltip: 'Xem file',
+            tooltip: l10n.viewFileTooltip,
           ),
         ],
       ),

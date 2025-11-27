@@ -10,7 +10,6 @@ import 'package:ssi_app/app/theme/app_gradients.dart';
 import 'package:ssi_app/core/utils/navigation_utils.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
-import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_state_manager.dart';
@@ -19,6 +18,7 @@ import 'package:ssi_app/features/credentials/models/credential_models.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_list_widgets.dart';
 import 'package:ssi_app/features/credentials/widgets/credential_details_dialog.dart';
 import 'package:ssi_app/features/qr/display/qr_display_screen.dart';
+import 'package:ssi_app/services/credentials/credential_metadata_cache.dart';
 
 enum WalletActionStep {
   signature,
@@ -51,8 +51,8 @@ class CredentialsScreen extends StatefulWidget {
 class _CredentialsScreenState extends State<CredentialsScreen>
     with WidgetsBindingObserver {
   final _web3Service = Web3Service();
-  final _roleService = RoleService();
   final _pinataService = PinataService();
+  final _metadataCache = CredentialMetadataCache();
   final _walletConnectService = WalletConnectService();
   final _walletStateManager = WalletStateManager();
   static const List<IconData> _fallbackIcons = [
@@ -70,6 +70,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   String _address = '';
   Map<String, bool> _canIssueVC = {};
   Map<String, bool> _canRevokeVC = {};
+  bool _isTrustedVerifier = false;
   ValueNotifier<WalletActionState>? _walletActionStateNotifier;
   BuildContext? _walletActionSheetContext;
   Future<void>? _ongoingCredentialLoad;
@@ -86,8 +87,6 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
   @override
   void dispose() {
-
-    _roleService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _walletActionStateNotifier?.dispose();
     super.dispose();
@@ -132,17 +131,15 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       if (walletState != null && walletState.address.isNotEmpty) {
         final address = walletState.address;
+        final orgId = walletState.orgId;
         final vcs = walletState.vcs;
         final enrichedVcs = await _enrichCredentialsWithMetadata(vcs);
 
         // Check permissions for each VC's orgID
         final canIssueVC = <String, bool>{};
         final canRevokeVC = <String, bool>{};
-
-        // Extract orgID from VC (we'll use address as orgID for now)
-        final orgID = address;
-        canIssueVC[orgID] = await _roleService.canIssueVC(orgID, address);
-        canRevokeVC[orgID] = await _roleService.canRevokeVC(orgID, address);
+        canIssueVC[orgId] = walletState.canIssueVc;
+        canRevokeVC[orgId] = walletState.canRevokeVc;
 
         if (!mounted) return;
         setState(() {
@@ -150,11 +147,15 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           _credentials = enrichedVcs;
           _canIssueVC = canIssueVC;
           _canRevokeVC = canRevokeVC;
+          _isTrustedVerifier = walletState.isTrustedVerifier;
           _isLoading = false;
         });
       } else {
         if (!mounted) return;
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _isTrustedVerifier = false;
+        });
       }
     } catch (e) {
       debugPrint('Error loading credentials: $e');
@@ -184,7 +185,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     }
 
     try {
-      final doc = await _pinataService.getJSON(uri);
+      final doc = await _metadataCache.get(uri);
+      if (doc == null) {
+        return enriched;
+      }
       enriched['vcDocument'] = doc;
 
       final vcType = _extractVcTypeFromDocument(doc);
@@ -334,21 +338,39 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
   Future<void> _showCredentialDetails(int index) async {
     final credential = _credentials[index];
+    final isRevoked = credential['valid'] == false;
+    final l10n = AppLocalizations.of(context)!;
+    final canPerformVerificationActions = _isTrustedVerifier;
+
+    if (isRevoked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.statusRevoked),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
     Map<String, dynamic>? vcDoc =
         credential['vcDocument'] as Map<String, dynamic>?;
     bool? sigValid;
     try {
       if (vcDoc == null && (credential['uri'] as String?)?.isNotEmpty == true) {
-        vcDoc = await _pinataService.getJSON(credential['uri'] as String);
+        vcDoc = await _metadataCache.get(credential['uri'] as String);
         credential['vcDocument'] = vcDoc;
-
+      }
+      if (vcDoc != null) {
         final vcType = _extractVcTypeFromDocument(vcDoc);
         if (vcType != null) {
           credential['vcType'] = vcType;
         }
-      }
-      if (vcDoc != null) {
-        // Optional: verify signature if present
+        final docTitle = _extractTitleFromDocument(vcDoc);
+        if (docTitle != null) {
+          credential['title'] = docTitle;
+        }
+        final attachments = _extractFileAttachments(vcDoc);
+        credential['attachments'] = attachments;
+
         try {
           sigValid = await _web3Service.verifyVCSignature(
             vcDoc,
@@ -365,25 +387,11 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       sigValid = null;
     }
 
-    // Always extract attachments from vcDocument to ensure proper type
-    // Don't rely on stored attachments in credential map as type information may be lost
-    List<CredentialAttachment> attachments = <CredentialAttachment>[];
-    if (vcDoc != null) {
+    List<CredentialAttachment> attachments =
+        (credential['attachments'] as List<CredentialAttachment>?) ?? [];
+    if (vcDoc != null && attachments.isEmpty) {
       attachments = _extractFileAttachments(vcDoc);
-      debugPrint(
-        'Extracted ${attachments.length} attachments for credential at index $index',
-      );
-      if (attachments.isNotEmpty) {
-        for (final attachment in attachments) {
-          debugPrint('  - ${attachment.label}: ${attachment.uri}');
-        }
-      }
-      // Update credential map for future reference
       credential['attachments'] = attachments;
-    } else {
-      debugPrint(
-        'Warning: vcDoc is null, cannot extract attachments for credential at index $index',
-      );
     }
 
     if (!mounted) return;
@@ -422,14 +430,18 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                     }
                     : null,
             onRequestVerification:
-                credential['verified'] != true && credential['valid'] == true
+                canPerformVerificationActions &&
+                        credential['verified'] != true &&
+                        credential['valid'] == true
                     ? () {
                       Navigator.pop(context);
                       _showVerificationRequestDialog(index);
                     }
                     : null,
             onVerifyCredential:
-                credential['verified'] != true && credential['valid'] == true
+                canPerformVerificationActions &&
+                        credential['verified'] != true &&
+                        credential['valid'] == true
                     ? () {
                       Navigator.pop(context);
                       _verifyCredential(index);
@@ -439,7 +451,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     );
   }
 
-  Future<void> _issueVC(
+  Future<bool> _issueVC(
     String orgID,
     Map<String, dynamic>? credentialData,
   ) async {
@@ -494,7 +506,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       final isWC = await _walletConnectService.hasActiveSession();
       isWalletConnectFlow = isWC;
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if (isWalletConnectFlow) {
         _dismissBlockingSpinner();
@@ -548,7 +560,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         if (isWalletConnectFlow) {
           _setWalletActionError(currentWalletStep, e.toString());
         }
-        if (!mounted) return;
+        if (!mounted) return false;
 
         String errorMessage = 'Lỗi khi issue VC: ${e.toString()}';
         if (e.toString().contains('DID không tồn tại')) {
@@ -569,7 +581,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             duration: const Duration(seconds: 5),
           ),
         );
-        return;
+        return false;
       }
 
       currentWalletStep = WalletActionStep.confirming;
@@ -584,7 +596,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       final success = await _web3Service.waitForTransactionReceipt(txHash);
 
       _dismissBlockingSpinner();
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if (success) {
         if (isWalletConnectFlow) {
@@ -601,6 +613,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           ),
         );
         _loadCredentials();
+        return true;
       } else {
         if (isWalletConnectFlow) {
           _setWalletActionError(
@@ -617,6 +630,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             duration: const Duration(seconds: 5),
           ),
         );
+        return false;
       }
     } catch (e) {
       _dismissBlockingSpinner();
@@ -630,7 +644,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         if (isWalletConnectFlow) {
           _setWalletActionError(currentWalletStep, e.toString());
         }
-        return;
+        return false;
       }
 
       String errorMessage = AppLocalizations.of(
@@ -659,6 +673,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           duration: const Duration(seconds: 4),
         ),
       );
+      return false;
     } finally {
       if (isWalletConnectFlow) {
         await Future.delayed(const Duration(milliseconds: 400));
@@ -783,9 +798,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       builder:
           (context) => AlertDialog(
             backgroundColor: AppColors.surface,
-            title: const Text(
-              'Request Verification',
-              style: TextStyle(color: Colors.white),
+            title: Text(
+              AppLocalizations.of(context)!.requestVerificationTitle,
+              style: const TextStyle(color: Colors.white),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -793,12 +808,15 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'VC Index: ${_credentials[index]['index']}',
+                    AppLocalizations.of(context)!.requestVerificationVcIndex(
+                      _credentials[index]['index'].toString(),
+                    ),
                     style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Toàn bộ nội dung credential sẽ được gửi tự động đến cơ quan xác thực.',
+                    AppLocalizations.of(context)!
+                        .requestVerificationDescription,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -807,14 +825,16 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: targetVerifierController,
-                    decoration: const InputDecoration(
-                      labelText: 'Địa chỉ cơ quan xác thực *',
-                      hintText: '0x... (để trống nếu cho phép bất kỳ verifier nào)',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      enabledBorder: UnderlineInputBorder(
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!
+                          .requestVerificationAddressLabel,
+                      hintText: AppLocalizations.of(context)!
+                          .requestVerificationAddressHint,
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.white30),
                       ),
-                      focusedBorder: UnderlineInputBorder(
+                      focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.white),
                       ),
                     ),
@@ -826,14 +846,16 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Hủy'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
-                child: const Text('Gửi yêu cầu'),
+                child: Text(
+                  AppLocalizations.of(context)!.requestVerificationSubmit,
+                ),
               ),
             ],
           ),
@@ -851,6 +873,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
     int index,
     String targetVerifier,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final credential = _credentials[index];
       
@@ -861,9 +884,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         // Nếu chưa có vcDocument, thử load từ URI
         final uri = credential['uri'] as String?;
         if (uri != null && uri.isNotEmpty) {
-          _showBlockingSpinner('Loading credential information...');
+          _showBlockingSpinner(l10n.loadingCredentialInformation);
           try {
-            vcDocument = await _pinataService.getJSON(uri);
+            vcDocument = await _metadataCache.get(uri);
+            credential['vcDocument'] = vcDocument;
           } catch (e) {
             debugPrint('Error loading VC document from URI: $e');
             _dismissBlockingSpinner();
@@ -871,7 +895,9 @@ class _CredentialsScreenState extends State<CredentialsScreen>
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Unable to load credential information: ${e.toString()}'),
+                content: Text(
+                  l10n.unableToLoadCredentialInformation(e.toString()),
+                ),
                 backgroundColor: AppColors.danger,
               ),
             );
@@ -882,8 +908,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
           _spinnerContext = null;
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Credential has no information to send. Please check again.'),
+            SnackBar(
+              content: Text(l10n.credentialMissingInformation),
               backgroundColor: AppColors.danger,
             ),
           );
@@ -891,12 +917,25 @@ class _CredentialsScreenState extends State<CredentialsScreen>
         }
       }
       
+      if (vcDocument == null) {
+        _dismissBlockingSpinner();
+        _spinnerContext = null;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.credentialMissingInformation),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+        return;
+      }
+      
       // Upload the full credential content to IPFS
-      _updateSpinnerMessage('Uploading full credential content to IPFS...');
+      _updateSpinnerMessage(l10n.uploadingFullCredential);
       final metadataUri = await _pinataService.uploadJSON(vcDocument);
       
       // Send verification request with metadataUri containing the full credential
-      _updateSpinnerMessage('Sending verification request to blockchain...');
+      _updateSpinnerMessage(l10n.sendingVerificationRequest);
       final txHash = await _web3Service.requestVerification(
         _address,
         index,
@@ -909,9 +948,8 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Yêu cầu xác thực đã được gửi thành công!\nHash: ${_formatHash(txHash)}',
-          ),
+          content:
+              Text(l10n.verificationRequestSuccess(_formatHash(txHash))),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 3),
         ),
@@ -929,23 +967,21 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       
       if (!mounted) return;
       
-      String errorMessage = 'Lỗi: ${e.toString()}';
+      String errorMessage = AppLocalizations.of(context)!.errorOccurred(e.toString());
       
       // Handle specific error cases
       if (e.toString().toLowerCase().contains('rejected') ||
           e.toString().toLowerCase().contains('denied')) {
-        errorMessage = 'Yêu cầu xác thực đã bị hủy trong ví. Vui lòng thử lại.';
+        errorMessage = AppLocalizations.of(context)!.verificationRequestCancelled;
       } else if (e.toString().contains('gas limit too high') ||
                  e.toString().contains('16777216') ||
                  e.toString().contains('gas limit quá cao')) {
-        errorMessage = 'Gas limit quá cao. '
-            'Hệ thống đã tự động điều chỉnh, nhưng ví của bạn có thể đang estimate lại. '
-            'Vui lòng thử lại hoặc giảm kích thước metadata nếu có thể.';
+        errorMessage = AppLocalizations.of(context)!.verificationRequestGasLimitHigh;
       } else if (e.toString().toLowerCase().contains('timeout')) {
-        errorMessage = 'Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.';
+        errorMessage = AppLocalizations.of(context)!.verificationRequestTimeout;
       } else if (e.toString().toLowerCase().contains('session') &&
                  e.toString().toLowerCase().contains('disconnected')) {
-        errorMessage = 'WalletConnect session đã bị ngắt kết nối. Vui lòng kết nối lại wallet.';
+        errorMessage = AppLocalizations.of(context)!.walletConnectSessionDisconnected;
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -959,31 +995,32 @@ class _CredentialsScreenState extends State<CredentialsScreen>
   }
 
   Future<void> _verifyCredential(int index) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await showDialog<bool>(
         context: context,
         builder:
             (context) => AlertDialog(
               backgroundColor: AppColors.surface,
-              title: const Text(
-                'Verify Credential',
-                style: TextStyle(color: Colors.white),
+              title: Text(
+                l10n.verifyCredentialDialogTitle,
+                style: const TextStyle(color: Colors.white),
               ),
-              content: const Text(
-                'Are you sure you want to verify this credential?',
-                style: TextStyle(color: Colors.white70),
+              content: Text(
+                l10n.verifyCredentialDialogMessage,
+                style: const TextStyle(color: Colors.white70),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
                   ),
-                  child: const Text('Verify'),
+                  child: Text(l10n.verifyCredentialConfirm),
                 ),
               ],
             ),
@@ -991,14 +1028,15 @@ class _CredentialsScreenState extends State<CredentialsScreen>
 
       if (result != true) return;
 
-      _showBlockingSpinner('Đang xác thực credential...');
+      _showBlockingSpinner(l10n.verifyingCredential);
       final txHash = await _web3Service.verifyCredential(_address, index);
       _dismissBlockingSpinner();
       _spinnerContext = null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Credential verified: ${_formatHash(txHash)}'),
+          content:
+              Text(l10n.credentialVerifiedMessage(_formatHash(txHash))),
           backgroundColor: AppColors.success,
         ),
       );
@@ -1015,10 +1053,10 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       
       if (!mounted) return;
       
-      String errorMessage = 'Error: ${e.toString()}';
+      String errorMessage = AppLocalizations.of(context)!.errorOccurred(e.toString());
       if (e.toString().toLowerCase().contains('rejected') ||
           e.toString().toLowerCase().contains('denied')) {
-        errorMessage = 'Xác thực credential đã bị hủy trong ví. Vui lòng thử lại.';
+        errorMessage = AppLocalizations.of(context)!.verifyCredentialCancelled;
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1048,7 +1086,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
       builder:
           (context) => CredentialFormDialog(
             onSubmit: (credentialData) {
-              _issueVC(_address, credentialData);
+              return _issueVC(_address, credentialData);
             },
           ),
     );
@@ -1337,7 +1375,7 @@ class _CredentialsScreenState extends State<CredentialsScreen>
                         onRefresh: _loadCredentials,
                         color: AppColors.secondary,
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
                           itemCount: _credentials.length,
                           itemBuilder: (context, index) {
                             final credential = _credentials[index];

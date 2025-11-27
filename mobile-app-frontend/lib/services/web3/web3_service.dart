@@ -10,7 +10,6 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' show Client;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web3dart/crypto.dart' as crypto;
 import 'package:web3dart/web3dart.dart';
 
 import 'package:ssi_app/config/environment.dart';
@@ -593,45 +592,15 @@ class Web3Service {
 
   Future<String> registerDID(String orgID, String hashData, String uri) async {
     final function = _contract.function('registerDID');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      // Use WalletConnect to send transaction
-      final contractAddress = Environment.contractAddress;
-      
-      // Convert hashData to bytes32 - ensure it's exactly 32 bytes
-      final hashBytes = _hexToBytes(hashData);
-      if (hashBytes.length != 32) {
-        throw ArgumentError('hashData must be exactly 32 bytes (bytes32), got ${hashBytes.length} bytes');
-      }
-      
-      debugPrint('[Web3Service] Encoding function call for WalletConnect...');
-      debugPrint('[Web3Service] orgID: $orgID');
-      debugPrint('[Web3Service] hashData: $hashData (${hashBytes.length} bytes)');
-      debugPrint('[Web3Service] uri: $uri');
-      
-      final encodedData = _encodeFunctionCall(function, [orgID, hashBytes, uri]);
-      debugPrint('[Web3Service] Encoded data length: ${encodedData.length}');
-      debugPrint('[Web3Service] Encoded data: $encodedData');
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      // Use private key to send transaction
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, _hexToBytes(hashData), uri],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
+    final hashBytes = _hexToBytes(hashData);
+    if (hashBytes.length != 32) {
+      throw ArgumentError('hashData must be exactly 32 bytes (bytes32), got ${hashBytes.length} bytes');
     }
+
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID, hashBytes, uri],
+    );
   }
 
   Future<String> issueVC(String orgID, String hashCredential, String uri, {int? expirationTimestamp}) async {
@@ -672,41 +641,24 @@ class Web3Service {
     
     final function = _contract.function('issueVCWithExpiration');
     final expiration = BigInt.from(expirationTimestamp ?? 0);
-    final contractAddress = Environment.contractAddress;
-    final encodedData = _encodeFunctionCall(function, [orgID, _hexToBytes(hashCredential), uri, expiration]);
-    final isWC = await _isUsingWalletConnect();
+    final parameters = [orgID, _hexToBytes(hashCredential), uri, expiration];
+    final encodedData = _encodeFunctionCall(function, parameters);
 
     // Simulate transaction to catch revert reason before sending
     final callerAddress = await _getCurrentAddress();
     if (callerAddress != null) {
       await _simulateTransaction(
         from: callerAddress,
-        to: contractAddress,
+        to: Environment.contractAddress,
         data: encodedData,
       );
     }
     
-    if (isWC) {
-      // Use WalletConnect to send transaction
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      // Use private key to send transaction
-      final credentials = await _requireCredentials();
-      final txHash = await _client.sendTransaction(
-        credentials,
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, _hexToBytes(hashCredential), uri, expiration],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: parameters,
+      preEncodedData: encodedData,
+    );
   }
   
   /// Lấy địa chỉ ví hiện tại (từ private key hoặc WalletConnect)
@@ -874,110 +826,34 @@ class Web3Service {
 
   Future<String> revokeVC(String orgID, int index) async {
     final function = _contract.function('revokeVC');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID, BigInt.from(index)]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, BigInt.from(index)],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID, BigInt.from(index)],
+    );
   }
 
   Future<String> updateDID(String orgID, String newHash, String newUri) async {
     final function = _contract.function('updateDID');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID, _hexToBytes(newHash), newUri]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, _hexToBytes(newHash), newUri],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID, _hexToBytes(newHash), newUri],
+    );
   }
 
   Future<String> authorizeIssuer(String orgID, String issuerAddress) async {
     final function = _contract.function('authorizeIssuer');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID, EthereumAddress.fromHex(issuerAddress)]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, EthereumAddress.fromHex(issuerAddress)],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID, EthereumAddress.fromHex(issuerAddress)],
+    );
   }
 
   Future<String> deactivateDID(String orgID) async {
     final function = _contract.function('deactivateDID');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID],
+    );
   }
 
   Future<bool> isAuthorizedIssuer(String orgID, String issuerAddress) async {
@@ -1005,57 +881,19 @@ class Web3Service {
   /// Thiết lập trusted verifier (chỉ admin)
   Future<String> setTrustedVerifier(String verifierAddress, bool allowed) async {
     final function = _contract.function('setTrustedVerifier');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [EthereumAddress.fromHex(verifierAddress), allowed]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [EthereumAddress.fromHex(verifierAddress), allowed],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [EthereumAddress.fromHex(verifierAddress), allowed],
+    );
   }
 
   /// Xác thực VC bởi cơ quan cấp cao (trusted verifier)
   Future<String> verifyCredential(String orgID, int index) async {
     final function = _contract.function('verifyCredential');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [orgID, BigInt.from(index)]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, BigInt.from(index)],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [orgID, BigInt.from(index)],
+    );
   }
 
   /// Kiểm tra xem một địa chỉ có phải là trusted verifier không
@@ -1144,80 +982,53 @@ class Web3Service {
   /// Yêu cầu xác thực VC on-chain
   Future<String> requestVerification(String orgID, int index, String? targetVerifier, String metadataUri) async {
     final function = _contract.function('requestVerification');
-    final isWC = await _isUsingWalletConnect();
     final targetVerifierAddress = targetVerifier != null && targetVerifier.isNotEmpty
         ? EthereumAddress.fromHex(targetVerifier)
         : EthereumAddress.fromHex('0x0000000000000000000000000000000000000000');
-    
-    final contractAddress = Environment.contractAddress;
-    final encodedData = _encodeFunctionCall(function, [orgID, BigInt.from(index), targetVerifierAddress, metadataUri]);
-    
-    if (isWC) {
-      // Estimate gas automatically with buffer and network cap
-      // This ensures flexibility while staying within network limits
+    final parameters = [orgID, BigInt.from(index), targetVerifierAddress, metadataUri];
+    final encodedData = _encodeFunctionCall(function, parameters);
+
+    String? walletConnectGas;
+    if (await _isUsingWalletConnect()) {
       try {
         final callerAddress = await _getCurrentAddress();
         if (callerAddress != null) {
           debugPrint('[Web3Service] Auto-estimating gas for requestVerification...');
           debugPrint('[Web3Service] orgID: $orgID, index: $index, metadataUri length: ${metadataUri.length}');
           
-          // _estimateGas already includes 30% buffer and network cap (15M)
           final finalGas = await _estimateGas(
             from: callerAddress,
-            to: contractAddress,
+            to: Environment.contractAddress,
             data: encodedData,
           );
           
           debugPrint('[Web3Service] Final gas limit (with buffer and cap): $finalGas');
-          
-          return await _walletConnectService.sendTransaction(
-            to: contractAddress,
-            data: encodedData,
-            gas: finalGas.toRadixString(10), // Pass as decimal string
-          );
+          walletConnectGas = finalGas.toRadixString(10);
         }
       } catch (e) {
         debugPrint('[Web3Service] Gas estimation failed: $e');
         
-        // Check if it's a gas limit error - don't retry with default
         if (e.toString().contains('gas limit too high') || 
             e.toString().contains('16777216')) {
-          rethrow; // Re-throw gas limit errors
+          rethrow;
         }
         
-        // For estimation failures, use a safe default
-        // requestVerification typically uses 100k-300k gas, so 500k is safe
         debugPrint('[Web3Service] Using safe default gas limit: 500,000');
-        const safeGasLimit = 500000;
-        
-        return await _walletConnectService.sendTransaction(
-          to: contractAddress,
-          data: encodedData,
-          gas: safeGasLimit.toString(),
-        );
+        walletConnectGas = '500000';
       }
       
-      // If no address available, use safe default
-      debugPrint('[Web3Service] No address available, using safe default gas limit: 500,000');
-      const safeGasLimit = 500000;
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-        gas: safeGasLimit.toString(),
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [orgID, BigInt.from(index), targetVerifierAddress, metadataUri],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
+      if (walletConnectGas == null) {
+        debugPrint('[Web3Service] No address available, using safe default gas limit: 500,000');
+        walletConnectGas = '500000';
+      }
     }
+    
+    return _sendContractTransaction(
+      function: function,
+      parameters: parameters,
+      walletConnectGas: walletConnectGas,
+      preEncodedData: encodedData,
+    );
   }
 
   /// Lấy admin address
@@ -1301,20 +1112,45 @@ class Web3Service {
 
   /// Lấy tất cả verification requests (pending và processed)
   /// Chỉ lấy các requests chưa được xử lý nếu onlyPending = true
-  Future<List<Map<String, dynamic>>> getAllVerificationRequests({bool onlyPending = true}) async {
+  /// Có thể lọc theo orgID/requester để giảm dữ liệu cần xử lý trên client
+  Future<List<Map<String, dynamic>>> getAllVerificationRequests({
+    bool onlyPending = true,
+    String? orgIdFilter,
+    String? requesterAddress,
+    int chunkSize = 25,
+  }) async {
     final requests = <Map<String, dynamic>>[];
     try {
       final nextRequestId = await getNextRequestId();
-      
-      // Lấy tất cả requests từ 1 đến nextRequestId
-      for (int i = 1; i < nextRequestId; i++) {
-        final request = await getVerificationRequest(i);
-        if (request != null) {
-          // Nếu onlyPending = true, chỉ lấy requests chưa được xử lý
+
+      if (nextRequestId == 0) {
+        return requests;
+      }
+
+      int currentId = 1;
+      while (currentId <= nextRequestId) {
+        final endId = currentId + chunkSize - 1;
+        final actualEndId = endId > nextRequestId ? nextRequestId : endId;
+        final futures = <Future<Map<String, dynamic>?>>[];
+        for (int requestId = currentId; requestId <= actualEndId; requestId++) {
+          futures.add(getVerificationRequest(requestId));
+        }
+        final chunkResults = await Future.wait(futures);
+        for (final request in chunkResults) {
+          if (request == null) continue;
+          if (orgIdFilter != null &&
+              request['orgID']?.toString().toLowerCase() != orgIdFilter.toLowerCase()) {
+            continue;
+          }
+          if (requesterAddress != null &&
+              request['requester']?.toString().toLowerCase() != requesterAddress.toLowerCase()) {
+            continue;
+          }
           if (!onlyPending || !request['processed']) {
             requests.add(request);
           }
         }
+        currentId = actualEndId + 1;
       }
       
       // Sắp xếp theo requestedAt (mới nhất trước)
@@ -1334,29 +1170,10 @@ class Web3Service {
   /// Hủy verification request (chỉ requester mới có thể hủy)
   Future<String> cancelVerificationRequest(int requestId) async {
     final function = _contract.function('cancelVerificationRequest');
-    final isWC = await _isUsingWalletConnect();
-    
-    if (isWC) {
-      final contractAddress = Environment.contractAddress;
-      final encodedData = _encodeFunctionCall(function, [BigInt.from(requestId)]);
-      
-      return await _walletConnectService.sendTransaction(
-        to: contractAddress,
-        data: encodedData,
-      );
-    } else {
-      final txHash = await _client.sendTransaction(
-        await _requireCredentials(),
-        Transaction.callContract(
-          contract: _contract,
-          function: function,
-          parameters: [BigInt.from(requestId)],
-        ),
-        chainId: Environment.chainId,
-      );
-
-      return txHash;
-    }
+    return _sendContractTransaction(
+      function: function,
+      parameters: [BigInt.from(requestId)],
+    );
   }
 
   Future<EtherAmount> getBalance() async {
@@ -1555,219 +1372,44 @@ class Web3Service {
     return null;
   }
   
-  /// Encode function call data for WalletConnect transactions
-  /// Uses manual ABI encoding since we can't easily extract data from Transaction object
+  /// Encode function call data for WalletConnect transactions.
+  /// Relies on web3dart's ABI encoder to avoid maintaining custom logic.
   String _encodeFunctionCall(ContractFunction function, List<dynamic> parameters) {
-    // Use manual encoding for WalletConnect transactions
-    return _encodeFunctionCallManual(function, parameters);
-  }
-  
-  /// Manual ABI encoding for WalletConnect
-  String _encodeFunctionCallManual(ContractFunction function, List<dynamic> parameters) {
-    // Calculate function selector (first 4 bytes of keccak256(function signature))
-    // Use the actual type name from the parameter's type property
-    final paramTypes = <String>[];
-    for (var i = 0; i < function.parameters.length; i++) {
-      final param = function.parameters[i];
-      try {
-        final typeName = _getTypeName(param.type);
-        paramTypes.add(typeName);
-        debugPrint('Parameter $i: typeName=$typeName, type=${param.type}, runtimeType=${param.type.runtimeType}');
-      } catch (e) {
-        debugPrint('Error getting type name for parameter $i: $e');
-        rethrow;
-      }
-    }
-    
-    final paramTypesStr = paramTypes.join(',');
-    final functionSignature = '${function.name}($paramTypesStr)';
-    debugPrint('Function signature: $functionSignature');
-    final signatureHash = crypto.keccak256(utf8.encode(functionSignature));
-    final functionSelector = signatureHash.sublist(0, 4);
-    
-    // Encode parameters
-    final head = <int>[];
-    final tail = <int>[];
-    int dynamicOffset = function.parameters.length * 32; // Start offset for dynamic types
-    
-    for (var i = 0; i < function.parameters.length; i++) {
-      final param = function.parameters[i];
-      final value = parameters[i];
-      final typeName = _getTypeName(param.type);
-      
-      if (typeName == 'string') {
-        // Dynamic type: store offset in head, data in tail
-        head.addAll(_uint256ToBytes(BigInt.from(dynamicOffset)));
-        
-        final strBytes = utf8.encode(value.toString());
-        final lengthBytes = _uint256ToBytes(BigInt.from(strBytes.length));
-        tail.addAll(lengthBytes);
-        
-        // Pad string data to multiple of 32 bytes
-        final paddedLength = ((strBytes.length + 31) ~/ 32) * 32;
-        final padded = Uint8List(paddedLength);
-        padded.setRange(0, strBytes.length, strBytes);
-        tail.addAll(padded);
-        
-        dynamicOffset += 32 + paddedLength; // Update offset for next dynamic type
-      } else {
-        // Static type: encode directly in head
-        if (typeName == 'bytes32') {
-          final bytes = value is List<int> 
-              ? Uint8List.fromList(value)
-              : _hexToBytes(value.toString());
-          final padded = Uint8List(32);
-          padded.setRange(0, bytes.length > 32 ? 32 : bytes.length, bytes);
-          head.addAll(padded);
-        } else if (typeName == 'address') {
-          final address = value is EthereumAddress 
-              ? value.hex
-              : (value is String ? value : value.toString());
-          final bytes = _hexToBytes(address);
-          final padded = Uint8List(32);
-          padded.setRange(12, 32, bytes); // Address: 20 bytes, left-padded to 32
-          head.addAll(padded);
-        } else if (typeName.startsWith('uint')) {
-          final bigInt = value is BigInt 
-              ? value
-              : (value is int ? BigInt.from(value) : BigInt.parse(value.toString()));
-          head.addAll(_uint256ToBytes(bigInt));
-        } else {
-          throw UnsupportedError('Unsupported parameter type: $typeName (${param.type.runtimeType})');
-        }
-      }
-    }
-    
-    // Combine function selector + head + tail
-    final encoded = Uint8List.fromList([...functionSelector, ...head, ...tail]);
+    final encoded = function.encodeCall(parameters);
     return _bytesToHex(encoded);
   }
-  
-  /// Get type name from Parameter type, handling different type representations
-  String _getTypeName(dynamic type) {
-    // Try to get the canonical type name
-    final typeString = type.toString();
-    final runtimeTypeName = type.runtimeType.toString();
-    
-    debugPrint('_getTypeName: typeString="$typeString", runtimeType="$runtimeTypeName"');
-    
-    // Check runtime type first (more reliable)
-    // Handle "StringType" class name
-    if (runtimeTypeName.contains('StringType') || 
-        (runtimeTypeName.contains('String') && !runtimeTypeName.contains('Bytes') && !runtimeTypeName.contains('Fixed'))) {
-      return 'string';
+
+  Future<String> _sendContractTransaction({
+    required ContractFunction function,
+    required List<dynamic> parameters,
+    EtherAmount? value,
+    String? walletConnectGas,
+    String? walletConnectValue,
+    String? preEncodedData,
+  }) async {
+    final isWC = await _isUsingWalletConnect();
+    if (isWC) {
+      final encodedData = preEncodedData ?? _encodeFunctionCall(function, parameters);
+      return await _walletConnectService.sendTransaction(
+        to: Environment.contractAddress,
+        data: encodedData,
+        gas: walletConnectGas,
+        value: walletConnectValue,
+      );
     }
-    
-    // Handle "AddressType" class name
-    if (runtimeTypeName.contains('AddressType') || 
-        (runtimeTypeName.contains('Address') && !runtimeTypeName.contains('Bytes'))) {
-      return 'address';
-    }
-    
-    // Handle "FixedBytes" - this represents bytes32, bytes16, etc.
-    if (runtimeTypeName.contains('FixedBytes') || typeString.contains('FixedBytes')) {
-      // Try to extract the size from the type
-      // FixedBytes usually represents bytes32, bytes16, etc.
-      // Check if we can get the size from the type object
-      try {
-        // Try to access size property if it exists
-        if (type is Map) {
-          final size = type['size'];
-          if (size != null) {
-            return 'bytes$size';
-          }
-        }
-        // Check typeString for bytes pattern
-        final bytesMatch = RegExp(r'bytes(\d+)').firstMatch(typeString);
-        if (bytesMatch != null) {
-          return 'bytes${bytesMatch.group(1)}';
-        }
-        // For our contract, we only use bytes32, so default to that
-        // But we should try to be more accurate
-        if (typeString.contains('32') || runtimeTypeName.contains('32')) {
-          return 'bytes32';
-        }
-        // Default to bytes32 for FixedBytes (most common case)
-        debugPrint('Warning: FixedBytes without size info, defaulting to bytes32');
-        return 'bytes32';
-      } catch (e) {
-        debugPrint('Error extracting bytes size from FixedBytes: $e');
-        return 'bytes32'; // Default fallback
-      }
-    }
-    
-    // Handle "Bytes32Type" class name (alternative representation)
-    if (runtimeTypeName.contains('Bytes32Type') || 
-        runtimeTypeName.contains('Bytes32')) {
-      return 'bytes32';
-    }
-    
-    // Handle "UintType" class name
-    if (runtimeTypeName.contains('UintType') || 
-        (runtimeTypeName.contains('Uint') && !runtimeTypeName.contains('Bytes'))) {
-      // Extract uint size from runtime type name
-      final match = RegExp(r'Uint(\d+)').firstMatch(runtimeTypeName);
-      if (match != null) {
-        return 'uint${match.group(1)}';
-      }
-      // Check typeString for size
-      final typeMatch = RegExp(r'[Uu]int(\d+)').firstMatch(typeString);
-      if (typeMatch != null) {
-        return 'uint${typeMatch.group(1)}';
-      }
-      return 'uint256'; // Default
-    }
-    
-    // Fallback to typeString analysis
-    final lowerTypeString = typeString.toLowerCase();
-    
-    // Check for string (be careful with case sensitivity)
-    if (typeString == 'string' || 
-        typeString.contains('StringType') ||
-        (lowerTypeString.contains('string') && !lowerTypeString.contains('bytes'))) {
-      return 'string';
-    }
-    
-    // Check for address
-    if (typeString == 'address' || 
-        typeString.contains('AddressType') ||
-        lowerTypeString.contains('address')) {
-      return 'address';
-    }
-    
-    // Check for bytes (bytes32, bytes16, etc.)
-    if (lowerTypeString.contains('bytes')) {
-      final bytesMatch = RegExp(r'bytes(\d+)').firstMatch(lowerTypeString);
-      if (bytesMatch != null) {
-        return 'bytes${bytesMatch.group(1)}';
-      }
-      // If just "bytes" without number, check if it's bytes32 (most common)
-      if (typeString.contains('32') || runtimeTypeName.contains('32')) {
-        return 'bytes32';
-      }
-      return 'bytes32'; // Default to bytes32
-    }
-    
-    // Check for uint
-    if (lowerTypeString.contains('uint')) {
-      final match = RegExp(r'[Uu]int(\d+)').firstMatch(typeString);
-      if (match != null) {
-        return 'uint${match.group(1)}';
-      }
-      return 'uint256';
-    }
-    
-    // Last resort: log and return error
-    debugPrint('Error: Could not determine type name for: typeString="$typeString", runtimeType="$runtimeTypeName"');
-    debugPrint('Type object: $type');
-    throw UnsupportedError('Unsupported parameter type: $typeString (runtime: $runtimeTypeName). Please check the contract ABI.');
-  }
-  
-  Uint8List _uint256ToBytes(BigInt value) {
-    final hex = value.toRadixString(16).padLeft(64, '0');
-    return Uint8List.fromList(
-      List.generate(32, (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16)),
+
+    final txHash = await _client.sendTransaction(
+      await _requireCredentials(),
+      Transaction.callContract(
+        contract: _contract,
+        function: function,
+        parameters: parameters,
+        value: value,
+      ),
+      chainId: Environment.chainId,
     );
+
+    return txHash;
   }
 
   Uint8List _hexToBytes(String hex) {

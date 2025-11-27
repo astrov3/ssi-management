@@ -1136,4 +1136,141 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get invalidValue => 'Giá trị không hợp lệ';
+
+  @override
+  String get requestVerificationTitle => 'Gửi yêu cầu xác thực';
+
+  @override
+  String get requestVerificationDescription =>
+      'Toàn bộ nội dung credential sẽ được gửi tự động đến cơ quan xác thực.';
+
+  @override
+  String requestVerificationVcIndex(String index) {
+    return 'VC Index: $index';
+  }
+
+  @override
+  String get requestVerificationAddressLabel => 'Địa chỉ verifier *';
+
+  @override
+  String get requestVerificationAddressHint =>
+      '0x... (để trống nếu cho phép bất kỳ verifier nào)';
+
+  @override
+  String get requestVerificationSubmit => 'Gửi yêu cầu';
+
+  @override
+  String get loadingCredentialInformation => 'Đang tải thông tin credential...';
+
+  @override
+  String unableToLoadCredentialInformation(String error) {
+    return 'Không thể tải thông tin credential: $error';
+  }
+
+  @override
+  String get credentialMissingInformation =>
+      'Credential không có dữ liệu để gửi. Vui lòng kiểm tra lại.';
+
+  @override
+  String get uploadingFullCredential =>
+      'Đang tải toàn bộ credential lên IPFS...';
+
+  @override
+  String get sendingVerificationRequest =>
+      'Đang gửi yêu cầu xác thực lên blockchain...';
+
+  @override
+  String verificationRequestSuccess(String hash) {
+    return 'Yêu cầu xác thực đã được gửi thành công!\\nHash: $hash';
+  }
+
+  @override
+  String get verificationRequestCancelled =>
+      'Yêu cầu xác thực đã bị hủy trong ví của bạn. Vui lòng thử lại.';
+
+  @override
+  String get verificationRequestGasLimitHigh =>
+      'Gas limit quá cao. Hệ thống đã cố gắng điều chỉnh, nhưng ví của bạn có thể đang ước tính lại. Vui lòng thử lại hoặc giảm kích thước metadata nếu có thể.';
+
+  @override
+  String get verificationRequestTimeout =>
+      'Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.';
+
+  @override
+  String get walletConnectSessionDisconnected =>
+      'Phiên WalletConnect đã bị ngắt kết nối. Vui lòng kết nối lại ví.';
+
+  @override
+  String get verifyingCredential => 'Đang xác thực credential...';
+
+  @override
+  String get verifyCredentialDialogTitle => 'Xác thực credential';
+
+  @override
+  String get verifyCredentialDialogMessage =>
+      'Bạn có chắc chắn muốn xác thực credential này?';
+
+  @override
+  String get verifyCredentialConfirm => 'Xác thực';
+
+  @override
+  String credentialVerifiedMessage(String hash) {
+    return 'Credential đã được xác thực: $hash';
+  }
+
+  @override
+  String get verifyCredentialCancelled =>
+      'Xác thực credential đã bị hủy trong ví. Vui lòng thử lại.';
+
+  @override
+  String get requestVerificationButton => 'Gửi yêu cầu xác thực';
+
+  @override
+  String get verifyButton => 'Xác thực';
+
+  @override
+  String get credentialDetailsSectionTitle => 'Chi tiết';
+
+  @override
+  String get credentialFilesSectionTitle => 'Tệp đính kèm';
+
+  @override
+  String get credentialDetailTypeLabel => 'Loại';
+
+  @override
+  String get credentialDetailSubjectLabel => 'Chủ thể';
+
+  @override
+  String get credentialSignatureLabel => 'Chữ ký';
+
+  @override
+  String get credentialVerifiedByLabel => 'Được xác minh bởi';
+
+  @override
+  String get credentialVerifiedAtLabel => 'Thời gian xác minh';
+
+  @override
+  String get credentialGatewayLabel => 'Gateway';
+
+  @override
+  String get credentialGatewayDefault => 'Mặc định';
+
+  @override
+  String get credentialGatewayOriginal => 'Gốc';
+
+  @override
+  String get documentLabel => 'Tài liệu';
+
+  @override
+  String get openInBrowser => 'Mở trong trình duyệt';
+
+  @override
+  String get attachmentPreviewUnavailableTitle => 'Không thể xem trước tệp này';
+
+  @override
+  String get attachmentPreviewUnavailableSubtitle =>
+      'Vui lòng thử gateway khác hoặc mở trong trình duyệt.';
+
+  @override
+  String get viewFileTooltip => 'Xem tệp';
 }

@@ -11,7 +11,7 @@ import 'package:ssi_app/features/credentials/widgets/credential_form_field.dart'
 
 /// Dialog for issuing credentials with template-based forms
 class CredentialFormDialog extends StatefulWidget {
-  final void Function(Map<String, dynamic> credentialData) onSubmit;
+  final Future<bool> Function(Map<String, dynamic> credentialData) onSubmit;
 
   const CredentialFormDialog({
     super.key,
@@ -29,6 +29,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
   final Map<String, String> _fieldErrors = {};
   final _documentParserService = DocumentParserService();
   final _ocrService = OCRService();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -320,8 +321,9 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
     });
   }
 
-  void _validateAndSubmit() {
+  Future<void> _validateAndSubmit() async {
     final l10n = AppLocalizations.of(context)!;
+    if (_isSubmitting) return;
     if (_selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -362,7 +364,7 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Vui lòng điền đầy đủ thông tin bắt buộc'),
+          content: Text(l10n.pleaseFillRequiredFields),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -391,8 +393,26 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
       payload['expirationDate'] = payload['endDate'];
     }
 
-    widget.onSubmit(payload);
-    Navigator.pop(context);
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    bool success = false;
+    try {
+      success = await widget.onSubmit(payload);
+    } catch (e) {
+      success = false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+
+    if (success && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -446,8 +466,12 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                       ),
                       const SizedBox(height: 16),
                       ...CredentialTemplates.templates.map((template) {
+                        final title = CredentialTemplates.getTemplateName(template, l10n);
+                        final description = CredentialTemplates.getTemplateDescription(template, l10n);
                         return _TemplateCard(
                           template: template,
+                          title: title,
+                          description: description,
                           onTap: () => _selectTemplate(template),
                         );
                       }),
@@ -459,64 +483,69 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
             else
               // Form fields
               Expanded(
-                child: Column(
-                  children: [
-                    // Template info and back button
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        border: Border(
-                          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
-                            onPressed: () {
-                              setState(() {
-                                _selectedTemplate = null;
-                                _fieldValues.clear();
-                                _fieldErrors.clear();
-                              });
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(_selectedTemplate!.icon, color: AppColors.secondary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _selectedTemplate!.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  _selectedTemplate!.description,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
+                child: Builder(
+                  builder: (context) {
+                    final templateTitle = CredentialTemplates.getTemplateName(_selectedTemplate!, l10n);
+                    final templateDescription = CredentialTemplates.getTemplateDescription(_selectedTemplate!, l10n);
+
+                    return Column(
+                      children: [
+                        // Template info and back button
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            border: Border(
+                              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Form fields
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          children: [
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedTemplate = null;
+                                    _fieldValues.clear();
+                                    _fieldErrors.clear();
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(_selectedTemplate!.icon, color: AppColors.secondary),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      templateTitle,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      templateDescription,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Form fields
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              children: [
                             // Quick actions: Scan QR and OCR
                             Container(
                               padding: const EdgeInsets.all(16),
@@ -583,8 +612,10 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                       ),
                     ),
                   ],
-                ),
-              ),
+                );
+              },
+            ),
+          ),
             
             // Actions
             Container(
@@ -606,15 +637,35 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: _validateAndSubmit,
+                      onPressed: _isSubmitting ? null : _validateAndSubmit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: Text(
-                        l10n.createCredential,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: _isSubmitting
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.processing,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              l10n.createCredential,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
                 ],
@@ -629,10 +680,14 @@ class _CredentialFormDialogState extends State<CredentialFormDialog> {
 
 class _TemplateCard extends StatelessWidget {
   final CredentialTemplate template;
+  final String title;
+  final String description;
   final VoidCallback onTap;
 
   const _TemplateCard({
     required this.template,
+    required this.title,
+    required this.description,
     required this.onTap,
   });
 
@@ -665,7 +720,7 @@ class _TemplateCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    template.name,
+                    title,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -674,7 +729,7 @@ class _TemplateCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    template.description,
+                    description,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.6),

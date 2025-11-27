@@ -5,14 +5,15 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:ssi_app/app/theme/app_colors.dart';
 import 'package:ssi_app/core/utils/navigation_utils.dart';
-import 'package:ssi_app/services/ipfs/pinata_service.dart';
 import 'package:ssi_app/features/qr/display/qr_display_screen.dart';
 import 'package:ssi_app/features/qr/scanner/qr_scanner_screen.dart';
 import 'package:ssi_app/features/verify/view/verification_requests_screen.dart';
 import 'package:ssi_app/features/credentials/models/credential_models.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
+import 'package:ssi_app/services/role/role_context_provider.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
+import 'package:ssi_app/services/credentials/credential_metadata_cache.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -24,8 +25,10 @@ class VerifyScreen extends StatefulWidget {
 class _VerifyScreenState extends State<VerifyScreen> {
   final _web3Service = Web3Service();
   final _walletConnectService = WalletConnectService();
-  final _pinataService = PinataService();
+  final _roleContextProvider = RoleContextProvider();
+  final _metadataCache = CredentialMetadataCache();
   String _address = '';
+  String _orgId = '';
   bool _isTrustedVerifier = false;
   bool _isLoading = true;
   bool _isRefreshing = false;
@@ -51,35 +54,50 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
 
     try {
-      String? address = await _web3Service.loadWallet();
-      address ??= await _walletConnectService.getStoredAddress();
+      final roleContext =
+          await _roleContextProvider.load(forceRefresh: refresh);
+      String? address = roleContext?.address;
 
-      bool isTrusted = false;
+      if (address == null || address.isEmpty) {
+        setState(() {
+          _address = '';
+          _orgId = '';
+          _credentials = [];
+          _pendingRequests = [];
+          _isTrustedVerifier = false;
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+        return;
+      }
+
+      final resolvedAddress = address;
+      final orgId = roleContext?.orgId ?? resolvedAddress;
+      final isTrusted = roleContext?.isTrustedVerifier ?? false;
+
       List<Map<String, dynamic>> credentials = [];
       List<Map<String, dynamic>> pending = [];
 
-      if (address != null && address.isNotEmpty) {
-        credentials = await _web3Service.getVCs(address);
+      try {
+        credentials = await _web3Service.getVCs(orgId);
         credentials = await _hydrateCredentialSummaries(credentials);
+      } catch (e) {
+        debugPrint('[VerifyScreen] Error fetching credentials: $e');
+      }
 
+      if (isTrusted) {
         try {
-          isTrusted = await _web3Service.isTrustedVerifier(address);
+          pending =
+              await _web3Service.getAllVerificationRequests(onlyPending: true);
         } catch (e) {
-          debugPrint('[VerifyScreen] Error checking trusted verifier: $e');
-        }
-
-        if (isTrusted) {
-          try {
-            pending = await _web3Service.getAllVerificationRequests(onlyPending: true);
-          } catch (e) {
-            debugPrint('[VerifyScreen] Error loading requests: $e');
-          }
+          debugPrint('[VerifyScreen] Error loading requests: $e');
         }
       }
 
       if (!mounted) return;
       setState(() {
-        _address = address ?? '';
+        _address = resolvedAddress;
+        _orgId = orgId;
         _isTrustedVerifier = isTrusted;
         _credentials = credentials;
         _pendingRequests = pending;
@@ -110,7 +128,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
       }
 
       try {
-        final doc = await _pinataService.getJSON(uri);
+        final doc = await _metadataCache.get(uri);
+        if (doc == null) {
+          return enriched;
+        }
         final title = _extractTitleFromDocument(doc);
         if (title != null) {
           enriched['title'] = title;
@@ -232,13 +253,16 @@ class _VerifyScreenState extends State<VerifyScreen> {
                       onShowQr: _handleShowMyQr,
                       onScan: _showVerifyDialog,
                       l10n: l10n,
+                    showVerificationActions: _isTrustedVerifier,
                     ),
                     const SizedBox(height: 24),
                     _buildAddressSection(l10n),
+                  if (_isTrustedVerifier) ...[
                     const SizedBox(height: 24),
                     _buildVerificationQueueSection(l10n),
                     const SizedBox(height: 24),
                     _buildManualVerifyCard(l10n),
+                  ],
                   ],
                 ),
               ),
@@ -272,6 +296,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   Widget _buildVerificationQueueSection(AppLocalizations l10n) {
+    if (!_isTrustedVerifier) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -286,21 +314,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
               ),
             ),
             const Spacer(),
-            if (_isTrustedVerifier)
-              TextButton(
-                onPressed: _pendingRequests.isEmpty ? null : _openVerificationRequestsScreen,
-                child: Text(l10n.viewDetails),
-              ),
+            TextButton(
+              onPressed: _pendingRequests.isEmpty ? null : _openVerificationRequestsScreen,
+              child: Text(l10n.viewDetails),
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        if (!_isTrustedVerifier)
-          _InfoBanner(
-            icon: Icons.verified_outlined,
-            title: l10n.notTrustedVerifierTitle,
-            message: l10n.notTrustedVerifierMessage,
-          )
-        else if (_pendingRequests.isEmpty)
+        if (_pendingRequests.isEmpty)
           _InfoBanner(
             icon: Icons.inbox_outlined,
             title: l10n.noVerificationRequestsTitle,
@@ -424,7 +445,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
   void _showCredentialQrDialog(Map<String, dynamic> credential) {
     final qrPayload = {
       'type': 'VC',
-      'orgID': _address,
+      'orgID': _orgId.isNotEmpty ? _orgId : _address,
       'index': credential['index'],
       'hashCredential': credential['hashCredential'],
       'uri': credential['uri'],
@@ -693,6 +714,7 @@ class _QuickActionRow extends StatelessWidget {
     required this.onShowQr,
     required this.onScan,
     required this.l10n,
+    required this.showVerificationActions,
   });
 
   final bool isLoading;
@@ -701,9 +723,14 @@ class _QuickActionRow extends StatelessWidget {
   final VoidCallback onShowQr;
   final VoidCallback onScan;
   final AppLocalizations l10n;
+  final bool showVerificationActions;
 
   @override
   Widget build(BuildContext context) {
+    final scanDescription = showVerificationActions
+        ? l10n.verifyVC
+        : l10n.scanQr;
+
     return Row(
       children: [
         Expanded(
@@ -723,7 +750,7 @@ class _QuickActionRow extends StatelessWidget {
           child: _QuickActionButton(
             icon: Icons.qr_code_scanner,
             label: l10n.scanQr,
-            description: pendingCount > 0 ? '$pendingCount yêu cầu liên quan' : l10n.verifyVC,
+            description: scanDescription,
             onTap: onScan,
           ),
         ),

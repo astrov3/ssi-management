@@ -247,9 +247,15 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
         // Fallback to default URL if no gateways found
         final defaultUrl = widget.pinataService.resolveToHttp(attachment.uri);
         if (defaultUrl.isNotEmpty) {
-          _selectedGatewayLink = GatewayLink(label: AppLocalizations.of(context)!.defaultGateway, url: defaultUrl);
+          _selectedGatewayLink = GatewayLink(
+            label: AppLocalizations.of(context)!.credentialGatewayDefault,
+            url: defaultUrl,
+          );
         } else {
-          _selectedGatewayLink = GatewayLink(label: AppLocalizations.of(context)!.original, url: attachment.uri);
+          _selectedGatewayLink = GatewayLink(
+            label: AppLocalizations.of(context)!.credentialGatewayOriginal,
+            url: attachment.uri,
+          );
         }
       }
     });
@@ -535,12 +541,12 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
               if (widget.credential['verified'] == true) ...[
                 if (widget.credential['verifier'] != null)
                   CredentialDetailRow(
-                    label: 'Verified By',
+                    label: l10n.credentialVerifiedByLabel,
                     value: widget.credential['verifier'],
                   ),
                 if (verifiedSeconds != null && verifiedSeconds > 0)
                   CredentialDetailRow(
-                    label: 'Verified At',
+                    label: l10n.credentialVerifiedAtLabel,
                     value: DateTime.fromMillisecondsSinceEpoch(
                       verifiedSeconds * 1000,
                     ).toIso8601String(),
@@ -549,7 +555,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
               if (widget.vcDocument != null) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'Details',
+                  l10n.credentialDetailsSectionTitle,
                   style: TextStyle(
                     color: Colors.grey[900],
                     fontSize: 16,
@@ -558,13 +564,13 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                 ),
                 const SizedBox(height: 8),
                 CredentialDetailRow(
-                  label: 'Type',
+                  label: l10n.credentialDetailTypeLabel,
                   value:
                       (widget.vcDocument!['type'] as List?)?.join(', ') ??
                       'VerifiableCredential',
                 ),
                 CredentialDetailRow(
-                  label: 'Subject',
+                  label: l10n.credentialDetailSubjectLabel,
                   value:
                       (widget.vcDocument!['credentialSubject'] as Map?)?['id']
                           ?.toString() ??
@@ -584,14 +590,15 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       )),
                 if (widget.signatureValid != null)
                   CredentialDetailRow(
-                    label: 'Signature',
-                    value: widget.signatureValid! ? 'Valid' : 'Invalid',
+                    label: l10n.credentialSignatureLabel,
+                    value:
+                        widget.signatureValid! ? l10n.valid : l10n.invalidValue,
                   ),
               ],
               if (widget.attachments.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'Files',
+                  l10n.credentialFilesSectionTitle,
                   style: TextStyle(
                     color: Colors.grey[900],
                     fontSize: 16,
@@ -662,15 +669,25 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                                   if (defaultUrl.isNotEmpty) {
                                     return [
                                       PopupMenuItem<GatewayLink>(
-                                        value: GatewayLink(label: 'Default', url: defaultUrl),
-                                        child: const Text('Default'),
+                                        value: GatewayLink(
+                                          label: l10n.credentialGatewayDefault,
+                                          url: defaultUrl,
+                                        ),
+                                        child: Text(
+                                          l10n.credentialGatewayDefault,
+                                        ),
                                       ),
                                     ];
                                   }
                                   return [
                                     PopupMenuItem<GatewayLink>(
-                                      value: GatewayLink(label: 'Original', url: _previewingAttachment!.uri),
-                                      child: const Text('Original'),
+                                      value: GatewayLink(
+                                        label: l10n.credentialGatewayOriginal,
+                                        url: _previewingAttachment!.uri,
+                                      ),
+                                      child: Text(
+                                        l10n.credentialGatewayOriginal,
+                                      ),
                                     ),
                                   ];
                                 }
@@ -785,7 +802,8 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    _previewingAttachment?.fileName ?? 'Document',
+                                                    _previewingAttachment?.fileName ??
+                                                        l10n.documentLabel,
                                                     style: TextStyle(
                                                       color: Colors.grey[700],
                                                       fontSize: 12,
@@ -802,7 +820,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                                                     size: 20,
                                                   ),
                                                   onPressed: () => _openExternalLink(_selectedGatewayLink!.url),
-                                                  tooltip: 'Mở PDF trong trình duyệt',
+                                                  tooltip: l10n.openInBrowser,
                                                 ),
                                               ],
                                             ),
@@ -820,7 +838,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Gateway',
+                          l10n.credentialGatewayLabel,
                           style: TextStyle(
                             color: Colors.grey[900],
                             fontWeight: FontWeight.bold,
@@ -906,7 +924,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       child: ElevatedButton.icon(
                         onPressed: widget.onRequestVerification,
                         icon: const Icon(Icons.send),
-                        label: const Text('Request Verification'),
+                        label: Text(l10n.requestVerificationButton),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -921,7 +939,7 @@ class _CredentialDetailsDialogState extends State<CredentialDetailsDialog> {
                       child: ElevatedButton.icon(
                         onPressed: widget.onVerifyCredential,
                         icon: const Icon(Icons.verified),
-                        label: const Text('Verify'),
+                        label: Text(l10n.verifyButton),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           padding: const EdgeInsets.symmetric(vertical: 12),

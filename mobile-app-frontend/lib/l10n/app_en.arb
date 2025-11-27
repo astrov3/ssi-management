@@ -1527,6 +1527,183 @@
   "invalidValue": "Invalid value",
   "@invalidValue": {
     "description": "Generic validation error message"
+  },
+
+  "requestVerificationTitle": "Request Verification",
+  "@requestVerificationTitle": {
+    "description": "Title for the verification request dialog"
+  },
+  "requestVerificationDescription": "The entire credential content will be sent automatically to the verifier.",
+  "@requestVerificationDescription": {
+    "description": "Description shown in the verification request dialog"
+  },
+  "requestVerificationVcIndex": "VC Index: {index}",
+  "@requestVerificationVcIndex": {
+    "description": "Displays the VC index inside the verification request dialog",
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "requestVerificationAddressLabel": "Verifier address *",
+  "@requestVerificationAddressLabel": {
+    "description": "Label for the verifier address input field"
+  },
+  "requestVerificationAddressHint": "0x... (leave empty to allow any verifier)",
+  "@requestVerificationAddressHint": {
+    "description": "Hint text for the verifier address field"
+  },
+  "requestVerificationSubmit": "Send Request",
+  "@requestVerificationSubmit": {
+    "description": "Button label to submit verification request"
+  },
+  "loadingCredentialInformation": "Loading credential information...",
+  "@loadingCredentialInformation": {
+    "description": "Spinner message while loading credential data"
+  },
+  "unableToLoadCredentialInformation": "Unable to load credential information: {error}",
+  "@unableToLoadCredentialInformation": {
+    "description": "Error message when credential info cannot be loaded",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "credentialMissingInformation": "Credential has no information to send. Please check again.",
+  "@credentialMissingInformation": {
+    "description": "Error shown when there is no credential content"
+  },
+  "uploadingFullCredential": "Uploading full credential content to IPFS...",
+  "@uploadingFullCredential": {
+    "description": "Spinner message while uploading credential metadata"
+  },
+  "sendingVerificationRequest": "Sending verification request to the blockchain...",
+  "@sendingVerificationRequest": {
+    "description": "Spinner message while sending verification request"
+  },
+  "verificationRequestSuccess": "Verification request sent successfully!\\nHash: {hash}",
+  "@verificationRequestSuccess": {
+    "description": "Toast when verification request succeeds",
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationRequestCancelled": "Verification request was cancelled in your wallet. Please try again.",
+  "@verificationRequestCancelled": {
+    "description": "Error shown when user cancels verification request"
+  },
+  "verificationRequestGasLimitHigh": "Gas limit too high. The system tried to adjust automatically, but your wallet may be re-estimating. Please try again or reduce the metadata size if possible.",
+  "@verificationRequestGasLimitHigh": {
+    "description": "Error shown when gas limit is too high"
+  },
+  "verificationRequestTimeout": "Verification request timed out. Please try again.",
+  "@verificationRequestTimeout": {
+    "description": "Error shown when verification request times out"
+  },
+  "walletConnectSessionDisconnected": "WalletConnect session was disconnected. Please reconnect your wallet.",
+  "@walletConnectSessionDisconnected": {
+    "description": "Message when WalletConnect session disconnects"
+  },
+  "verifyingCredential": "Verifying credential...",
+  "@verifyingCredential": {
+    "description": "Spinner message while verifying a credential"
+  },
+  "verifyCredentialDialogTitle": "Verify Credential",
+  "@verifyCredentialDialogTitle": {
+    "description": "Title for verify credential confirmation dialog"
+  },
+  "verifyCredentialDialogMessage": "Are you sure you want to verify this credential?",
+  "@verifyCredentialDialogMessage": {
+    "description": "Body text for verify credential dialog"
+  },
+  "verifyCredentialConfirm": "Verify",
+  "@verifyCredentialConfirm": {
+    "description": "Confirmation button label for verify credential dialog"
+  },
+  "credentialVerifiedMessage": "Credential verified: {hash}",
+  "@credentialVerifiedMessage": {
+    "description": "Toast message when credential verification succeeds",
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyCredentialCancelled": "Credential verification was cancelled in your wallet. Please try again.",
+  "@verifyCredentialCancelled": {
+    "description": "Error shown when credential verification is cancelled"
+  },
+  "requestVerificationButton": "Request Verification",
+  "@requestVerificationButton": {
+    "description": "Button label for requesting verification"
+  },
+  "verifyButton": "Verify",
+  "@verifyButton": {
+    "description": "Generic verify button label"
+  },
+  "credentialDetailsSectionTitle": "Details",
+  "@credentialDetailsSectionTitle": {
+    "description": "Section title for credential details"
+  },
+  "credentialFilesSectionTitle": "Files",
+  "@credentialFilesSectionTitle": {
+    "description": "Section title for credential attachments"
+  },
+  "credentialDetailTypeLabel": "Type",
+  "@credentialDetailTypeLabel": {
+    "description": "Label for credential type row"
+  },
+  "credentialDetailSubjectLabel": "Subject",
+  "@credentialDetailSubjectLabel": {
+    "description": "Label for credential subject row"
+  },
+  "credentialSignatureLabel": "Signature",
+  "@credentialSignatureLabel": {
+    "description": "Label for credential signature row"
+  },
+  "credentialVerifiedByLabel": "Verified By",
+  "@credentialVerifiedByLabel": {
+    "description": "Label for verifier address row"
+  },
+  "credentialVerifiedAtLabel": "Verified At",
+  "@credentialVerifiedAtLabel": {
+    "description": "Label for verification timestamp row"
+  },
+  "credentialGatewayLabel": "Gateway",
+  "@credentialGatewayLabel": {
+    "description": "Label above gateway selector"
+  },
+  "credentialGatewayDefault": "Default",
+  "@credentialGatewayDefault": {
+    "description": "Label for default gateway option"
+  },
+  "credentialGatewayOriginal": "Original",
+  "@credentialGatewayOriginal": {
+    "description": "Label for original gateway option"
+  },
+  "documentLabel": "Document",
+  "@documentLabel": {
+    "description": "Generic label for documents"
+  },
+  "openInBrowser": "Open in browser",
+  "@openInBrowser": {
+    "description": "Button label to open a link in browser"
+  },
+  "attachmentPreviewUnavailableTitle": "Cannot preview this file",
+  "@attachmentPreviewUnavailableTitle": {
+    "description": "Title when attachment preview is unavailable"
+  },
+  "attachmentPreviewUnavailableSubtitle": "Try another gateway or open it in your browser.",
+  "@attachmentPreviewUnavailableSubtitle": {
+    "description": "Subtitle when attachment preview fails"
+  },
+  "viewFileTooltip": "View file",
+  "@viewFileTooltip": {
+    "description": "Tooltip for viewing attachment"
   }
 }
 

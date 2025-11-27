@@ -490,6 +490,74 @@
       }
     }
   },
-  "invalidValue": "Giá trị không hợp lệ"
+  "invalidValue": "Giá trị không hợp lệ",
+
+  "requestVerificationTitle": "Gửi yêu cầu xác thực",
+  "requestVerificationDescription": "Toàn bộ nội dung credential sẽ được gửi tự động đến cơ quan xác thực.",
+  "requestVerificationVcIndex": "VC Index: {index}",
+  "@requestVerificationVcIndex": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "requestVerificationAddressLabel": "Địa chỉ verifier *",
+  "requestVerificationAddressHint": "0x... (để trống nếu cho phép bất kỳ verifier nào)",
+  "requestVerificationSubmit": "Gửi yêu cầu",
+  "loadingCredentialInformation": "Đang tải thông tin credential...",
+  "unableToLoadCredentialInformation": "Không thể tải thông tin credential: {error}",
+  "@unableToLoadCredentialInformation": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "credentialMissingInformation": "Credential không có dữ liệu để gửi. Vui lòng kiểm tra lại.",
+  "uploadingFullCredential": "Đang tải toàn bộ credential lên IPFS...",
+  "sendingVerificationRequest": "Đang gửi yêu cầu xác thực lên blockchain...",
+  "verificationRequestSuccess": "Yêu cầu xác thực đã được gửi thành công!\\nHash: {hash}",
+  "@verificationRequestSuccess": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationRequestCancelled": "Yêu cầu xác thực đã bị hủy trong ví của bạn. Vui lòng thử lại.",
+  "verificationRequestGasLimitHigh": "Gas limit quá cao. Hệ thống đã cố gắng điều chỉnh, nhưng ví của bạn có thể đang ước tính lại. Vui lòng thử lại hoặc giảm kích thước metadata nếu có thể.",
+  "verificationRequestTimeout": "Yêu cầu xác thực đã hết thời gian. Vui lòng thử lại.",
+  "walletConnectSessionDisconnected": "Phiên WalletConnect đã bị ngắt kết nối. Vui lòng kết nối lại ví.",
+  "verifyingCredential": "Đang xác thực credential...",
+  "verifyCredentialDialogTitle": "Xác thực credential",
+  "verifyCredentialDialogMessage": "Bạn có chắc chắn muốn xác thực credential này?",
+  "verifyCredentialConfirm": "Xác thực",
+  "credentialVerifiedMessage": "Credential đã được xác thực: {hash}",
+  "@credentialVerifiedMessage": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyCredentialCancelled": "Xác thực credential đã bị hủy trong ví. Vui lòng thử lại.",
+  "requestVerificationButton": "Gửi yêu cầu xác thực",
+  "verifyButton": "Xác thực",
+  "credentialDetailsSectionTitle": "Chi tiết",
+  "credentialFilesSectionTitle": "Tệp đính kèm",
+  "credentialDetailTypeLabel": "Loại",
+  "credentialDetailSubjectLabel": "Chủ thể",
+  "credentialSignatureLabel": "Chữ ký",
+  "credentialVerifiedByLabel": "Được xác minh bởi",
+  "credentialVerifiedAtLabel": "Thời gian xác minh",
+  "credentialGatewayLabel": "Gateway",
+  "credentialGatewayDefault": "Mặc định",
+  "credentialGatewayOriginal": "Gốc",
+  "documentLabel": "Tài liệu",
+  "openInBrowser": "Mở trong trình duyệt",
+  "attachmentPreviewUnavailableTitle": "Không thể xem trước tệp này",
+  "attachmentPreviewUnavailableSubtitle": "Vui lòng thử gateway khác hoặc mở trong trình duyệt.",
+  "viewFileTooltip": "Xem tệp"
 }
 

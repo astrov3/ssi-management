@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ssi_app/l10n/app_localizations.dart';
 
 /// Credential field types
 enum CredentialFieldType {
@@ -806,6 +807,61 @@ class CredentialTemplates {
     } catch (e) {
       return null;
     }
+  }
+
+  static const Map<String, String> _templateNameEn = {
+    'identity_card': 'National ID Card',
+    'passport': 'Passport',
+    'driver_license': 'Driver License',
+    'university_degree': 'University Degree',
+    'high_school_diploma': 'High School Diploma',
+    'professional_certificate': 'Professional Certificate',
+    'training_certificate': 'Training Certificate',
+    'employment_certificate': 'Employment Certificate',
+    'work_permit': 'Work Permit',
+    'health_insurance': 'Health Insurance Card',
+    'vaccination_certificate': 'Vaccination Certificate',
+    'membership_card': 'Membership Card',
+    'generic': 'Custom Credential',
+  };
+
+  static const Map<String, String> _templateDescriptionEn = {
+    'identity_card': 'National identification credential (Citizen ID / ID card).',
+    'passport': 'International passport credential.',
+    'driver_license': 'Motor vehicle driver license.',
+    'university_degree': 'Bachelor, Master or Doctoral diploma.',
+    'high_school_diploma': 'Upper-secondary (high school) graduation certificate.',
+    'professional_certificate': 'Professional certification or skill badge.',
+    'training_certificate': 'Certificate of completion for training courses.',
+    'employment_certificate': 'Employment confirmation letter (position & organization).',
+    'work_permit': 'Work permit for foreign employees.',
+    'health_insurance': 'Medical / health insurance credential.',
+    'vaccination_certificate': 'Immunization history / vaccination record.',
+    'membership_card': 'Membership credential for clubs or organizations.',
+    'generic': 'General-purpose credential you can customize.',
+  };
+
+  static bool _isVietnamese(AppLocalizations l10n) =>
+      l10n.localeName.toLowerCase().startsWith('vi');
+
+  static String getTemplateName(
+    CredentialTemplate template,
+    AppLocalizations l10n,
+  ) {
+    if (_isVietnamese(l10n)) {
+      return template.name;
+    }
+    return _templateNameEn[template.id] ?? template.name;
+  }
+
+  static String getTemplateDescription(
+    CredentialTemplate template,
+    AppLocalizations l10n,
+  ) {
+    if (_isVietnamese(l10n)) {
+      return template.description;
+    }
+    return _templateDescriptionEn[template.id] ?? template.description;
   }
 }
 

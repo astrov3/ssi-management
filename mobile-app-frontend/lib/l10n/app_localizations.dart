@@ -2137,6 +2137,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid value'**
   String get invalidValue;
+
+  /// Title for the verification request dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Request Verification'**
+  String get requestVerificationTitle;
+
+  /// Description shown in the verification request dialog
+  ///
+  /// In en, this message translates to:
+  /// **'The entire credential content will be sent automatically to the verifier.'**
+  String get requestVerificationDescription;
+
+  /// Displays the VC index inside the verification request dialog
+  ///
+  /// In en, this message translates to:
+  /// **'VC Index: {index}'**
+  String requestVerificationVcIndex(String index);
+
+  /// Label for the verifier address input field
+  ///
+  /// In en, this message translates to:
+  /// **'Verifier address *'**
+  String get requestVerificationAddressLabel;
+
+  /// Hint text for the verifier address field
+  ///
+  /// In en, this message translates to:
+  /// **'0x... (leave empty to allow any verifier)'**
+  String get requestVerificationAddressHint;
+
+  /// Button label to submit verification request
+  ///
+  /// In en, this message translates to:
+  /// **'Send Request'**
+  String get requestVerificationSubmit;
+
+  /// Spinner message while loading credential data
+  ///
+  /// In en, this message translates to:
+  /// **'Loading credential information...'**
+  String get loadingCredentialInformation;
+
+  /// Error message when credential info cannot be loaded
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load credential information: {error}'**
+  String unableToLoadCredentialInformation(String error);
+
+  /// Error shown when there is no credential content
+  ///
+  /// In en, this message translates to:
+  /// **'Credential has no information to send. Please check again.'**
+  String get credentialMissingInformation;
+
+  /// Spinner message while uploading credential metadata
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading full credential content to IPFS...'**
+  String get uploadingFullCredential;
+
+  /// Spinner message while sending verification request
+  ///
+  /// In en, this message translates to:
+  /// **'Sending verification request to the blockchain...'**
+  String get sendingVerificationRequest;
+
+  /// Toast when verification request succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Verification request sent successfully!\\nHash: {hash}'**
+  String verificationRequestSuccess(String hash);
+
+  /// Error shown when user cancels verification request
+  ///
+  /// In en, this message translates to:
+  /// **'Verification request was cancelled in your wallet. Please try again.'**
+  String get verificationRequestCancelled;
+
+  /// Error shown when gas limit is too high
+  ///
+  /// In en, this message translates to:
+  /// **'Gas limit too high. The system tried to adjust automatically, but your wallet may be re-estimating. Please try again or reduce the metadata size if possible.'**
+  String get verificationRequestGasLimitHigh;
+
+  /// Error shown when verification request times out
+  ///
+  /// In en, this message translates to:
+  /// **'Verification request timed out. Please try again.'**
+  String get verificationRequestTimeout;
+
+  /// Message when WalletConnect session disconnects
+  ///
+  /// In en, this message translates to:
+  /// **'WalletConnect session was disconnected. Please reconnect your wallet.'**
+  String get walletConnectSessionDisconnected;
+
+  /// Spinner message while verifying a credential
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying credential...'**
+  String get verifyingCredential;
+
+  /// Title for verify credential confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Credential'**
+  String get verifyCredentialDialogTitle;
+
+  /// Body text for verify credential dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to verify this credential?'**
+  String get verifyCredentialDialogMessage;
+
+  /// Confirmation button label for verify credential dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyCredentialConfirm;
+
+  /// Toast message when credential verification succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Credential verified: {hash}'**
+  String credentialVerifiedMessage(String hash);
+
+  /// Error shown when credential verification is cancelled
+  ///
+  /// In en, this message translates to:
+  /// **'Credential verification was cancelled in your wallet. Please try again.'**
+  String get verifyCredentialCancelled;
+
+  /// Button label for requesting verification
+  ///
+  /// In en, this message translates to:
+  /// **'Request Verification'**
+  String get requestVerificationButton;
+
+  /// Generic verify button label
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyButton;
+
+  /// Section title for credential details
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get credentialDetailsSectionTitle;
+
+  /// Section title for credential attachments
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get credentialFilesSectionTitle;
+
+  /// Label for credential type row
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get credentialDetailTypeLabel;
+
+  /// Label for credential subject row
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get credentialDetailSubjectLabel;
+
+  /// Label for credential signature row
+  ///
+  /// In en, this message translates to:
+  /// **'Signature'**
+  String get credentialSignatureLabel;
+
+  /// Label for verifier address row
+  ///
+  /// In en, this message translates to:
+  /// **'Verified By'**
+  String get credentialVerifiedByLabel;
+
+  /// Label for verification timestamp row
+  ///
+  /// In en, this message translates to:
+  /// **'Verified At'**
+  String get credentialVerifiedAtLabel;
+
+  /// Label above gateway selector
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway'**
+  String get credentialGatewayLabel;
+
+  /// Label for default gateway option
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get credentialGatewayDefault;
+
+  /// Label for original gateway option
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get credentialGatewayOriginal;
+
+  /// Generic label for documents
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentLabel;
+
+  /// Button label to open a link in browser
+  ///
+  /// In en, this message translates to:
+  /// **'Open in browser'**
+  String get openInBrowser;
+
+  /// Title when attachment preview is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot preview this file'**
+  String get attachmentPreviewUnavailableTitle;
+
+  /// Subtitle when attachment preview fails
+  ///
+  /// In en, this message translates to:
+  /// **'Try another gateway or open it in your browser.'**
+  String get attachmentPreviewUnavailableSubtitle;
+
+  /// Tooltip for viewing attachment
+  ///
+  /// In en, this message translates to:
+  /// **'View file'**
+  String get viewFileTooltip;
 }
 
 class _AppLocalizationsDelegate

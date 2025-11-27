@@ -15,7 +15,6 @@ import 'package:ssi_app/features/dashboard/widgets/wallet_card.dart';
 import 'package:ssi_app/features/did/view/did_management_screen.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
-import 'package:ssi_app/services/role/role_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/wallet/wallet_state_manager.dart';
@@ -30,10 +29,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _web3Service = Web3Service();
   final _walletConnectService = WalletConnectService();
-  final _roleService = RoleService();
   final _pinataService = PinataService();
   final _walletStateManager = WalletStateManager();
   String _address = '';
+  String _orgId = '';
   int _vcCount = 0;
   int _verifiedCount = 0;
   bool _isLoading = true;
@@ -47,12 +46,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadWalletData();
-  }
-
-  @override
-  void dispose() {
-    _roleService.dispose();
-    super.dispose();
   }
 
   Future<void> _loadWalletData({bool forceRefresh = false}) async {
@@ -70,7 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       final address = state.address;
-      final vcs = await _safeFetchVCs(address);
+      final orgId = state.orgId;
+      final vcs = state.vcs.isNotEmpty ? state.vcs : await _safeFetchVCs(orgId);
       
       // Count verified credentials (only those verified by trusted verifier)
       final verifiedCount = vcs.where((vc) => vc['verified'] == true).length;
@@ -79,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Map<String, dynamic>? didData;
       bool isOwner = false;
       try {
-        didData = state.didData ?? await _web3Service.getDID(address);
+        didData = state.didData ?? await _web3Service.getDID(orgId);
         if (didData != null) {
           isOwner = didData['owner'].toString().toLowerCase() == address.toLowerCase() && didData['active'] == true;
         }
@@ -104,6 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() {
         _address = address;
+        _orgId = orgId;
         _vcCount = vcs.length;
         _verifiedCount = verifiedCount;
         _didData = didData;
@@ -185,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                       const SizedBox(height: 32),
                       QuickActions(
-                        orgId: _address,
+                        orgId: _orgId.isNotEmpty ? _orgId : _address,
                         isOwnerOnChain: _isOwner,
                         isAdmin: _isAdmin,
                         isVerifier: _isVerifier,
@@ -209,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _showRegisterDIDDialog() {
-    final orgIDController = TextEditingController(text: _address);
+    final orgIDController = TextEditingController(text: _orgId.isNotEmpty ? _orgId : _address);
 
     showDialog<void>(
       context: context,

@@ -728,18 +728,6 @@ class _VerificationRequestDetailDialogState extends State<VerificationRequestDet
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (!canVerify && !canCancel)
-                    const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text(
-                        'You are not allowed to verify or cancel this request',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                 ],
               ),
             ),

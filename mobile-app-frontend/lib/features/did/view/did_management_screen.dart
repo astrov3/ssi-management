@@ -11,7 +11,7 @@ import 'package:ssi_app/features/did/widgets/action_button.dart';
 import 'package:ssi_app/features/did/widgets/did_info_card.dart';
 import 'package:ssi_app/l10n/app_localizations.dart';
 import 'package:ssi_app/services/ipfs/pinata_service.dart';
-import 'package:ssi_app/services/role/role_service.dart';
+import 'package:ssi_app/services/role/role_context_provider.dart';
 import 'package:ssi_app/services/wallet/wallet_connect_service.dart';
 import 'package:ssi_app/services/web3/web3_service.dart';
 
@@ -24,7 +24,7 @@ class DIDManagementScreen extends StatefulWidget {
 
 class _DIDManagementScreenState extends State<DIDManagementScreen> {
   final _web3Service = Web3Service();
-  final _roleService = RoleService();
+  final _roleContextProvider = RoleContextProvider();
   final _pinataService = PinataService();
   
   String? _currentAddress;
@@ -32,6 +32,8 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
   Map<String, dynamic>? _didData;
   bool _isLoading = true;
   bool _isOwner = false;
+  bool _isTrustedVerifier = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -39,61 +41,33 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
     _loadData();
   }
 
-  @override
-  void dispose() {
-    _roleService.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final address = await _roleService.getCurrentAddress();
-      if (address == null || address.isEmpty) {
+      final roleContext = await _roleContextProvider.load(forceRefresh: true);
+      if (roleContext == null) {
         if (!mounted) return;
         setState(() {
           _currentAddress = null;
+          _currentOrgID = null;
+          _didData = null;
+          _isOwner = false;
+          _isTrustedVerifier = false;
+          _isAdmin = false;
           _isLoading = false;
         });
         return;
       }
 
-      setState(() => _currentAddress = address);
-      
-      // Use address as default orgID for testing, or allow user to specify
-      final orgID = address;
-      _currentOrgID = orgID;
-
-      try {
-        final did = await _web3Service.getDID(orgID);
-        if (did == null) {
-          // DID doesn't exist yet
-          if (!mounted) return;
-          setState(() {
-            _didData = null;
-            _isOwner = false;
-            _isLoading = false;
-          });
-          return;
-        }
-        
-        final isOwner = await _roleService.isOwnerOf(orgID, address);
-        
-        if (!mounted) return;
-        setState(() {
-          _didData = did;
-          _isOwner = isOwner;
-          _isLoading = false;
-        });
-      } catch (_) {
-        // Error occurred
-        if (!mounted) return;
-        setState(() {
-          _didData = null;
-          _isOwner = false;
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _currentAddress = roleContext.address;
+        _currentOrgID = roleContext.orgId;
+        _didData = roleContext.didData;
+        _isOwner = roleContext.isOwner;
+        _isTrustedVerifier = roleContext.isTrustedVerifier;
+        _isAdmin = roleContext.isAdmin;
+        _isLoading = false;
+      });
     } catch (e) {
       debugPrint('Error loading DID data: $e');
       if (!mounted) return;
@@ -724,6 +698,7 @@ class _DIDManagementScreenState extends State<DIDManagementScreen> {
         didData: didDataForDialog,
         didDocument: didDocument,
         pinataService: _pinataService,
+        showVerificationTools: _isTrustedVerifier || _isAdmin,
       ),
     );
   }
